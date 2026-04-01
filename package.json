@@ -10,6 +10,7 @@
     "dev:clean": "npx rimraf dist-electron && vite",
     "build": "vite build",
     "dist": "npm run build && electron-builder --win --x64",
+    "dist:linux": "npm run build && electron-builder --linux",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -89,6 +90,12 @@
         }
       ],
       "icon": "public/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "public/icon.png"
     },
     "nsis": {
       "oneClick": false,
