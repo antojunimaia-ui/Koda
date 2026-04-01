@@ -1,6 +1,7 @@
 <div align="center">
 
-# Koda Electron 🧠
+# Koda 🧠
+
 **O Agente Autônomo Avançado de Engenharia de Software**
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
@@ -24,7 +25,7 @@ O Koda transcende o limite dos chatbots tradicionais. Rodando localmente como um
 
 - 🤖 **Pair-Programming Autônomo**: Você não precisa copiar e colar código. O Koda acessa seu repositório, compreende a arquitetura e edita os arquivos diretamente.
 - ⚡ **Integração Real (PTY Terminal)**: Graças a ferramentas integradas e um pseudoterminal real em segundo plano (`node-pty`), o Koda pode rodar comandos: instalar dependências, compilar o código, checar o status do git e controlar processos, tudo de forma autônoma.
-- 📋 **Plan Mode (Modo de Planejamento)**: Para refinamentos arquiteturais e mudanças destrutivas, o Koda desenha um "plano tático" do que será alterado antes de tocar no código. Revise, edite e **Aprove** ou **Rejeite** cada passo visualmente na interface. 
+- 📋 **Plan Mode (Modo de Planejamento)**: Para refinamentos arquiteturais e mudanças destrutivas, o Koda desenha um "plano tático" do que será alterado antes de tocar no código. Revise, edite e **Aprove** ou **Rejeite** cada passo visualmente na interface.
 - 🧠 **Aguda Inteligência de Código via LSP**: O Koda integra regras semânticas (Language Server Protocol), possuindo auto-complete interno, análise de linting em tempo real e resolução precisa de dependências espalhadas pelo projeto.
 - 🌍 **Agnóstico de Modelos (LLM)**: Nativamente, o Koda suporta os maiores provedores do mercado e sincroniza a lista de modelos dinamicamente via API. Você não precisará decorar IDs de modelos obscuros, basta selecionar num dropdown!
   - **OpenRouter**: Acesso liberado a centenas de LLMs abertos e fechados em uma única API.
@@ -38,7 +39,9 @@ O Koda transcende o limite dos chatbots tradicionais. Rodando localmente como um
 ## 💻 Instalação
 
 ### Pré-requisitos
+
 Certifique-se de que sua máquina atende aos requisitos básicos:
+
 - [Node.js](https://nodejs.org/) (Versão 20 ou superior)
 - Git instalado no seu `PATH`
 - Chave de API de um provedor LLM habilitado (OpenAI, Anthropic ou Google Gemini)
@@ -46,6 +49,7 @@ Certifique-se de que sua máquina atende aos requisitos básicos:
 ### Rodando o Koda em Desenvolvimento
 
 1. **Clone o Repositório:**
+
    ```bash
    git clone https://github.com/antojunimaia-ui/Koda.git
    cd Koda
@@ -53,12 +57,14 @@ Certifique-se de que sua máquina atende aos requisitos básicos:
 
 2. **Instalação das Dependências:**
    Instale os pacotes principais e dependências nativas (necessário um compilador C++ no sistema para o `node-pty`):
+
    ```bash
    npm install
    ```
 
 3. **Iniciando o Ambiente:**
    Sempre inicie através do nosso script estendido, para evitar builds duplicados indesejados no dev-server do Vite/Electron:
+
    ```bash
    npm run dev:clean
    ```
@@ -93,6 +99,7 @@ Para uso isolado cotidiano, o Koda conta com scripts do popular framework **Elec
 ```bash
 npm run dist
 ```
+
 Ao final do build, você encontrará o instalador (`Koda Setup.exe`) e a variante Unpacked (descompactada e rápida) alocada nativamente na pasta `./release`.
 </details>
 
@@ -102,6 +109,7 @@ Ao final do build, você encontrará o instalador (`Koda Setup.exe`) e a variant
 ```bash
 npm run dist:linux
 ```
+
 Requer dependências padrão de empacotamento ativas na sua Distro (Ubuntu/Debian).
 </details>
 
