@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cyan: #22d3ee;
+  --color-green: #10b981;
+  --color-yellow: #fbbf24;
+  --color-magenta: #d946ef;
+  --color-gray: #64748b;
+  --color-slate-900: #0f172a;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-slate-200 antialiased;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+}
+
+.titlebar-drag {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.terminal-box {
+  @apply border border-cyan rounded-lg p-2;
+}
+
+.terminal-box-gray {
+  @apply border border-gray rounded-lg p-2;
+}
+
+.terminal-input-container {
+  @apply border border-cyan rounded-lg px-3 py-1 flex items-center gap-2;
+}
+
+.terminal-input-disabled {
+  @apply border-gray text-gray;
+}
+
+.terminal-header {
+  @apply flex flex-col gap-1 mb-4;
+}
+
+.terminal-scroll-area {
+  @apply flex-1 overflow-y-auto mb-4;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.2) transparent;
+}
+
+kbd {
+  @apply bg-slate-800 border border-slate-700 rounded px-1 text-[10px];
+}
+
+/* Markdown Base Styles */
+.markdown-body {
+  @apply text-[13px] leading-relaxed break-words;
+}
+
+.markdown-body p {
+  @apply mb-3 last:mb-0;
+}
+
+.markdown-body a {
+  @apply text-cyan hover:underline;
+}
+
+.markdown-body strong {
+  @apply font-bold text-white;
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+  @apply text-white font-bold mt-4 mb-2;
+}
+
+.markdown-body h1 { @apply text-lg; }
+.markdown-body h2 { @apply text-base border-b border-slate-700 pb-1; }
+.markdown-body h3 { @apply text-sm; }
+
+.markdown-body ul {
+  @apply list-disc list-inside mb-3 ml-2 marker:text-cyan;
+}
+
+.markdown-body ol {
+  @apply list-decimal list-inside mb-3 ml-2 marker:text-cyan;
+}
+
+.markdown-body li {
+  @apply mb-1;
+}
+
+.markdown-body blockquote {
+  @apply border-l-2 border-cyan pl-3 py-1 mb-3 text-slate-400 italic bg-slate-800/20 rounded-r;
+}
+
+.markdown-body pre {
+  @apply bg-slate-950 border border-slate-700 rounded-lg p-3 my-3 overflow-x-auto text-[12px];
+}
+
+.markdown-body code {
+  @apply bg-slate-800 text-cyan px-1.5 py-0.5 rounded text-[11px] font-mono;
+}
+
+.markdown-body pre code {
+  @apply bg-transparent text-slate-300 p-0 text-[12px] md:text-[13px];
+}
+
+/* Custom HLJS overrides for our theme */
+.hljs {
+  @apply bg-transparent p-0;
+}
+
+/* Custom Scrollbar for Tools */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-700/50 rounded;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-600/80;
+}
