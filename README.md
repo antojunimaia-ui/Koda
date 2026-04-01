@@ -16,12 +16,14 @@ O Koda é um Agente Autônomo Avançado de Engenharia de Software, desenhado par
 ## 💻 Instalação / Como Rodar
 
 ### Pré-requisitos
+
 - [Node.js](https://nodejs.org/) (versão 20+)
 - Uma chave de API válida (OpenAI, Anthropic ou Google Gemini)
 
 ### Rodando o App de Desenvolvimento
 
 1. **Clone do repositório**:
+
    ```bash
    git clone https://github.com/antojunimaia-ui/Koda.git
    cd Koda
@@ -29,6 +31,7 @@ O Koda é um Agente Autônomo Avançado de Engenharia de Software, desenhado par
 
 2. **Instalação das dependências e limpeza (para Electron nativo)**:
    Recomendamos sempre usar o script de clean na inicialização para evitar builds duplos indesejados no dev-server do Electron:
+
    ```bash
    npm install
    npm run dev:clean
@@ -36,7 +39,7 @@ O Koda é um Agente Autônomo Avançado de Engenharia de Software, desenhado par
 
 3. **Iniciando o Koda**:
    O UI será renderizado assim que a inicialização paralela de plugins ocorrer.
-   
+
 Nenhuma `.env` é necessária no seu PC. Apenas inicie e, no chat do Koda, digite `/agent`. Vai abrir uma tela de configurações na própria Interface para você informar seu Provider, Modelo preferido, e esconder sua API Key com segurança no `localStorage`.
 
 ---
@@ -55,18 +58,19 @@ Dentro do fluxo de chat principal do Koda, você domina sua sessão com comandos
 
 ---
 
-## 📦 Build Nativo (.exe)
+## 📦 Build Nativo (Windows / Linux)
 
 Você pode compilar o projeto em um executável autossustentável Windows usando o processo NSIS provido pelo Electron-Builder.
 
 ```bash
 npm run dist
+npm run dist:linux
 ```
 
-O Electron-Builder pulará recompilações de dependências pesadas (`node-pty`) e usufruirá dos pré-builds dentro do diretório gerado `release/`. Lá, você encontrará o `Koda Setup 1.0.0.exe`. 
+O Electron-Builder pulará recompilações de dependências pesadas (`node-pty`) e usufruirá dos pré-builds dentro do diretório gerado `release/`. Lá, você encontrará o `Koda Setup 1.0.0.exe`, e caso esteja no Linux, o Koda para Linux estara nesta pasta tambem.
 
 ---
 
-## 📜 Licença 
+## 📜 Licença
 
 Este software e estrutura estão liberados e mantidos sob os termos normativos da **[Licença BSD-3](./LICENSE)**. (C) 2026, antojunimaia-ui.
