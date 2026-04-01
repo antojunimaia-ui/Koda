@@ -27,6 +27,7 @@ dist-ssr
 
 # Electron
 release
+release-build
 out
 dist-electron
 

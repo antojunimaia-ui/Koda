@@ -61,7 +61,7 @@
     "npmRebuild": false,
     "copyright": "Copyright © 2025 Koda",
     "directories": {
-      "output": "release"
+      "output": "release-build"
     },
     "files": [
       "dist/**/*",

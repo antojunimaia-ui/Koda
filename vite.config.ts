@@ -10,6 +10,7 @@ import pkg from './package.json'
 const external = Object.keys(pkg.dependencies || {})
 
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     tailwindcss(),
