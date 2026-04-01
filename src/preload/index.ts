@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('koda', {
   cd: (path: string) => ipcRenderer.invoke('agent:cd', path),
   setApiKey: (key: string) => ipcRenderer.invoke('agent:apikey', key),
   setModel: (model: string) => ipcRenderer.invoke('agent:model', model),
+  getModels: (provider: string, apiKey: string) => ipcRenderer.invoke('agent:getModels', provider, apiKey),
   setup: (config: { provider?: string, model?: string, apiKey?: string }) => ipcRenderer.invoke('agent:setup', config),
   onUpdate: (callback: (update: any) => void) => {
     ipcRenderer.on('agent:update', (_event, update) => callback(update))

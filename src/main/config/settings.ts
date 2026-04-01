@@ -32,7 +32,7 @@ try {
   // Ignore
 }
 
-export type LLMProvider = "openai" | "anthropic" | "google";
+export type LLMProvider = "openai" | "anthropic" | "google" | "openrouter";
 
 export interface AppSettings {
   provider: LLMProvider;
@@ -47,6 +47,7 @@ const DEFAULT_MODELS: Record<LLMProvider, string> = {
   openai: "gpt-4o",
   anthropic: "claude-sonnet-4-20250514",
   google: "gemini-2.0-flash",
+  openrouter: "anthropic/claude-3.7-sonnet",
 };
 
 export function getSettings(): AppSettings {
@@ -56,12 +57,14 @@ export function getSettings(): AppSettings {
     openai: process.env.OPENAI_API_KEY || "",
     anthropic: process.env.ANTHROPIC_API_KEY || "",
     google: process.env.GOOGLE_API_KEY || "",
+    openrouter: process.env.OPENROUTER_API_KEY || "",
   };
 
   const modelOverride: Record<LLMProvider, string | undefined> = {
     openai: process.env.OPENAI_MODEL,
     anthropic: process.env.ANTHROPIC_MODEL,
     google: process.env.GOOGLE_MODEL,
+    openrouter: process.env.OPENROUTER_MODEL,
   };
 
   return {

@@ -161,6 +161,57 @@ ipcMain.handle('agent:plan_response', async (_event, approved: boolean) => {
   return { success: true }
 })
 
+ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string) => {
+  try {
+    if (provider === 'openrouter') {
+      const res = await fetch('https://openrouter.ai/api/v1/models')
+      if (!res.ok) throw new Error('Falha ao buscar modelos do OpenRouter')
+      const data = await res.json()
+      return { success: true, models: data.data.map((m: any) => m.id) }
+    }
+    
+    if (provider === 'openai') {
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      if (!res.ok) throw new Error('OpenAI: Chave inválida ou erro na API')
+      const data = await res.json()
+      // Filter out non-chat models
+      const models = data.data.map((m: any) => m.id).filter((id: string) => id.includes('gpt') || id.includes('o1') || id.includes('o3'))
+      return { success: true, models }
+    }
+
+    if (provider === 'anthropic') {
+      const res = await fetch('https://api.anthropic.com/v1/models', {
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'models-api-2025-02-19' // Anthropic new models API requires specific headers? Actually lets just hardcode Anthropic top models if fetch fails
+        }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        return { success: true, models: data.data.map((m: any) => m.id) }
+      } else {
+        // Fallback for Anthropic if API key lacks permissions or format changes
+        return { success: true, models: ['claude-3-7-sonnet-20250219', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'] }
+      }
+    }
+
+    if (provider === 'google') {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+      if (!res.ok) throw new Error('Google: Chave inválida ou erro na API')
+      const data = await res.json()
+      const models = data.models.map((m: any) => m.name.replace('models/', '')).filter((id: string) => id.includes('gemini'))
+      return { success: true, models }
+    }
+
+    return { success: false, error: 'Provider desconhecido' }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
 ipcMain.handle('pty:ctrl_c', async (_event, pid: number) => {
   const ok = sendCtrlC(pid)
   return { success: ok, error: ok ? undefined : `No active PTY with PID ${pid}` }

@@ -7,6 +7,7 @@ import { PromptBuilder } from "./prompt-builder.js";
 import { OpenAIProvider } from "../providers/openai.js";
 import { AnthropicProvider } from "../providers/anthropic.js";
 import { GoogleProvider } from "../providers/google.js";
+import { OpenRouterProvider } from "../providers/openrouter.js";
 
 const MAX_TOOL_ITERATIONS = 25;
 
@@ -38,6 +39,8 @@ export class Agent {
         return new AnthropicProvider(model, apiKey, maxTokens, temperature);
       case "google":
         return new GoogleProvider(model, apiKey, maxTokens, temperature);
+      case "openrouter":
+        return new OpenRouterProvider(model, apiKey, maxTokens, temperature);
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
@@ -242,7 +245,9 @@ export class Agent {
     this.settings.model = model;
 
     // Detect provider from model name
-    if (model.includes("claude")) {
+    if (model.includes("/")) {
+      this.settings.provider = "openrouter";
+    } else if (model.includes("claude")) {
       this.settings.provider = "anthropic";
     } else if (model.includes("gemini")) {
       this.settings.provider = "google";

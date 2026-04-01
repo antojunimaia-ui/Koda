@@ -268,6 +268,33 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel }: {
   const [provider, setProvider] = useState(defaultProvider || 'openai')
   const [model, setModel] = useState(defaultModel || 'gpt-4o')
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('koda_api_key') || '')
+  const [models, setModels] = useState<string[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(false)
+
+  useEffect(() => {
+    if (!apiKey && provider !== 'openrouter') {
+      setModels([])
+      return
+    }
+    
+    setIsLoadingModels(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await window.koda.getModels(provider, apiKey)
+        if (res.success && res.models) {
+          setModels(res.models)
+        } else {
+          setModels([])
+        }
+      } catch (err) {
+        setModels([])
+      } finally {
+        setIsLoadingModels(false)
+      }
+    }, 600)
+    
+    return () => clearTimeout(timer)
+  }, [provider, apiKey])
 
   const handleSave = () => {
     localStorage.setItem('koda_api_key', apiKey)
@@ -295,18 +322,33 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel }: {
               <option value="openai">OpenAI</option>
               <option value="anthropic">Anthropic</option>
               <option value="google">Google Gemini</option>
+              <option value="openrouter">OpenRouter</option>
             </select>
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-slate-300 font-bold text-xs uppercase tracking-wider">Modelo</label>
-            <input 
-              type="text" 
-              value={model} 
-              onChange={e => setModel(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-cyan-500 transition-colors"
-              placeholder="ex: claude-3-7-sonnet-20250219"
-            />
+            <div className="flex justify-between items-center">
+              <label className="text-slate-300 font-bold text-xs uppercase tracking-wider">Modelo</label>
+              {isLoadingModels && <span className="text-[10px] text-cyan-400 animate-pulse">Sincronizando modelos...</span>}
+            </div>
+            {models.length > 0 ? (
+              <select 
+                value={model} 
+                onChange={e => setModel(e.target.value)}
+                className="bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-cyan-500 transition-colors custom-scrollbar"
+              >
+                {!models.includes(model) && <option value={model}>{model} (Atual)</option>}
+                {models.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            ) : (
+              <input 
+                type="text" 
+                value={model} 
+                onChange={e => setModel(e.target.value)}
+                className="bg-slate-800 border border-slate-700 text-white rounded p-2 outline-none focus:border-cyan-500 transition-colors"
+                placeholder="ex: claude-3-7-sonnet-20250219"
+              />
+            )}
           </div>
 
           <div className="flex flex-col gap-2">

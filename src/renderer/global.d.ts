@@ -13,6 +13,7 @@ declare global {
       cd: (path: string) => Promise<{ success: boolean; info?: any; error?: string }>
       setApiKey: (key: string) => Promise<{ success: boolean; info?: any; error?: string }>
       setModel: (model: string) => Promise<{ success: boolean; info?: any; error?: string }>
+      getModels: (provider: string, apiKey: string) => Promise<{ success: boolean; models?: string[]; error?: string }>
       setup: (config: { provider?: string, model?: string, apiKey?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
       onUpdate: (callback: (update: any) => void) => void
       removeUpdateListener: () => void
