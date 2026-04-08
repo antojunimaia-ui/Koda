@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { Agent } from './core/agent.js'
 import { resolvePlanApproval } from './tools/plan.js'
 import { sendCtrlC, killPty } from './tools/shell.js'
+import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
 import dotenv from 'dotenv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -27,11 +28,6 @@ function createWindow() {
     backgroundColor: '#0f172a',
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#0f172a',
-      symbolColor: '#74b1be',
-      height: 32
-    },
     webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,
@@ -74,6 +70,15 @@ ipcMain.handle('window:maximize', () => {
 ipcMain.handle('window:close', () => {
   mainWindow?.close()
 })
+ipcMain.handle('window:open_directory', async () => {
+  if (!mainWindow) return null
+  const { dialog } = await import('electron')
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory']
+  })
+  if (result.canceled) return null
+  return result.filePaths[0]
+})
 
 // IPC Handlers for the Agent
 ipcMain.handle('agent:init', async () => {
@@ -89,8 +94,12 @@ ipcMain.handle('agent:init', async () => {
   }
 })
 
-ipcMain.handle('agent:message', async (event, message: string) => {
+ipcMain.handle('agent:message', async (event, messageId: number, message: string) => {
   if (!agent) return { error: 'Agent not initialized' }
+
+  // Snapshot the workspace BEFORE the agent touches anything
+  const convLength = agent.getConversationLength()
+  await createSnapshot(messageId, convLength)
 
   try {
     await agent.processMessage(
@@ -100,6 +109,18 @@ ipcMain.handle('agent:message', async (event, message: string) => {
       (name, result, success) => mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result, success }),
       (error) => mainWindow?.webContents.send('agent:update', { type: 'error', message: error })
     )
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+})
+
+ipcMain.handle('snapshot:restore', async (_event, messageId: number) => {
+  if (!agent) return { success: false, error: 'Agent not initialized' }
+  try {
+    const result = await restoreSnapshot(messageId)
+    if (!result) return { success: false, error: 'No snapshot found for this message.' }
+    agent.rollbackConversation(result.conversationLength)
     return { success: true }
   } catch (error) {
     return { success: false, error: (error as Error).message }
@@ -165,7 +186,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
   try {
     if (provider === 'openrouter') {
       const res = await fetch('https://openrouter.ai/api/v1/models')
-      if (!res.ok) throw new Error('Falha ao buscar modelos do OpenRouter')
+      if (!res.ok) throw new Error('Failed to fetch models from OpenRouter')
       const data = await res.json()
       return { success: true, models: data.data.map((m: any) => m.id) }
     }
@@ -174,7 +195,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
       const res = await fetch('https://api.openai.com/v1/models', {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
-      if (!res.ok) throw new Error('OpenAI: Chave inválida ou erro na API')
+      if (!res.ok) throw new Error('OpenAI: Invalid API key or API error')
       const data = await res.json()
       // Filter out non-chat models
       const models = data.data.map((m: any) => m.id).filter((id: string) => id.includes('gpt') || id.includes('o1') || id.includes('o3'))
@@ -186,7 +207,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
         headers: {
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'models-api-2025-02-19' // Anthropic new models API requires specific headers? Actually lets just hardcode Anthropic top models if fetch fails
+          'anthropic-beta': 'models-api-2025-02-19'
         }
       })
       if (res.ok) {
@@ -200,13 +221,130 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
 
     if (provider === 'google') {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
-      if (!res.ok) throw new Error('Google: Chave inválida ou erro na API')
+      if (!res.ok) throw new Error('Google: Invalid API key or API error')
       const data = await res.json()
       const models = data.models.map((m: any) => m.name.replace('models/', '')).filter((id: string) => id.includes('gemini'))
       return { success: true, models }
     }
 
-    return { success: false, error: 'Provider desconhecido' }
+    if (provider === 'ollama') {
+      try {
+        const res = await fetch('http://localhost:11434/v1/models')
+        if (res.ok) {
+          const data = await res.json()
+          return { success: true, models: data.data.map((m: any) => m.id) }
+        }
+        // Fallback to legacy API if v1/models is missing
+        const legacyRes = await fetch('http://localhost:11434/api/tags')
+        if (legacyRes.ok) {
+          const data = await legacyRes.json()
+          return { success: true, models: data.models.map((m: any) => m.name) }
+        }
+        throw new Error('Ollama: Service not responding at 11434')
+      } catch (err: any) {
+        throw new Error(`Ollama: ${err.message}. Ensure Ollama is running skip if you want to type manually.`)
+      }
+    }
+
+    if (provider === 'llamacpp') {
+      try {
+        const res = await fetch('http://localhost:8080/v1/models')
+        if (res.ok) {
+          const data = await res.json()
+          return { success: true, models: data.data.map((m: any) => m.id) }
+        }
+        return { success: true, models: ['local-model'] }
+      } catch (err) {
+        return { success: true, models: ['local-model'] }
+      }
+    }
+
+    if (provider === 'groq') {
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      if (!res.ok) throw new Error('Groq: Invalid API key or API error')
+      const data = await res.json()
+      return { success: true, models: data.data.map((m: any) => m.id) }
+    }
+
+    if (provider === 'deepseek') {
+      const res = await fetch('https://api.deepseek.com/models', {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      if (!res.ok) throw new Error('DeepSeek: Invalid API key or API error')
+      const data = await res.json()
+      return { success: true, models: data.data.map((m: any) => m.id) }
+    }
+
+    if (provider === 'mistral') {
+      const res = await fetch('https://api.mistral.ai/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      if (!res.ok) throw new Error('Mistral: Invalid API key or API error')
+      const data = await res.json()
+      return { success: true, models: data.data.map((m: any) => m.id) }
+    }
+
+    if (provider === 'together') {
+      const res = await fetch('https://api.together.xyz/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      if (!res.ok) throw new Error('Together AI: Invalid API key or API error')
+      const data = await res.json()
+      return { success: true, models: data.map((m: any) => m.id) }
+    }
+
+    if (provider === 'xai') {
+      const res = await fetch('https://api.x.ai/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      if (!res.ok) throw new Error('xAI: Invalid API key or API error')
+      const data = await res.json()
+      return { success: true, models: data.models.map((m: any) => m.id) }
+    }
+
+    if (provider === 'zhipu') {
+      try {
+        const res = await fetch('https://api.z.ai/api/paas/v4/models', {
+          headers: { Authorization: `Bearer ${apiKey}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.data && data.data.length > 0) {
+            return { success: true, models: data.data.map((m: any) => m.id) }
+          }
+        }
+        // Robust fallback list for Z.AI (Zhipu) models
+        const zhipuModels = [
+          'glm-5', 'glm-5-turbo', 'glm-4.7', 'glm-4.6', 'glm-4.5',
+          'glm-4-plus', 'glm-4-air', 'glm-4-flash', 'glm-4v-plus'
+        ]
+        return { success: true, models: zhipuModels }
+      } catch (err) {
+        return { success: true, models: ['glm-5', 'glm-4.7', 'glm-4-air'] }
+      }
+    }
+
+    if (provider === 'maritaca') {
+      try {
+        const res = await fetch('https://chat.maritaca.ai/api/chat/models', {
+          headers: { Authorization: `Key ${apiKey}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.models && data.models.length > 0) {
+            return { success: true, models: data.models.map((m: any) => m.name) }
+          }
+        }
+        // Robust fallback for Maritaca models
+        return { success: true, models: ['sabia-4', 'sabia-3', 'sabiazinho-4', 'sabiazinho-s8'] }
+      } catch (err) {
+        return { success: true, models: ['sabia-4', 'sabia-3', 'sabiazinho-4'] }
+      }
+    }
+
+    return { success: false, error: 'Unknown provider' }
   } catch (err: any) {
     return { success: false, error: err.message }
   }
@@ -220,4 +358,18 @@ ipcMain.handle('pty:ctrl_c', async (_event, pid: number) => {
 ipcMain.handle('pty:kill', async (_event, pid: number) => {
   const ok = killPty(pid)
   return { success: ok, error: ok ? undefined : `No active PTY with PID ${pid}` }
+})
+
+ipcMain.handle('project:get_files', async () => {
+  try {
+    const { globby } = await import('globby')
+    const files = await globby(['**/*'], {
+      ignore: ['node_modules/**', '.git/**', 'dist/**', 'dist-electron/**', 'release-build/**', 'package-lock.json', 'yarn.lock'],
+      dot: true,
+      onlyFiles: true
+    })
+    return { success: true, files }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
 })

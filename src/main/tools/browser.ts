@@ -9,24 +9,24 @@ const __dirname = join(__filename, "..");
 
 export class BrowserTool extends BaseTool {
   name = "browser_agent";
-  description = "Inicia um sub-agente operantid para navegar na web, testar interfaces UI, interagir com elementos visuais e extrair dados de sites.";
+  description = "Starts an operantid sub-agent to navigate the web, test UI interfaces, interact with visual elements, and extract data from websites.";
   parameters: ToolParameter[] = [
     {
       name: "url",
       type: "string",
-      description: "A URL inicial que o sub-agente deve acessar",
+      description: "The initial URL the sub-agent should access",
       required: true,
     },
     {
       name: "task",
       type: "string",
-      description: "A instrução/tarefa detalhada para o sub-agente executar",
+      description: "The detailed instruction/task for the sub-agent to execute",
       required: true,
     },
     {
       name: "headless",
       type: "boolean",
-      description: "Se true, roda o navegador de forma oculta (padrão).",
+      description: "If true, runs the browser hidden (default).",
       required: false,
     }
   ];

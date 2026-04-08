@@ -3,26 +3,41 @@ import * as os from "os";
 import { BaseTool, ToolParameter, ToolResult } from "./base.js";
 import { BrowserWindow } from "electron";
 
-const TIMEOUT_MS = 60_000; // 60 seconds default timeout
+const TIMEOUT_MS = 0; // 0 means no default timeout
 const MAX_OUTPUT = 50_000; // Max output characters
 
 // ─── Module-level PTY registry ────────────────────────────────────────────────
-// Shared so IPC handlers (index.ts) can control background processes directly.
-const backgroundProcesses: Map<number, pty.IPty> = new Map();
+interface PtyState {
+  process: pty.IPty;
+  outputBuffer: string;
+  isExited: boolean;
+  exitCode?: number;
+  runInBackground: boolean;
+}
+
+const backgroundProcesses: Map<number, PtyState> = new Map();
 
 /** Send Ctrl+C (SIGINT) to a running background PTY. */
 export function sendCtrlC(pid: number): boolean {
-  const proc = backgroundProcesses.get(pid);
-  if (!proc) return false;
-  proc.write("\x03"); // ETX character → SIGINT in a real TTY
+  const state = backgroundProcesses.get(pid);
+  if (!state) return false;
+  state.process.write("\x03"); // ETX character → SIGINT in a real TTY
+  return true;
+}
+
+/** Send standard input to a running background PTY. */
+export function sendInput(pid: number, input: string): boolean {
+  const state = backgroundProcesses.get(pid);
+  if (!state) return false;
+  state.process.write(input);
   return true;
 }
 
 /** Hard-kill a background PTY process. */
 export function killPty(pid: number): boolean {
-  const proc = backgroundProcesses.get(pid);
-  if (!proc) return false;
-  proc.kill();
+  const state = backgroundProcesses.get(pid);
+  if (!state) return false;
+  state.process.kill();
   backgroundProcesses.delete(pid);
   return true;
 }
@@ -35,7 +50,7 @@ export function listPtyProcesses(): number[] {
 export class ShellTool extends BaseTool {
   name = "shell";
   description =
-    "Execute a shell command in the current working directory. Returns stdout and stderr via a real pseudoterminal (PTY). Use this for all command line operations.";
+    "Execute a shell command in the current working directory. INTEGRATION NOTE: This tool ALWAYS runs in the background and returns a PID immediately. It never blocks. If you need to see the output or wait for completion, you MUST use 'shell_wait' with the returned PID.";
   parameters: ToolParameter[] = [
     {
       name: "command",
@@ -81,7 +96,7 @@ export class ShellTool extends BaseTool {
 
     const command = args.command as string;
     const desc = args.description as string;
-    const runInBackground = args.run_in_background as boolean;
+    const runInBackground = true; // Forced to true per user request
     const cwd = (args.cwd as string) || process.cwd();
     const timeoutMsg = (args.timeout as number) || TIMEOUT_MS;
 
@@ -103,108 +118,64 @@ export class ShellTool extends BaseTool {
       ? ['-NoProfile', '-NonInteractive', '-Command', command] 
       : ['-c', command];
 
-    if (runInBackground) {
-      // Background execution via PTY
-      try {
-        const ptyProcess = pty.spawn(shell, shellArgs, {
-          name: 'xterm-256color',
-          cols: 120,
-          rows: 30,
-          cwd: cwd,
-          env: process.env as any
-        });
+    // Background execution via PTY (Now Always)
+    try {
+      const ptyProcess = pty.spawn(shell, shellArgs, {
+        name: 'xterm-256color',
+        cols: 120,
+        rows: 30,
+        cwd: cwd,
+        env: process.env as any
+      });
 
-        const pid = ptyProcess.pid;
-        backgroundProcesses.set(pid, ptyProcess);
+      const pid = ptyProcess.pid;
+      const state: PtyState = {
+        process: ptyProcess,
+        outputBuffer: "",
+        isExited: false,
+        runInBackground: true
+      };
+      backgroundProcesses.set(pid, state);
 
-        // Emit chunks to renderer via IPC (Electron)
-        ptyProcess.onData((data) => {
-          const window = BrowserWindow.getAllWindows()[0];
-          if (window) {
-            window.webContents.send('agent:update', { 
-              type: 'pty_output',
-              pid: pid, 
-              data: data 
-            });
-          }
+      // Notify renderer about the new PID immediately
+      const window = BrowserWindow.getAllWindows()[0];
+      if (window) {
+        window.webContents.send('agent:update', { 
+          type: 'pty_spawned',
+          pid: pid,
+          name: "shell"
         });
-
-        ptyProcess.onExit(() => {
-          backgroundProcesses.delete(pid);
-          // Notify renderer the process ended
-          const window = BrowserWindow.getAllWindows()[0];
-          if (window) {
-            window.webContents.send('agent:update', { type: 'pty_exit', pid });
-          }
-        });
-        
-        return this.success(`[Background PTY Started] PID: ${pid}\nCommand: ${command}\nO PTY está rodando de forma persistente. A saída pode ser conectada ao frontend.`);
-      } catch (err: any) {
-        return this.failure(`Failed to start PTY background task: ${err.message}`);
       }
-    }
 
-    // Synchronous execution (blocking)
-    return new Promise((resolve) => {
-      let output = "";
-      let isResolved = false;
-      let timer: NodeJS.Timeout | null = null;
+      // Emit chunks to renderer via IPC (Electron)
+      ptyProcess.onData((data) => {
+        // Update internal buffer (keep last 50k chars)
+        state.outputBuffer = (state.outputBuffer + data).slice(-50000);
 
-      try {
-        const ptyProcess = pty.spawn(shell, shellArgs, {
-          name: 'xterm-256color',
-          cols: 120,
-          rows: 30,
-          cwd: cwd,
-          env: process.env as any
-        });
-
-        const finish = (result: ToolResult) => {
-          if (isResolved) return;
-          isResolved = true;
-          if (timer) clearTimeout(timer);
-          
-          // Strip ANSI Escape Codes for LLM readability
-          let cleanOutput = output.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
-
-          if (cleanOutput.length > MAX_OUTPUT) {
-            const truncatedSize = cleanOutput.length - MAX_OUTPUT;
-            cleanOutput = cleanOutput.substring(0, MAX_OUTPUT) + 
-              `\n\n...<output> (${truncatedSize} bytes omitted). Tip: Save output to a file and read it or use search tools for large outputs.`;
-          }
-          
-          if (result.success) {
-            result.output = cleanOutput.trim() || "(no output)";
-          } else {
-            result.error = (result.error || "") + `\n\nOutput:\n${cleanOutput.trim()}`;
-          }
-          resolve(result);
-        };
-
-        ptyProcess.onData((data) => {
-          output += data;
-        });
-
-        ptyProcess.onExit(({ exitCode }) => {
-          if (exitCode === 0) {
-            finish(this.success(output));
-          } else {
-            finish(this.failure(`Command exited with code ${exitCode}`));
-          }
-        });
-
-        timer = setTimeout(() => {
-          ptyProcess.kill();
-          finish(this.failure(`Command timed out after ${timeoutMsg / 1000} seconds.`));
-        }, timeoutMsg);
-
-      } catch (err: any) {
-        if (!isResolved) {
-          isResolved = true;
-          resolve(this.failure(`Failed to execute PTY: ${err.message}`));
+        const window = BrowserWindow.getAllWindows()[0];
+        if (window) {
+          window.webContents.send('agent:update', { 
+            type: 'pty_output',
+            pid: pid, 
+            data: data 
+          });
         }
-      }
-    });
+      });
+
+      ptyProcess.onExit(({ exitCode }) => {
+        state.isExited = true;
+        state.exitCode = exitCode;
+        // Notify renderer the process ended
+        const window = BrowserWindow.getAllWindows()[0];
+        if (window) {
+          window.webContents.send('agent:update', { type: 'pty_exit', pid });
+        }
+      });
+      
+      return this.success(`[Background PTY Started] PID: ${pid}\nCommand: ${command}\nThe PTY is running persistently. Use 'shell_wait' to monitor output or check the UI.`);
+    } catch (err: any) {
+      return this.failure(`Failed to start PTY background task: ${err.message}`);
+    }
   }
 }
 
@@ -267,7 +238,7 @@ Always prefer sigint first; only use sigkill if the process doesn't stop.`;
 
 export class ListPtyTool extends BaseTool {
   name = "list_pty";
-  description = "List all currently running background PTY processes. Use this to find the PID of a process you want to stop with kill_pty.";
+  description = "List all currently running background PTY processes. Use this to find the PID of a process you want to stop or interact with.";
   parameters: ToolParameter[] = [];
 
   async execute(_args: Record<string, unknown>): Promise<ToolResult> {
@@ -276,7 +247,128 @@ export class ListPtyTool extends BaseTool {
       return this.success("No background PTY processes are currently running.");
     }
     return this.success(
-      `Running background PTY processes:\n${pids.map(pid => `  • PID ${pid}`).join("\n")}\n\nUse kill_pty with the PID to stop one.`
+      `Running background PTY processes:\n${pids.map(pid => `  • PID ${pid}`).join("\n")}\n\nUse shell_input or kill_pty with the PID to interact with or stop one.`
     );
+  }
+}
+
+// ─── ShellInputTool ───────────────────────────────────────────────────────────
+
+export class ShellInputTool extends BaseTool {
+  name = "shell_input";
+  description = "Send standard input (text) to a running background PTY process. Use this to answer prompts (like 'y/n') or interact with CLI tools (like REPLs).";
+  parameters: ToolParameter[] = [
+    {
+      name: "pid",
+      type: "number",
+      description: "The PID of the background PTY process to send input to.",
+      required: true,
+    },
+    {
+      name: "input",
+      type: "string",
+      description: "The text to send to the process. Include a newline (\\n) if you want to 'press enter'.",
+      required: true,
+    },
+  ];
+
+  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+    const error = this.validateArgs(args);
+    if (error) return this.failure(error);
+
+    const pid = args.pid as number;
+    const input = args.input as string;
+
+    const ok = sendInput(pid, input);
+    if (ok) {
+      return this.success(`Successfully sent input to process ${pid}.`);
+    } else {
+      return this.failure(`No running background PTY found with PID ${pid}.`);
+    }
+  }
+}
+
+// ─── ShellWaitTool ────────────────────────────────────────────────────────────
+
+export class ShellWaitTool extends BaseTool {
+  name = "shell_wait";
+  description = "Wait for a specific pattern to appear in a background PTY's output, or wait for the process to exit. Useful for timing interactions with long-running commands.";
+  parameters: ToolParameter[] = [
+    {
+      name: "pid",
+      type: "number",
+      description: "The PID of the background PTY process to monitor.",
+      required: true,
+    },
+    {
+      name: "pattern",
+      type: "string",
+      description: "A string or regex pattern to wait for in the output. If omitted, waits for the process to exit.",
+      required: false,
+    },
+    {
+      name: "timeout",
+      type: "number",
+      description: "Max time to wait in milliseconds. Default 30,000 (30 seconds).",
+      required: false,
+    },
+  ];
+
+  async execute(args: Record<string, unknown>): Promise<ToolResult> {
+    const error = this.validateArgs(args);
+    if (error) return this.failure(error);
+
+    const pid = args.pid as number;
+    const pattern = args.pattern as string | undefined;
+    const timeout = (args.timeout as number) || 30_000;
+
+    const state = backgroundProcesses.get(pid);
+    if (!state) return this.failure(`No running background PTY found with PID ${pid}.`);
+
+    return new Promise((resolve) => {
+      let isSettled = false;
+      const startTime = Date.now();
+
+      const check = () => {
+        if (isSettled) return;
+
+        // Check for process exit
+        if (state.isExited) {
+          isSettled = true;
+          return resolve(this.success(`Process ${pid} finished with code ${state.exitCode}.\n\nFinal Output:\n${state.outputBuffer}`));
+        }
+
+        // Check for pattern if provided
+        if (pattern) {
+          try {
+            // Strip ANSI codes for cleaner matching
+            const cleanBuffer = state.outputBuffer.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+            const regex = new RegExp(pattern, 'i'); // Case-insensitive for robustness
+            
+            if (regex.test(cleanBuffer) || cleanBuffer.includes(pattern)) {
+              isSettled = true;
+              return resolve(this.success(`Pattern '${pattern}' found in output of PID ${pid}.\n\nRecent Output:\n${cleanBuffer.slice(-1000)}`));
+            }
+          } catch (err) {
+            // Fallback to simple inclusion if regex is invalid
+            if (state.outputBuffer.includes(pattern)) {
+              isSettled = true;
+              return resolve(this.success(`Literal pattern '${pattern}' found in output of PID ${pid} (regex was invalid).\n\nRecent Output:\n${state.outputBuffer.slice(-500)}`));
+            }
+          }
+        }
+
+        // Check for timeout
+        if (Date.now() - startTime > timeout) {
+          isSettled = true;
+          return resolve(this.failure(`Timed out waiting for PID ${pid} after ${timeout}ms.`));
+        }
+
+        // Poll again
+        setTimeout(check, 300); // Polling every 300ms is sufficient
+      };
+
+      check();
+    });
   }
 }

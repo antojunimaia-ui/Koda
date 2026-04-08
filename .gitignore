@@ -38,3 +38,5 @@ dist-electron
 
 # Custom CLI data
 .koda/
+Release Messages/
+FUTURE.md

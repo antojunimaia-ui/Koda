@@ -1,0 +1,15 @@
+{
+  "id": "tokyo-night",
+  "name": "Tokyo Night",
+  "colors": {
+    "bg": "#0f172a",
+    "bgAlt": "#0d1117",
+    "sidebar": "#16161e",
+    "accent": "#22d3ee",
+    "accentAlt": "#d946ef",
+    "text": "#e2e8f0",
+    "textDim": "#94a3b8",
+    "border": "#292e42",
+    "userMsg": "rgba(30, 41, 59, 0.4)"
+  }
+}

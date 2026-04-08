@@ -1,6 +1,6 @@
 {
   "name": "koda-electron",
-  "version": "1.0.0",
+  "version": "26.8.4",
   "description": "Koda AI - Desktop Edition",
   "main": "dist-electron/index.js",
   "type": "module",
@@ -11,6 +11,7 @@
     "build": "vite build",
     "dist": "npm run build && electron-builder --win --x64",
     "dist:linux": "npm run build && electron-builder --linux",
+    "dist:mac": "npm run build && electron-builder --mac",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -96,6 +97,14 @@
         "AppImage"
       ],
       "icon": "public/icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "public/icon.png",
+      "identity": null,
+      "type": "distribution"
     },
     "nsis": {
       "oneClick": false,

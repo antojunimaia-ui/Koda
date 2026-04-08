@@ -2,7 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('koda', {
   init: () => ipcRenderer.invoke('agent:init'),
-  sendMessage: (message: string) => ipcRenderer.invoke('agent:message', message),
+  sendMessage: (messageId: number, message: string) => ipcRenderer.invoke('agent:message', messageId, message),
+  snapshotRestore: (messageId: number) => ipcRenderer.invoke('snapshot:restore', messageId),
   reset: () => ipcRenderer.invoke('agent:reset'),
   getTokens: () => ipcRenderer.invoke('agent:tokens'),
   getInfo: () => ipcRenderer.invoke('agent:info'),
@@ -20,8 +21,10 @@ contextBridge.exposeInMainWorld('koda', {
   planResponse: (approved: boolean) => ipcRenderer.invoke('agent:plan_response', approved),
   ptySendCtrlC: (pid: number) => ipcRenderer.invoke('pty:ctrl_c', pid),
   ptyKill: (pid: number) => ipcRenderer.invoke('pty:kill', pid),
+  getFiles: () => ipcRenderer.invoke('project:get_files'),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),
-  close: () => ipcRenderer.invoke('window:close')
+  close: () => ipcRenderer.invoke('window:close'),
+  selectDirectory: () => ipcRenderer.invoke('window:open_directory')
 })

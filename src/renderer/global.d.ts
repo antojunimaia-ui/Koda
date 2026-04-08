@@ -6,7 +6,8 @@ declare global {
     hljs?: any;
     koda: {
       init: () => Promise<{ success: boolean; error?: string }>
-      sendMessage: (message: string) => Promise<{ success: boolean; response: string; error?: string }>
+      sendMessage: (messageId: number, message: string) => Promise<{ success: boolean; response: string; error?: string }>
+      snapshotRestore: (messageId: number) => Promise<{ success: boolean; error?: string }>
       reset: () => Promise<{ success: boolean; error?: string }>
       getTokens: () => Promise<string>
       getInfo: () => Promise<{ provider: string; model: string; project: string; cwd: string }>
@@ -20,9 +21,11 @@ declare global {
       planResponse: (approved: boolean) => Promise<{ success: boolean }>
       ptySendCtrlC: (pid: number) => Promise<{ success: boolean; error?: string }>
       ptyKill: (pid: number) => Promise<{ success: boolean; error?: string }>
+      getFiles: () => Promise<{ success: boolean; files: string[]; error?: string }>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>
+      selectDirectory: () => Promise<string | null>
     }
   }
 }

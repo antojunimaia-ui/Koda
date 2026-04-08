@@ -134,4 +134,16 @@ export class Conversation {
     const system = this.messages[0];
     this.messages = [system];
   }
+
+  /**
+   * Truncates the conversation history to the given length.
+   * Used during a Snapshot Rollback to restore agent memory.
+   */
+  truncateToLength(length: number): void {
+    if (length < 1) {
+      this.clear();
+    } else {
+      this.messages = this.messages.slice(0, length);
+    }
+  }
 }

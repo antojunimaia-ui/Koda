@@ -2,7 +2,7 @@ import { BaseTool, ToolDefinition } from "./base.js";
 import { FileReadTool } from "./file-read.js";
 import { FileWriteTool } from "./file-write.js";
 import { FileEditTool } from "./file-edit.js";
-import { ShellTool, KillPtyTool, ListPtyTool } from "./shell.js";
+import { ShellTool, KillPtyTool, ListPtyTool, ShellInputTool, ShellWaitTool } from "./shell.js";
 import { SearchTool } from "./search.js";
 import { ListDirTool } from "./list-dir.js";
 import { FileFindTool } from "./file-find.js";
@@ -27,6 +27,14 @@ export class ToolRegistry {
     this.register(new ExitPlanModeTool());
     this.register(new KillPtyTool());
     this.register(new ListPtyTool());
+    this.register(new ShellInputTool());
+    this.register(new ShellWaitTool());
+  }
+
+  private activeMode: 'fast' | 'planner' = 'fast';
+
+  setActiveMode(mode: 'fast' | 'planner'): void {
+    this.activeMode = mode;
   }
 
   register(tool: BaseTool): void {
@@ -34,11 +42,18 @@ export class ToolRegistry {
   }
 
   get(name: string): BaseTool | undefined {
+    if (this.activeMode === 'fast' && (name === 'enter_plan_mode' || name === 'exit_plan_mode')) {
+      return undefined;
+    }
     return this.tools.get(name);
   }
 
   getAll(): BaseTool[] {
-    return Array.from(this.tools.values());
+    const all = Array.from(this.tools.values());
+    if (this.activeMode === 'fast') {
+      return all.filter(t => t.name !== 'enter_plan_mode' && t.name !== 'exit_plan_mode');
+    }
+    return all;
   }
 
   getDefinitions(): ToolDefinition[] {
@@ -57,6 +72,20 @@ export class ToolRegistry {
         error: `Unknown tool: ${name}`,
       };
     }
+
+    // Hard-enforce Plan Mode restrictions
+    const { getPlanMode } = await import("./plan.js");
+    if (getPlanMode() === "plan") {
+      const destructiveTools = ["file_write", "file_edit", "shell"];
+      if (destructiveTools.includes(name)) {
+        return {
+          success: false,
+          output: "",
+          error: `[RESTRICTION] You are currently in PLAN MODE. You are FORBIDDEN from using destructive tools like '${name}' until the user approves your plan. Please finish your analysis and call 'exit_plan_mode' to present your strategy for approval.`,
+        };
+      }
+    }
+
     return tool.execute(args);
   }
 

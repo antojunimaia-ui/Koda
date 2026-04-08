@@ -1,0 +1,15 @@
+{
+  "id": "cyberpunk",
+  "name": "Cyberpunk Neon",
+  "colors": {
+    "bg": "#0d0208",
+    "bgAlt": "#000000",
+    "sidebar": "#110011",
+    "accent": "#ff00ff",
+    "accentAlt": "#00ffff",
+    "text": "#00ff41",
+    "textDim": "#008f11",
+    "border": "#330033",
+    "userMsg": "rgba(50, 0, 50, 0.5)"
+  }
+}

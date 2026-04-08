@@ -1,0 +1,15 @@
+{
+  "id": "monokai",
+  "name": "Classic Monokai",
+  "colors": {
+    "bg": "#272822",
+    "bgAlt": "#1e1e1e",
+    "sidebar": "#191919",
+    "accent": "#f92672",
+    "accentAlt": "#a6e22e",
+    "text": "#f8f8f2",
+    "textDim": "#75715e",
+    "border": "#49483e",
+    "userMsg": "rgba(255, 255, 255, 0.05)"
+  }
+}

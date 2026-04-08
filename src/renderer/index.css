@@ -1,17 +1,31 @@
 @import "tailwindcss";
 
+:root {
+  --koda-bg: #0f172a;
+  --koda-bg-alt: #0d1117;
+  --koda-sidebar: #1e293b;
+  --koda-accent: #22d3ee;
+  --koda-accent-alt: #d946ef;
+  --koda-text: #e2e8f0;
+  --koda-text-dim: #94a3b8;
+  --koda-border: #334155;
+  --koda-user-msg: rgba(30, 41, 59, 0.4);
+}
+
 @theme {
-  --color-cyan: #22d3ee;
-  --color-green: #10b981;
-  --color-yellow: #fbbf24;
-  --color-magenta: #d946ef;
-  --color-gray: #64748b;
-  --color-slate-900: #0f172a;
+  --color-cyan: var(--koda-accent);
+  --color-magenta: var(--koda-accent-alt);
+  --color-slate-900: var(--koda-bg);
+  --color-slate-800: var(--koda-sidebar);
+  --color-slate-700: var(--koda-border);
+  --color-slate-300: var(--koda-text);
+  --color-slate-400: var(--koda-text-dim);
+  --color-gray: var(--koda-text-dim);
 }
 
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-200 antialiased;
+    @apply bg-slate-900 text-slate-300 antialiased;
     margin: 0;
     padding: 0;
     height: 100vh;
@@ -31,7 +45,7 @@
 }
 
 .terminal-box {
-  @apply border border-cyan rounded-lg p-2;
+  @apply border border-cyan rounded-lg px-1.5 py-0.5;
 }
 
 .terminal-box-gray {
@@ -39,7 +53,7 @@
 }
 
 .terminal-input-container {
-  @apply border border-cyan rounded-lg px-3 py-1 flex items-center gap-2;
+  @apply border border-cyan rounded-lg px-3 py-1 flex items-center gap-2 relative;
 }
 
 .terminal-input-disabled {
