@@ -9,6 +9,8 @@ import { FileFindTool } from "./file-find.js";
 import { BrowserTool } from "./browser.js";
 import { LSPTool } from "./lsp.js";
 import { EnterPlanModeTool, ExitPlanModeTool } from "./plan.js";
+import { trackFile } from "../services/file-tracker.js";
+import { resolve } from "path";
 
 export class ToolRegistry {
   private tools: Map<string, BaseTool> = new Map();
@@ -86,7 +88,23 @@ export class ToolRegistry {
       }
     }
 
-    return tool.execute(args);
+    const result = await tool.execute(args);
+    this.afterExecute(name, args, result.success);
+    return result;
+  }
+
+  private afterExecute(name: string, args: Record<string, unknown>, success: boolean): void {
+    if (!success) return;
+    const FILE_READ_TOOLS = new Set(["file_read"]);
+    const FILE_WRITE_TOOLS = new Set(["file_write", "file_edit"]);
+    const pathArg = args.path as string | undefined;
+    if (!pathArg) return;
+    const absPath = resolve(process.cwd(), pathArg);
+    if (FILE_WRITE_TOOLS.has(name)) {
+      trackFile(absPath, "modified");
+    } else if (FILE_READ_TOOLS.has(name)) {
+      trackFile(absPath, "read");
+    }
   }
 
   /**

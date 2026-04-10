@@ -1,4 +1,4 @@
-import { Message } from "../providers/base.js";
+import { Message, ContentPart } from "../providers/base.js";
 import { estimateTokens, formatTokenCount } from "../utils/tokens.js";
 
 export class Conversation {
@@ -13,8 +13,16 @@ export class Conversation {
     });
   }
 
-  addUser(content: string): void {
-    this.messages.push({ role: "user", content });
+  addUser(content: string, images?: ContentPart[]): void {
+    if (images && images.length > 0) {
+      const parts: ContentPart[] = [
+        { type: "text", text: content },
+        ...images,
+      ];
+      this.messages.push({ role: "user", content: parts });
+    } else {
+      this.messages.push({ role: "user", content });
+    }
   }
 
   addAssistant(

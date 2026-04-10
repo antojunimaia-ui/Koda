@@ -4,9 +4,11 @@ interface TitleBarProps {
   mode: 'fast' | 'planner'
   onModeChange: (mode: 'fast' | 'planner') => void
   onSettingsClick: () => void
+  showPanel: boolean
+  onTogglePanel: () => void
 }
 
-const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick }) => {
+const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick, showPanel, onTogglePanel }) => {
   return (
     <div className="h-10 bg-slate-900 border-b border-white/5 flex items-center justify-between px-3 select-none titlebar-drag">
       <div className="flex items-center gap-2 no-drag h-full">
@@ -35,6 +37,18 @@ const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick
       </div>
 
       <div className="flex items-center no-drag h-full">
+        {/* Context Panel Toggle — left of window controls */}
+        <button
+          onClick={onTogglePanel}
+          title={showPanel ? 'Hide context panel' : 'Show context panel'}
+          className={`w-11 h-10 flex items-center justify-center transition-colors no-drag ${showPanel ? 'text-cyan-400 bg-cyan-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+        >
+          {/* Files/tree icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18M3 12h12M3 18h8"/>
+          </svg>
+        </button>
+
         <button 
           onClick={() => window.koda.minimize()}
           className="w-11 h-10 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
@@ -61,3 +75,4 @@ const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick
 }
 
 export default TitleBar
+

@@ -6,7 +6,7 @@ declare global {
     hljs?: any;
     koda: {
       init: () => Promise<{ success: boolean; error?: string }>
-      sendMessage: (messageId: number, message: string) => Promise<{ success: boolean; response: string; error?: string }>
+      sendMessage: (messageId: number, message: string, images?: any[]) => Promise<{ success: boolean; response: string; error?: string }>
       snapshotRestore: (messageId: number) => Promise<{ success: boolean; error?: string }>
       reset: () => Promise<{ success: boolean; error?: string }>
       getTokens: () => Promise<string>

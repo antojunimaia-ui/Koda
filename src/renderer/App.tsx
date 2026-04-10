@@ -27,12 +27,19 @@ const symbols = {
   info: 'ℹ'
 }
 
+interface AttachedImage {
+  dataUrl: string
+  mimeType: string
+  name: string
+}
+
 interface MessageEntry {
   id: number
   type: 'user' | 'assistant' | 'system' | 'error' | 'tool' | 'pty'
   text?: string
+  images?: AttachedImage[]
   done?: boolean
-    tool?: {
+  tool?: {
     name: string
     status: 'running' | 'done'
     output?: string
@@ -48,22 +55,38 @@ interface MessageEntry {
 
 // ─── Memoized message rows — only re-render when their own data changes ───────
 
-const UserMessage = memo(({ text, onRollback }: { text: string; onRollback?: () => void }) => (
-  <div className="flex gap-3 mb-1 mt-2 items-start bg-slate-800/20 p-2 rounded-md group relative">
-    <span className="text-cyan-400 font-bold mt-0.5 select-none">{symbols.arrow}</span>
-    <span className="text-slate-100 font-medium leading-relaxed flex-1">{text}</span>
-    {onRollback && (
-      <button
-        onClick={onRollback}
-        title="Rollback to this point — restores files and memory"
-        className="opacity-30 hover:opacity-100 transition-opacity ml-1 mt-0.5 p-1 rounded hover:bg-rose-900/30 text-slate-500 hover:text-rose-400 flex-shrink-0"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-          <path d="M3 3v5h5"/>
-        </svg>
-      </button>
+const UserMessage = memo(({ text, images, onRollback }: { text: string; images?: AttachedImage[]; onRollback?: () => void }) => (
+  <div className="flex flex-col gap-2 mb-1 mt-2 bg-slate-800/20 p-2 rounded-md group relative">
+    {/* Image thumbnails */}
+    {images && images.length > 0 && (
+      <div className="flex flex-wrap gap-2">
+        {images.map((img, i) => (
+          <img
+            key={i}
+            src={img.dataUrl}
+            alt={img.name}
+            className="h-24 rounded border border-slate-700 object-cover cursor-zoom-in hover:opacity-90 transition-opacity"
+            title={img.name}
+          />
+        ))}
+      </div>
     )}
+    <div className="flex gap-3 items-start">
+      <span className="text-cyan-400 font-bold mt-0.5 select-none">{symbols.arrow}</span>
+      <span className="text-slate-100 font-medium leading-relaxed flex-1">{text}</span>
+      {onRollback && (
+        <button
+          onClick={onRollback}
+          title="Rollback to this point — restores files and memory"
+          className="opacity-30 hover:opacity-100 transition-opacity ml-1 mt-0.5 p-1 rounded hover:bg-rose-900/30 text-slate-500 hover:text-rose-400 flex-shrink-0"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        </button>
+      )}
+    </div>
   </div>
 ))
 
@@ -228,7 +251,7 @@ const PtyMessage = memo(({ pty }: { pty: MessageEntry['pty'] }) => {
 
 const MessageRow = memo(({ msg, onRollback }: { msg: MessageEntry; onRollback?: () => void }) => (
   <div className="flex flex-col text-sm">
-    {msg.type === 'user' && <UserMessage text={msg.text!} onRollback={onRollback} />}
+    {msg.type === 'user' && <UserMessage text={msg.text!} images={msg.images} onRollback={onRollback} />}
     {msg.type === 'assistant' && <AssistantMessage text={msg.text} done={msg.done} />}
     {msg.type === 'tool' && <ToolMessage tool={msg.tool} />}
     {msg.type === 'error' && <ErrorMessage text={msg.text!} />}
@@ -578,7 +601,129 @@ const ThemeColorInput = ({ label, value, onChange, colorClass }: { label: string
 let _nextId = 0
 const nextId = () => ++_nextId
 
-// ─── App ──────────────────────────────────────────────────────────────────────
+// ─── Context Panel ────────────────────────────────────────────────────────────
+interface TrackedFile {
+  path: string
+  access: 'read' | 'modified'
+  timestamp: number
+}
+
+const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, cwd }: {
+  files: TrackedFile[]
+  pinnedFiles: string[]
+  onPin: (path: string) => void
+  onUnpin: (path: string) => void
+  onInject: (path: string) => void
+  cwd: string
+}) => {
+  const shortPath = (absPath: string) => absPath.replace(cwd, '').replace(/^[\\/]/, '') || absPath
+
+  const modifiedFiles = files.filter(f => f.access === 'modified')
+  const readFiles = files.filter(f => f.access === 'read' && !modifiedFiles.find(m => m.path === f.path))
+
+  const FileRow = ({ file, badge }: { file: TrackedFile; badge: React.ReactNode }) => {
+    const isPinned = pinnedFiles.includes(file.path)
+    return (
+      <div
+        className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-800/50 cursor-pointer transition-colors"
+        onClick={() => onInject(file.path)}
+        title={`Click to inject into chat: ${file.path}`}
+      >
+        {badge}
+        <span className="flex-1 text-slate-400 text-[10px] font-mono truncate group-hover:text-slate-200 transition-colors">
+          {shortPath(file.path)}
+        </span>
+        <button
+          onClick={e => { e.stopPropagation(); isPinned ? onUnpin(file.path) : onPin(file.path) }}
+          title={isPinned ? 'Unpin from context' : 'Pin to context'}
+          className={`opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-[9px] ${
+            isPinned ? 'text-cyan-400 opacity-100' : 'text-slate-500 hover:text-cyan-400'
+          }`}
+        >
+          {isPinned ? '📌' : '📍'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col w-64 flex-shrink-0 border-l border-white/5 bg-slate-900/80 overflow-hidden">
+      {/* Header */}
+      <div className="px-3 py-2.5 border-b border-white/5 flex items-center gap-2">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400 flex-shrink-0">
+          <path d="M3 6h18M3 12h12M3 18h8"/>
+        </svg>
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Context Panel</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
+
+        {/* Pinned files */}
+        {pinnedFiles.length > 0 && (
+          <div className="mb-3">
+            <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-cyan-500/70 mb-1">📌 Pinned</div>
+            {pinnedFiles.map(path => (
+              <div
+                key={path}
+                className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-800/50 cursor-pointer transition-colors"
+                onClick={() => onInject(path)}
+                title={`Click to inject: ${path}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
+                <span className="flex-1 text-slate-300 text-[10px] font-mono truncate group-hover:text-white transition-colors">
+                  {shortPath(path)}
+                </span>
+                <button
+                  onClick={e => { e.stopPropagation(); onUnpin(path) }}
+                  className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition-all text-[9px] p-0.5"
+                  title="Unpin"
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Modified this session */}
+        {modifiedFiles.length > 0 && (
+          <div className="mb-3">
+            <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-500/70 mb-1">✏️ Modified</div>
+            {modifiedFiles.map(f => (
+              <FileRow
+                key={f.path}
+                file={f}
+                badge={<span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Read by agent */}
+        {readFiles.length > 0 && (
+          <div className="mb-3">
+            <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500/70 mb-1">👁 Read</div>
+            {readFiles.map(f => (
+              <FileRow
+                key={f.path}
+                file={f}
+                badge={<span className="w-1.5 h-1.5 rounded-full bg-slate-600 flex-shrink-0" />}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {files.length === 0 && pinnedFiles.length === 0 && (
+          <div className="px-3 py-6 text-center">
+            <div className="text-slate-600 text-[10px] font-mono leading-relaxed">
+              No files tracked yet.<br/>Start a task and the agent's<br/>file activity will appear here.
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+})
+
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<MessageEntry[]>([])
@@ -590,6 +735,14 @@ const App: React.FC = () => {
   const [inPlanMode, setInPlanMode] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [mode, setMode] = useState<'fast' | 'planner'>('fast')
+  const [showPanel, setShowPanel] = useState(false)
+  const [trackedFiles, setTrackedFiles] = useState<TrackedFile[]>([])
+  const [pinnedFiles, setPinnedFiles] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('koda_pinned_files') || '[]') } catch { return [] }
+  })
+  const [pendingImages, setPendingImages] = useState<AttachedImage[]>([])
+  const [taskQueue, setTaskQueue] = useState<{ text: string; images: AttachedImage[] }[]>([])
+  const [isDragging, setIsDragging] = useState(false)
   const [theme, setTheme] = useState<KodaTheme>(() => {
     try {
       const saved = localStorage.getItem('koda_theme')
@@ -772,6 +925,8 @@ const App: React.FC = () => {
           : '❌ Plan rejected. Koda will refine the approach.'
         setMessages(prev => [...prev, { id: nextId(), type: 'system', text: msg }])
         scheduleScroll()
+      } else if (update.type === 'files_tracked') {
+        setTrackedFiles(update.files)
       } else if (update.type === 'pty_spawned') {
         setMessages(prev => {
           const updated = [...prev]
@@ -815,19 +970,37 @@ const App: React.FC = () => {
     }
   }
 
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isProcessing) return
+  // Auto-dequeue: when agent finishes, fire next queued task
+  useEffect(() => {
+    if (!isProcessing && taskQueue.length > 0) {
+      const [next, ...rest] = taskQueue
+      setTaskQueue(rest)
+      // Small delay so UI settles before firing the next task
+      setTimeout(() => handleSend(next.text, next.images), 200)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isProcessing])
 
-    const userMsg = input
-    setInput('')
+  const handleSend = useCallback(async (overrideText?: string, overrideImages?: AttachedImage[]) => {
+    const userMsg = overrideText ?? input
+    const currentImages = overrideImages ?? pendingImages
+    if (!userMsg.trim()) return
 
-    // Update history
-    setHistory(prev => {
-      // Avoid duplicate consecutive entries
-      if (prev[0] === userMsg) return prev;
-      return [userMsg, ...prev];
-    })
-    setHistoryIndex(-1)
+    // If already processing, enqueue instead of sending
+    if (isProcessing && !overrideText) {
+      setTaskQueue(prev => [...prev, { text: userMsg, images: currentImages }])
+      setInput('')
+      setPendingImages([])
+      return
+    }
+
+    if (!overrideText) {
+      setInput('')
+      setPendingImages([])
+      // Update history
+      setHistory(prev => prev[0] === userMsg ? prev : [userMsg, ...prev])
+      setHistoryIndex(-1)
+    }
 
     if (userMsg.startsWith('/')) {
       const parts = userMsg.toLowerCase().split(' ')
@@ -890,12 +1063,18 @@ Your current task is: ${userMsg}`
     }
 
     const msgId = nextId() // capture and increment ID FIRST, guaranteed in sync
-    setMessages(prev => [...prev, { id: msgId, type: 'user', text: userMsg }])
+    setMessages(prev => [...prev, { id: msgId, type: 'user', text: userMsg, images: currentImages.length > 0 ? currentImages : undefined }])
     setIsProcessing(true)
     scheduleScroll()
 
+    // Convert AttachedImage[] to ContentPart[] for the backend
+    const imageParts = currentImages.map(img => ({
+      type: 'image' as const,
+      image: { type: 'image' as const, dataUrl: img.dataUrl, mimeType: img.mimeType },
+    }))
+
     try {
-      await window.koda.sendMessage(msgId, finalMsg)
+      await window.koda.sendMessage(msgId, finalMsg, imageParts.length > 0 ? imageParts : undefined)
 
       // Cancel any pending rAF and flush accumulated streaming text synchronously
       if (rafRef.current !== null) {
@@ -927,7 +1106,7 @@ Your current task is: ${userMsg}`
     } finally {
       setIsProcessing(false)
     }
-  }, [input, isProcessing, scheduleScroll, mode])
+  }, [input, isProcessing, pendingImages, scheduleScroll, mode])
 
   const handleInputChange = async (val: string) => {
     setInput(val)
@@ -1023,6 +1202,70 @@ Your current task is: ${userMsg}`
     })
   }, [isProcessing])
 
+  const handlePinFile = useCallback((path: string) => {
+    setPinnedFiles(prev => {
+      const next = prev.includes(path) ? prev : [...prev, path]
+      localStorage.setItem('koda_pinned_files', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const handleUnpinFile = useCallback((path: string) => {
+    setPinnedFiles(prev => {
+      const next = prev.filter(p => p !== path)
+      localStorage.setItem('koda_pinned_files', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const handleInjectFile = useCallback((absPath: string) => {
+    setInput(prev => {
+      const mention = `@[${absPath}] `
+      return prev.endsWith(' ') || prev === '' ? prev + mention : prev + ' ' + mention
+    })
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }, [])
+
+  // ─── Drag & Drop handlers ────────────────────────────────────────
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const dropped = Array.from(e.dataTransfer.files)
+    const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
+
+    dropped.forEach(file => {
+      if (IMAGE_TYPES.includes(file.type)) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          setPendingImages(prev => [
+            ...prev,
+            { dataUrl: reader.result as string, mimeType: file.type, name: file.name }
+          ])
+        }
+        reader.readAsDataURL(file)
+      } else {
+        // Non-image file: inject @[path] mention using Electron's file.path
+        const filePath = (file as any).path
+        if (filePath) handleInjectFile(filePath)
+      }
+    })
+
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }, [handleInjectFile])
+
   const showThinkingSpinner = isProcessing && (
     messages.length === 0 ||
     (messages[messages.length - 1].type !== 'assistant' &&
@@ -1031,8 +1274,23 @@ Your current task is: ${userMsg}`
   )
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900 overflow-hidden text-slate-300 selection:bg-cyan-900 selection:text-white">
-      <TitleBar mode={mode} onModeChange={setMode} onSettingsClick={() => setShowSettings(true)} />
+    <div
+      className="flex flex-col h-screen bg-slate-900 overflow-hidden text-slate-300 selection:bg-cyan-900 selection:text-white relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-[100] border-2 border-dashed border-cyan-400/60 bg-cyan-900/20 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <div className="text-4xl mb-2">📂</div>
+            <div className="text-cyan-300 font-bold text-lg">Drop files or images here</div>
+            <div className="text-slate-400 text-sm mt-1">Images will be attached • Code files will be @mentioned</div>
+          </div>
+        </div>
+      )}
+      <TitleBar mode={mode} onModeChange={setMode} onSettingsClick={() => setShowSettings(true)} showPanel={showPanel} onTogglePanel={() => setShowPanel(p => !p)} />
 
       {/* Plan Approval Modal */}
       {pendingPlan && (
@@ -1063,7 +1321,8 @@ Your current task is: ${userMsg}`
         />
       )}
 
-      <div className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative">
         {/* FIXED BACKGROUND KODA LOGO (GLOBAL CENTER) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
           <pre className="text-slate-500/10 text-[11px] md:text-sm lg:text-base leading-[1.1] select-none font-mono text-center filter blur-[0.2px] opacity-80">
@@ -1128,13 +1387,43 @@ Your current task is: ${userMsg}`
           </div>
         </div>
 
+        {/* Image preview strip — ABOVE the input row */}
+        {pendingImages.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-3 mb-1 pt-1">
+            {pendingImages.map((img, i) => (
+              <div key={i} className="relative group">
+                <img src={img.dataUrl} alt={img.name} className="h-16 rounded border border-slate-700 object-cover" />
+                <button
+                  onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Task Queue indicator — ABOVE the input row */}
+        {taskQueue.length > 0 && (
+          <div className="flex items-center gap-2 px-3 mb-1 py-1 border-t border-white/5">
+            <span className="text-[9px] font-black uppercase tracking-widest text-amber-400">⏳ Queue</span>
+            <div className="flex gap-1.5 flex-1 overflow-hidden">
+              {taskQueue.map((t, i) => (
+                <span key={i} className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-[160px]">{t.text}</span>
+              ))}
+            </div>
+            <button
+              onClick={() => setTaskQueue([])}
+              className="text-[9px] text-slate-600 hover:text-rose-400 transition-colors"
+              title="Clear queue"
+            >✕ clear</button>
+          </div>
+        )}
+
         {/* INPUT */}
-        <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-20 mt-2 ${isProcessing || initializing ? 'terminal-input-disabled' : ''}`}>
-          <span className={`font-bold mt-[6px] ${isProcessing || initializing ? 'text-slate-600' : 'text-cyan'}`}>{symbols.arrow}</span>
-          {isProcessing || initializing ? (
-            <span className="text-slate-600 animate-pulse italic text-sm">
-              {initializing ? 'Initializing...' : 'Processing...'}
-            </span>
+        <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-20 mt-2 ${initializing ? 'terminal-input-disabled' : ''}`}>
+          <span className={`font-bold mt-[6px] ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
+          {initializing ? (
+            <span className="text-slate-600 animate-pulse italic text-sm">Initializing...</span>
           ) : (
             <textarea
               ref={inputRef}
@@ -1190,10 +1479,11 @@ Your current task is: ${userMsg}`
                   }
                 }
               }}
-              placeholder="Type your message..."
+              placeholder={isProcessing ? 'Add to queue — agent will run next...' : 'Type your message...'}
               className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-slate-600 font-bold resize-none py-1.5 leading-normal min-h-[20px] max-h-[200px] custom-scrollbar"
             />
           )}
+
 
           {/* Suggestions Dropdown */}
           {showSuggestions && (
@@ -1224,6 +1514,19 @@ Your current task is: ${userMsg}`
             </div>
           )}
         </div>
+        </div>
+
+        {/* Context Panel */}
+        {showPanel && (
+          <ContextPanel
+            files={trackedFiles}
+            pinnedFiles={pinnedFiles}
+            onPin={handlePinFile}
+            onUnpin={handleUnpinFile}
+            onInject={handleInjectFile}
+            cwd={agentInfo.cwd}
+          />
+        )}
       </div>
     </div>
   )

@@ -23,8 +23,8 @@ export class AnthropicProvider extends BaseProvider {
     messages: Message[],
     tools: ToolRegistry
   ): AsyncGenerator<StreamChunk> {
-    const systemMessage =
-      messages.find((m) => m.role === "system")?.content || "";
+    const rawSystem = messages.find((m) => m.role === "system")?.content;
+    const systemMessage = Array.isArray(rawSystem) ? "" : (rawSystem || "");
     const anthropicMessages = this.convertMessages(
       messages.filter((m) => m.role !== "system")
     );
@@ -116,8 +116,9 @@ export class AnthropicProvider extends BaseProvider {
       if (msg.role === "assistant") {
         const content: Anthropic.ContentBlockParam[] = [];
 
-        if (msg.content) {
-          content.push({ type: "text", text: msg.content });
+        const textContent = Array.isArray(msg.content) ? "" : msg.content
+        if (textContent) {
+          content.push({ type: "text", text: textContent });
         }
 
         if (msg.toolCalls) {
@@ -133,7 +134,7 @@ export class AnthropicProvider extends BaseProvider {
 
         result.push({
           role: "assistant",
-          content: content.length > 0 ? content : msg.content,
+          content: content.length > 0 ? content : (Array.isArray(msg.content) ? "" : msg.content),
         });
       } else if (msg.role === "tool") {
         result.push({
@@ -142,15 +143,31 @@ export class AnthropicProvider extends BaseProvider {
             {
               type: "tool_result",
               tool_use_id: msg.toolCallId || "",
-              content: msg.content,
+              content: Array.isArray(msg.content) ? JSON.stringify(msg.content) : msg.content,
             },
           ],
         });
       } else {
-        result.push({
-          role: "user",
-          content: msg.content,
-        });
+        // User message — may be rich multimodal content
+        if (Array.isArray(msg.content)) {
+          const content: Anthropic.ContentBlockParam[] = msg.content.map(part => {
+            if (part.type === "image" && part.image) {
+              const base64data = part.image.dataUrl.split(",")[1] || "";
+              return {
+                type: "image" as const,
+                source: {
+                  type: "base64" as const,
+                  media_type: part.image.mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+                  data: base64data,
+                },
+              };
+            }
+            return { type: "text" as const, text: part.text || "" };
+          });
+          result.push({ role: "user", content });
+        } else {
+          result.push({ role: "user", content: msg.content });
+        }
       }
     }
 

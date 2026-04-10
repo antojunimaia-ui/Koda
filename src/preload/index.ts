@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('koda', {
   init: () => ipcRenderer.invoke('agent:init'),
-  sendMessage: (messageId: number, message: string) => ipcRenderer.invoke('agent:message', messageId, message),
+  sendMessage: (messageId: number, message: string, images?: any[]) => ipcRenderer.invoke('agent:message', messageId, message, images),
   snapshotRestore: (messageId: number) => ipcRenderer.invoke('snapshot:restore', messageId),
   reset: () => ipcRenderer.invoke('agent:reset'),
   getTokens: () => ipcRenderer.invoke('agent:tokens'),

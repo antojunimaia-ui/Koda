@@ -31,8 +31,8 @@ export class GoogleProvider extends BaseProvider {
     messages: Message[],
     tools: ToolRegistry
   ): AsyncGenerator<StreamChunk> {
-    const systemMessage =
-      messages.find((m) => m.role === "system")?.content || "";
+    const rawSystem = messages.find((m) => m.role === "system")?.content;
+    const systemMessage = Array.isArray(rawSystem) ? "" : (rawSystem || "");
     const geminiContents = this.convertMessages(
       messages.filter((m) => m.role !== "system")
     );
@@ -150,7 +150,7 @@ export class GoogleProvider extends BaseProvider {
           }
         }
 
-        if (msg.content) {
+        if (msg.content && !Array.isArray(msg.content)) {
           parts.push({ text: msg.content });
         }
 
@@ -184,10 +184,24 @@ export class GoogleProvider extends BaseProvider {
           ],
         });
       } else {
-        contents.push({
-          role: "user",
-          parts: [{ text: msg.content }],
-        });
+        // User message — may be rich multimodal
+        if (Array.isArray(msg.content)) {
+          const parts: Part[] = msg.content.map(part => {
+            if (part.type === "image" && part.image) {
+              const base64data = part.image.dataUrl.split(",")[1] || "";
+              return {
+                inlineData: {
+                  mimeType: part.image.mimeType,
+                  data: base64data,
+                },
+              } as Part;
+            }
+            return { text: part.text || "" } as Part;
+          });
+          contents.push({ role: "user", parts });
+        } else {
+          contents.push({ role: "user", parts: [{ text: msg.content as string }] });
+        }
       }
     }
 

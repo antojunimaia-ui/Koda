@@ -5,6 +5,7 @@ import { Agent } from './core/agent.js'
 import { resolvePlanApproval } from './tools/plan.js'
 import { sendCtrlC, killPty } from './tools/shell.js'
 import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
+import { clearTrackedFiles } from './services/file-tracker.js'
 import dotenv from 'dotenv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -94,7 +95,7 @@ ipcMain.handle('agent:init', async () => {
   }
 })
 
-ipcMain.handle('agent:message', async (event, messageId: number, message: string) => {
+ipcMain.handle('agent:message', async (event, messageId: number, message: string, images?: any[]) => {
   if (!agent) return { error: 'Agent not initialized' }
 
   // Snapshot the workspace BEFORE the agent touches anything
@@ -107,7 +108,8 @@ ipcMain.handle('agent:message', async (event, messageId: number, message: string
       (text) => mainWindow?.webContents.send('agent:update', { type: 'text', content: text }),
       (name) => mainWindow?.webContents.send('agent:update', { type: 'tool_start', name }),
       (name, result, success) => mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result, success }),
-      (error) => mainWindow?.webContents.send('agent:update', { type: 'error', message: error })
+      (error) => mainWindow?.webContents.send('agent:update', { type: 'error', message: error }),
+      images as any
     )
     return { success: true }
   } catch (error) {
@@ -130,6 +132,7 @@ ipcMain.handle('snapshot:restore', async (_event, messageId: number) => {
 ipcMain.handle('agent:reset', async () => {
   if (!agent) return { error: 'Agent not initialized' }
   agent.resetConversation()
+  clearTrackedFiles()
   return { success: true }
 })
 

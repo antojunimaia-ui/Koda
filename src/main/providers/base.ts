@@ -1,12 +1,27 @@
 import { ToolRegistry } from "../tools/index.js";
 
+export interface ImagePart {
+  type: "image";
+  /** Base64 data URL: "data:image/png;base64,..." */
+  dataUrl: string;
+  mimeType: string;
+}
+
+export interface ContentPart {
+  type: "text" | "image";
+  text?: string;
+  image?: ImagePart;
+}
+
 export interface Message {
   role: "system" | "user" | "assistant" | "tool";
-  content: string;
+  /** Plain string OR rich multimodal content */
+  content: string | ContentPart[];
   thought?: any;
   toolCallId?: string;
   toolCalls?: ToolCall[];
 }
+
 
 export interface ToolCall {
   id: string;

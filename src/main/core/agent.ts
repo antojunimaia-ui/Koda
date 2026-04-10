@@ -111,7 +111,8 @@ export class Agent {
     onText: (text: string) => void,
     onToolStart: (name: string) => void,
     onToolEnd: (name: string, result: string, success: boolean) => void,
-    onError: (error: string) => void
+    onError: (error: string) => void,
+    images?: import("../providers/base.js").ContentPart[]
   ): Promise<void> {
     if (!this.provider) {
       onError("Agent not ready. Please wait for initialization.");
@@ -161,7 +162,7 @@ export class Agent {
         messageToSend = `[Project Context]\n${this.projectContext.summary}\n\n[User Message]\n${userMessage}`;
       }
 
-      this.conversation.addUser(messageToSend);
+      this.conversation.addUser(messageToSend, images);
 
       let iterations = 0;
 
