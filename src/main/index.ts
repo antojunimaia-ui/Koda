@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Agent } from './core/agent.js'
@@ -33,6 +33,7 @@ function createWindow() {
       preload: preloadPath,
       nodeIntegration: false,
       contextIsolation: true,
+      webviewTag: true,
     },
   })
 
@@ -43,6 +44,25 @@ function createWindow() {
     // __dirname is dist-electron/ when compiled, so we go up and into dist/
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
+
+  // Intercept link navigation to open in external browser
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const rootUrl = process.env.VITE_DEV_SERVER_URL || 'file://'
+    if (!url.startsWith(rootUrl)) {
+      event.preventDefault()
+      import('electron').then(({ shell }) => {
+        shell.openExternal(url)
+      })
+    }
+  })
+
+  // Intercept window.open calls (target="_blank")
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    import('electron').then(({ shell }) => {
+      shell.openExternal(details.url)
+    })
+    return { action: 'deny' }
+  })
 }
 
 app.whenReady().then(() => {
@@ -164,13 +184,32 @@ ipcMain.handle('agent:apikey', async (event, key: string) => {
   return { success: true, info: agent.getInfo() }
 })
 
-ipcMain.handle('agent:setup', async (event, config: { provider?: string, model?: string, apiKey?: string }) => {
+ipcMain.handle('agent:setup', async (event, config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string }) => {
   if (!agent) return { error: 'Agent not initialized' }
   try {
     await agent.updateSettings(config)
     return { success: true, info: agent.getInfo() }
   } catch (err: any) {
     return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('agent:open_file', async (event, filePath: string, line?: number) => {
+  try {
+    const fullPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+    // VS Code protocol: vscode://file/{fullPath}:{line}
+    // This is the most common way for developers. 
+    // If it fails or VS Code isn't there, we fallback to shell.openPath
+    const vscodeUrl = `vscode://file/${fullPath}${line ? `:${line}` : ''}`;
+    
+    // We try to open via VS Code protocol first for line support
+    shell.openExternal(vscodeUrl).catch(() => {
+      shell.openPath(fullPath);
+    });
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
   }
 })
 
@@ -372,6 +411,43 @@ ipcMain.handle('project:get_files', async () => {
       onlyFiles: true
     })
     return { success: true, files }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+// MCP Configuration Store
+let mcpConfigs: any[] = []
+let mcpLoaded = false
+
+ipcMain.handle('mcp:get_configs', async () => {
+  if (!mcpLoaded) {
+    try {
+      const fs = await import('fs/promises')
+      const configPath = path.join(app.getPath('userData'), 'mcp-configs.json')
+      const data = await fs.readFile(configPath, 'utf-8')
+      mcpConfigs = JSON.parse(data)
+    } catch {
+      mcpConfigs = []
+    }
+    mcpLoaded = true
+  }
+  return mcpConfigs
+})
+
+ipcMain.handle('mcp:save_configs', async (_event, configs) => {
+  mcpConfigs = configs
+  try {
+    const fs = await import('fs/promises')
+    const configPath = path.join(app.getPath('userData'), 'mcp-configs.json')
+    await fs.writeFile(configPath, JSON.stringify(mcpConfigs, null, 2))
+    
+    // Reload mcp tools in existing agent if active
+    if (agent) {
+       await agent.reloadMcpTools();
+    }
+    
+    return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
   }

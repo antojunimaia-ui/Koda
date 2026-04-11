@@ -15,13 +15,16 @@ declare global {
       setApiKey: (key: string) => Promise<{ success: boolean; info?: any; error?: string }>
       setModel: (model: string) => Promise<{ success: boolean; info?: any; error?: string }>
       getModels: (provider: string, apiKey: string) => Promise<{ success: boolean; models?: string[]; error?: string }>
-      setup: (config: { provider?: string, model?: string, apiKey?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
+      setup: (config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
+      openFile: (filePath: string, line?: number) => Promise<{ success: boolean; error?: string }>
       onUpdate: (callback: (update: any) => void) => void
       removeUpdateListener: () => void
       planResponse: (approved: boolean) => Promise<{ success: boolean }>
       ptySendCtrlC: (pid: number) => Promise<{ success: boolean; error?: string }>
       ptyKill: (pid: number) => Promise<{ success: boolean; error?: string }>
       getFiles: () => Promise<{ success: boolean; files: string[]; error?: string }>
+      getMcpConfigs: () => Promise<any[]>
+      saveMcpConfigs: (configs: any[]) => Promise<{ success: boolean; error?: string }>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>
@@ -29,3 +32,5 @@ declare global {
     }
   }
 }
+
+declare module 'ansi-to-html';

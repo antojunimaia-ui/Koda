@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('koda', {
   setModel: (model: string) => ipcRenderer.invoke('agent:model', model),
   getModels: (provider: string, apiKey: string) => ipcRenderer.invoke('agent:getModels', provider, apiKey),
   setup: (config: { provider?: string, model?: string, apiKey?: string }) => ipcRenderer.invoke('agent:setup', config),
+  openFile: (filePath: string, line?: number) => ipcRenderer.invoke('agent:open_file', filePath, line),
   onUpdate: (callback: (update: any) => void) => {
     ipcRenderer.on('agent:update', (_event, update) => callback(update))
   },
@@ -22,6 +23,8 @@ contextBridge.exposeInMainWorld('koda', {
   ptySendCtrlC: (pid: number) => ipcRenderer.invoke('pty:ctrl_c', pid),
   ptyKill: (pid: number) => ipcRenderer.invoke('pty:kill', pid),
   getFiles: () => ipcRenderer.invoke('project:get_files'),
+  getMcpConfigs: () => ipcRenderer.invoke('mcp:get_configs'),
+  saveMcpConfigs: (configs: any[]) => ipcRenderer.invoke('mcp:save_configs', configs),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),

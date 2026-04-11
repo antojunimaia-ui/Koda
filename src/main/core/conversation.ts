@@ -13,6 +13,14 @@ export class Conversation {
     });
   }
 
+  updateSystemPrompt(newPrompt: string): void {
+    if (this.messages.length > 0 && this.messages[0].role === "system") {
+      this.messages[0].content = newPrompt;
+    } else {
+      this.messages.unshift({ role: "system", content: newPrompt });
+    }
+  }
+
   addUser(content: string, images?: ContentPart[]): void {
     if (images && images.length > 0) {
       const parts: ContentPart[] = [

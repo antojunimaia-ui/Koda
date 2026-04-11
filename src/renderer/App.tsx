@@ -5,6 +5,17 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/tokyo-night-dark.css'
 import { BrailleSpinner } from './components/BrailleSpinner'
 import TitleBar from './components/TitleBar'
+import MCPSettings, { MCPServerConfig } from './components/MCPSettings'
+import BrowserPreview from './components/BrowserPreview'
+import AnsiConverter from 'ansi-to-html'
+
+const ansi = new AnsiConverter({
+  fg: '#CCC',
+  bg: '#000',
+  newline: false, // Prevents double spacing since we split lines
+  escapeXML: true,
+  stream: false   // Process each line independently
+})
 
 // Configure marked once at module level (not inside render)
 marked.use(markedHighlight({
@@ -90,11 +101,27 @@ const UserMessage = memo(({ text, images, onRollback }: { text: string; images?:
   </div>
 ))
 
+const processMessageLinks = (text: string) => {
+  // Regex to find file paths with line numbers: path/to/file.ts:123
+  // It handles both relative and absolute paths (Windows/Unix)
+  // Matches something like "src/main.ts:45"
+  return text.replace(/(([a-zA-Z]:[\\/][^: \n\r`"']+)|([^: \n\r`"']+)):(\d+)/g, (match, pathPart, absPath, relPath, line) => {
+    const finalPath = absPath || relPath;
+    // We only convert if it looks like a file path (has extension or is long enough)
+    // Avoid accidentally matching things like "http:8080"
+    if (finalPath.includes('.') || finalPath.includes('/') || finalPath.includes('\\')) {
+       return `[${match}](koda-open://${finalPath}:${line})`;
+    }
+    return match;
+  });
+};
+
 const AssistantMessage = memo(({ text, done }: { text?: string; done?: boolean }) => {
   let html = ''
   if (text) {
     try {
-      html = marked.parse(text) as string
+      const processedText = processMessageLinks(text)
+      html = marked.parse(processedText) as string
     } catch (e) {
       html = text
     }
@@ -154,18 +181,21 @@ const ToolMessage = memo(({ tool }: { tool: MessageEntry['tool'] }) => (
     {tool?.status === 'done' && tool.output && (
       <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
         {tool.output.split('\n').map((line, i) => {
+          // If the line is completely empty and it's not the last line, skip it or render a small dot
+          if (line.trim() === '' && i === 0) return null;
+          
           let lineClass = "text-slate-300 hover:bg-slate-800/20";
           if (line.startsWith('+')) lineClass = "text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2";
           else if (line.startsWith('-')) lineClass = "text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2";
 
           return (
-            <div key={i} className={`whitespace-pre-wrap break-all leading-relaxed px-1 rounded-sm transition-colors ${lineClass}`}>
-              {line}
-            </div>
+            <div 
+              key={i} 
+              className={`whitespace-pre-wrap break-all leading-relaxed px-1 rounded-sm transition-colors min-h-[1em] ${lineClass}`}
+              dangerouslySetInnerHTML={{ __html: ansi.toHtml(line) || '&nbsp;' }}
+            />
           )
         })}
-        {/* Fading bottom edge effect for long outputs that aren't scrolled */}
-        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none" />
       </div>
     )}
   </div>
@@ -238,13 +268,11 @@ const PtyMessage = memo(({ pty }: { pty: MessageEntry['pty'] }) => {
         )}
       </div>
 
-      <div ref={scrollRef} className="bg-[#0d1117] border border-slate-700 p-3 rounded-md text-[11px] text-[#58a6ff] font-mono max-h-[150px] overflow-y-auto custom-scrollbar">
-        {pty?.output.split('\n').map((line, i) => (
-          <div key={i} className="whitespace-pre-wrap break-all leading-relaxed">
-            {line}
-          </div>
-        ))}
-      </div>
+      <div 
+        ref={scrollRef} 
+        className="bg-[#0d1117] border border-slate-700 p-3 rounded-md text-[11px] text-[#58a6ff] font-mono max-h-[150px] overflow-y-auto custom-scrollbar whitespace-pre-wrap"
+        dangerouslySetInnerHTML={{ __html: ansi.toHtml(pty?.output || '') }}
+      />
     </div>
   )
 })
@@ -342,17 +370,19 @@ const PlanApprovalModal = memo(({ plan, onApprove, onReject }: {
 })
 
 // ─── Settings UI Modal ────────────────────────────────────────────────────────
-const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, theme, setTheme }: {
+const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defaultAdvisorModel, theme, setTheme }: {
   onClose: () => void
-  onSave: (config: { provider: string, model: string, apiKey: string }) => void
+  onSave: (config: { provider: string, model: string, advisorModel: string, apiKey: string }) => void
   defaultProvider: string
   defaultModel: string
+  defaultAdvisorModel: string
   theme: KodaTheme
   setTheme: React.Dispatch<React.SetStateAction<KodaTheme>>
 }) => {
   const [activeTab, setActiveTab] = useState<'api' | 'themes'>('api')
   const [provider, setProvider] = useState(defaultProvider || 'openai')
   const [model, setModel] = useState(defaultModel || 'gpt-4o')
+  const [advisorModel, setAdvisorModel] = useState(defaultAdvisorModel || 'gpt-4o')
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('koda_api_key') || '')
   const [models, setModels] = useState<string[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(false)
@@ -384,7 +414,7 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, theme
 
   const handleSave = () => {
     localStorage.setItem('koda_api_key', apiKey)
-    onSave({ provider, model, apiKey })
+    onSave({ provider, model, advisorModel, apiKey })
   }
 
   return (
@@ -476,6 +506,30 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, theme
                         onChange={e => setModel(e.target.value)}
                         className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan transition-colors font-mono text-xs"
                         placeholder="ex: llama3"
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Advisor Model</label>
+                    </div>
+                    {models.length > 0 ? (
+                      <select
+                        value={advisorModel}
+                        onChange={e => setAdvisorModel(e.target.value)}
+                        className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-magenta transition-colors custom-scrollbar font-mono text-xs"
+                      >
+                        {!models.includes(advisorModel) && <option value={advisorModel}>{advisorModel} (Current)</option>}
+                        {models.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={advisorModel}
+                        onChange={e => setAdvisorModel(e.target.value)}
+                        className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-magenta transition-colors font-mono text-xs"
+                        placeholder="ex: claude-3-sonnet"
                       />
                     )}
                   </div>
@@ -730,11 +784,15 @@ const App: React.FC = () => {
   const [input, setInput] = useState('')
   const [initializing, setInitializing] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [agentInfo, setAgentInfo] = useState({ provider: '...', model: '...', project: '...', cwd: '...' })
+  const [agentInfo, setAgentInfo] = useState({ provider: '...', model: '...', advisorModel: '...', project: '...', cwd: '...' })
   const [pendingPlan, setPendingPlan] = useState<string | null>(null)
   const [inPlanMode, setInPlanMode] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [mode, setMode] = useState<'fast' | 'planner'>('fast')
+  const [showMcpSettings, setShowMcpSettings] = useState(false)
+  const [showBrowser, setShowBrowser] = useState(false)
+  const [browserWidth, setBrowserWidth] = useState(50) // Percentage
+  const [isResizing, setIsResizing] = useState(false)
+  const [mode, setMode] = useState<'fast' | 'planner' | 'colab'>('fast')
   const [showPanel, setShowPanel] = useState(false)
   const [trackedFiles, setTrackedFiles] = useState<TrackedFile[]>([])
   const [pinnedFiles, setPinnedFiles] = useState<string[]>(() => {
@@ -981,6 +1039,31 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isProcessing])
 
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const link = target.closest('a')
+      if (link && link.href.startsWith('koda-open://')) {
+        e.preventDefault()
+        // URL constructor might struggle with koda-open:// (it's not a standard protocol)
+        // Let's decode manually
+        const raw = link.href.replace('koda-open://', '')
+        const decoded = decodeURIComponent(raw)
+        // Format: path:line
+        const lastColon = decoded.lastIndexOf(':')
+        if (lastColon !== -1 && !isNaN(parseInt(decoded.substring(lastColon + 1)))) {
+           const path = decoded.substring(0, lastColon)
+           const line = parseInt(decoded.substring(lastColon + 1), 10)
+           window.koda.openFile(path, line)
+        } else {
+           window.koda.openFile(decoded)
+        }
+      }
+    }
+    window.addEventListener('click', handleGlobalClick)
+    return () => window.removeEventListener('click', handleGlobalClick)
+  }, [])
+
   const handleSend = useCallback(async (overrideText?: string, overrideImages?: AttachedImage[]) => {
     const userMsg = overrideText ?? input
     const currentImages = overrideImages ?? pendingImages
@@ -1058,6 +1141,16 @@ const App: React.FC = () => {
 3. DESIGN a complete implementation strategy.
 4. Call 'exit_plan_mode' with your Markdown plan to get my approval.
 5. DO NOT ATTEMPT TO EDIT ANY FILES OR RUN EVOLUTIVE SHELL COMMANDS UNTIL I APPROVE THE PLAN.
+
+Your current task is: ${userMsg}`
+    } else if (mode === 'colab') {
+      finalMsg = `[COLLABORATIVE MODE PROTOCOL - ACTIVE]
+1. You are working in COLLABORATIVE MODE.
+2. You have access to a suite of collaboration tools: 'start_collaboration', 'send_to_advisor', and 'end_collaboration'.
+3. Use 'start_collaboration' to initialize a discussion with an Elite Technical Advisor.
+4. Use 'send_to_advisor' to exchange ideas, ask follow-up questions, and refine your plan.
+5. Once you have a solid strategy approved by the advisor, use 'end_collaboration' and proceed to implementation.
+6. This mode is for COMPLEX architectural discussions. Use it to deliver superior engineering.
 
 Your current task is: ${userMsg}`
     }
@@ -1200,47 +1293,25 @@ Your current task is: ${userMsg}`
       const idx = prev.findIndex(m => m.id === msgId)
       return idx === -1 ? prev : prev.slice(0, idx)
     })
-  }, [isProcessing])
+  }, [initializing, isProcessing, taskQueue])
 
-  const handlePinFile = useCallback((path: string) => {
-    setPinnedFiles(prev => {
-      const next = prev.includes(path) ? prev : [...prev, path]
-      localStorage.setItem('koda_pinned_files', JSON.stringify(next))
-      return next
-    })
-  }, [])
+  const handleInjectFile = (path: string) => {
+    const fileName = path.split(/[/\\]/).pop() || path
+    setInput(prev => prev + ` @[${path}] `)
+  }
 
-  const handleUnpinFile = useCallback((path: string) => {
-    setPinnedFiles(prev => {
-      const next = prev.filter(p => p !== path)
-      localStorage.setItem('koda_pinned_files', JSON.stringify(next))
-      return next
-    })
-  }, [])
-
-  const handleInjectFile = useCallback((absPath: string) => {
-    setInput(prev => {
-      const mention = `@[${absPath}] `
-      return prev.endsWith(' ') || prev === '' ? prev + mention : prev + ' ' + mention
-    })
-    setTimeout(() => inputRef.current?.focus(), 0)
-  }, [])
-
-  // ─── Drag & Drop handlers ────────────────────────────────────────
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
     setIsDragging(true)
-  }, [])
+  }
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false)
-  }, [])
+    setIsDragging(false)
+  }
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
     setIsDragging(false)
 
     const dropped = Array.from(e.dataTransfer.files)
@@ -1266,6 +1337,45 @@ Your current task is: ${userMsg}`
     setTimeout(() => inputRef.current?.focus(), 0)
   }, [handleInjectFile])
 
+  const startResizing = useCallback(() => {
+    setIsResizing(true)
+  }, [])
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false)
+  }, [])
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = (e.clientX / window.innerWidth) * 100
+      if (newWidth > 20 && newWidth < 80) { // Safety bounds
+        setBrowserWidth(newWidth)
+      }
+    }
+  }, [isResizing])
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', resize)
+      window.addEventListener('mouseup', stopResizing)
+    } else {
+      window.removeEventListener('mousemove', resize)
+      window.removeEventListener('mouseup', stopResizing)
+    }
+    return () => {
+      window.removeEventListener('mousemove', resize)
+      window.removeEventListener('mouseup', stopResizing)
+    }
+  }, [isResizing, resize, stopResizing])
+
+  const handlePinFile = useCallback((path: string) => {
+    setPinnedFiles(prev => prev.includes(path) ? prev : [...prev, path])
+  }, [])
+
+  const handleUnpinFile = useCallback((path: string) => {
+    setPinnedFiles(prev => prev.filter(p => p !== path))
+  }, [])
+
   const showThinkingSpinner = isProcessing && (
     messages.length === 0 ||
     (messages[messages.length - 1].type !== 'assistant' &&
@@ -1290,7 +1400,16 @@ Your current task is: ${userMsg}`
           </div>
         </div>
       )}
-      <TitleBar mode={mode} onModeChange={setMode} onSettingsClick={() => setShowSettings(true)} showPanel={showPanel} onTogglePanel={() => setShowPanel(p => !p)} />
+      <TitleBar 
+        mode={mode} 
+        onModeChange={setMode} 
+        onSettingsClick={() => setShowSettings(true)} 
+        onMcpClick={() => setShowMcpSettings(true)}
+        onBrowserClick={() => setShowBrowser(p => !p)}
+        showBrowser={showBrowser}
+        showPanel={showPanel} 
+        onTogglePanel={() => setShowPanel(p => !p)} 
+      />
 
       {/* Plan Approval Modal */}
       {pendingPlan && (
@@ -1316,13 +1435,45 @@ Your current task is: ${userMsg}`
             if (res.success) setAgentInfo(res.info)
             setShowSettings(false)
           }}
+          defaultAdvisorModel={agentInfo.advisorModel}
           theme={theme}
           setTheme={setTheme}
         />
       )}
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <div className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative">
+      {/* MCP Settings Modal */}
+      {showMcpSettings && (
+        <MCPSettings
+          onClose={() => setShowMcpSettings(false)}
+          onSave={async (configs) => {
+             // Saving is handled inside MCPSettings component via IPC
+             // Here we could trigger a reload if needed
+             setShowMcpSettings(false)
+          }}
+        />
+      )}
+
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
+        {showBrowser && (
+          <>
+            <div 
+              style={{ width: `${browserWidth}%` }} 
+              className="min-w-[300px] relative"
+            >
+              <BrowserPreview onClose={() => setShowBrowser(false)} />
+              {isResizing && <div className="absolute inset-0 z-[100] cursor-col-resize" />}
+            </div>
+            
+            {/* Draggable Resizer - The handle in the middle */}
+            <div 
+              onMouseDown={startResizing}
+              className={`w-1 hover:w-1.5 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'bg-emerald-500 w-1.5' : 'bg-white/5 hover:bg-emerald-500/50'}`}
+            >
+              <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizing ? 'bg-white' : ''}`} />
+            </div>
+          </>
+        )}
+        <div className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative" style={{ width: showBrowser ? `${100 - browserWidth}%` : '100%' }}>
         {/* FIXED BACKGROUND KODA LOGO (GLOBAL CENTER) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
           <pre className="text-slate-500/10 text-[11px] md:text-sm lg:text-base leading-[1.1] select-none font-mono text-center filter blur-[0.2px] opacity-80">

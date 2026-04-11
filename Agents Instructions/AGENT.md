@@ -87,7 +87,15 @@ O provider é configurado via `LLM_PROVIDER` no `.env`. Cada provider tem seu ad
 - Contém `claude` → `anthropic`
 - Contém `gemini` → `google`
 - Contém `gpt-`, `o1`, `o3` → `openai`
-- Contém `sabia` → `maritaca`
+- Contém `llama`, `qwen`, `mistral`, `phi` → `ollama`
+- Contém `local`, `localhost` → `llamacpp`
+- Contém `groq` → `groq`
+- Contém `deepseek` → `deepseek`
+- Contém `mistral`, `codestral` → `mistral` (API)
+- Contém `together` → `together`
+- Contém `grok`, `xai` → `xai`
+- Contém `glm`, `zhipu` → `zhipu`
+- Contém `sabia`, `maritaca` → `maritaca`
 
 ---
 
@@ -296,15 +304,27 @@ O Koda processa nativamente (sem chamar LLM) os seguintes comandos de chat:
 
 ## 🔗 Referências Rápidas
 
-| O que você quer | Onde olhar |
-|---|---|
-| Adicionar um provider novo | `src/main/providers/base.ts` + criar `meu-provider.ts` + registrar em `agent.ts` |
-| Adicionar uma Tool nova | `src/main/tools/base.ts` + criar `minha-tool.ts` + registrar em `tools/index.ts` |
-| Mudar system prompt base | `src/main/config/settings.ts` → `getSystemPrompt()` |
-| Mudar regras operacionais do agente | `src/main/core/prompt-builder.ts` → `buildCoreInstructions()` |
-| Mudar design do chat | `src/renderer/App.tsx` + `src/renderer/index.css` |
-| Adicionar um IPC handler | `src/main/index.ts` (handler) + `src/preload/index.ts` (expose) + `src/renderer/global.d.ts` (tipos) |
-| Configurar variáveis de ambiente | `.env` na raiz do projeto |
+| O que você quer                     | Onde olhar                                                                                           |
+|-------------------------------------|------------------------------------------------------------------------------------------------------|
+| Adicionar um provider novo          | `src/main/providers/base.ts` + criar `meu-provider.ts` + registrar em `agent.ts`                     |
+| Adicionar uma Tool nova             | `src/main/tools/base.ts` + criar `minha-tool.ts` + registrar em `tools/index.ts`                     |
+| Mudar system prompt base            | `src/main/config/settings.ts` → `getSystemPrompt()`                                                  |
+| Mudar regras operacionais do agente | `src/main/core/prompt-builder.ts` → `buildCoreInstructions()`                                        |
+| Mudar design do chat                | `src/renderer/App.tsx` + `src/renderer/index.css`                                                    |
+| Adicionar um IPC handler            | `src/main/index.ts` (handler) + `src/preload/index.ts` (expose) + `src/renderer/global.d.ts` (tipos) |
+| Configurar variáveis de ambiente    | `.env` na raiz do projeto                                                                            |
+
+---
+
+## 📜 Mandamentos Operacionais (Prompt Core)
+
+Definidos em `src/main/core/prompt-builder.ts`, estes princípios regem o comportamento de baixo nível do agente:
+
+1. **Análise Tool-First**: Priorize ler o código real em vez de supor. Use `grep_search` e `list_dir` antes de qualquer edição.
+2. **Edições Atômicas e Precisas**: Foque na lógica solicitada. Respeite a indentação e o estilo existente do arquivo.
+3. **Segurança e Raio de Ação**: Avisar brevemente o usuário antes de comandos shell destrutivos.
+4. **Proibido Placeholders**: Nunca emita código incompleto (ex: `// ... resto do código`). Implemente a lógica total.
+5. **Resolução Recursiva**: Se uma Tool falhar, analise o erro, crie uma nova hipótese e tente uma abordagem diferente imediatamente.
 
 ---
 

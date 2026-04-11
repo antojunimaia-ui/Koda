@@ -17,6 +17,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/generative-ai": "^0.21.0",
+    "ansi-to-html": "^0.7.2",
     "diff": "^8.0.4",
     "dotenv": "^16.4.7",
     "electron-updater": "^6.1.7",

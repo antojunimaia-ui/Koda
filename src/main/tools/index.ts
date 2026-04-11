@@ -8,14 +8,16 @@ import { ListDirTool } from "./list-dir.js";
 import { FileFindTool } from "./file-find.js";
 import { BrowserTool } from "./browser.js";
 import { LSPTool } from "./lsp.js";
+import { StartColabTool, SendColabTool, EndColabTool } from "./collaborate.js";
 import { EnterPlanModeTool, ExitPlanModeTool } from "./plan.js";
 import { trackFile } from "../services/file-tracker.js";
+import { AppSettings } from "../config/settings.js";
 import { resolve } from "path";
 
 export class ToolRegistry {
   private tools: Map<string, BaseTool> = new Map();
 
-  constructor() {
+  constructor(settings: AppSettings) {
     this.register(new FileReadTool());
     this.register(new FileWriteTool());
     this.register(new FileEditTool());
@@ -31,11 +33,27 @@ export class ToolRegistry {
     this.register(new ListPtyTool());
     this.register(new ShellInputTool());
     this.register(new ShellWaitTool());
+    this.register(new StartColabTool(settings));
+    this.register(new SendColabTool());
+    this.register(new EndColabTool());
   }
 
-  private activeMode: 'fast' | 'planner' = 'fast';
+  clearNonCoreTools(): void {
+    const coreTools = ["file_read", "file_write", "file_edit", "shell", "search", "list_dir", "file_find", "browser", "lsp", "enter_plan_mode", "exit_plan_mode", "kill_pty", "list_pty", "shell_input", "shell_wait", "start_collaboration", "send_to_advisor", "end_collaboration"];
+    for (const name of this.tools.keys()) {
+      if (!coreTools.includes(name)) {
+        this.tools.delete(name);
+      }
+    }
+  }
 
-  setActiveMode(mode: 'fast' | 'planner'): void {
+  registerDynamic(tool: BaseTool): void {
+    this.register(tool);
+  }
+
+  private activeMode: 'fast' | 'planner' | 'colab' = 'fast';
+
+  setActiveMode(mode: 'fast' | 'planner' | 'colab'): void {
     this.activeMode = mode;
   }
 
@@ -44,6 +62,12 @@ export class ToolRegistry {
   }
 
   get(name: string): BaseTool | undefined {
+    const colabTools = ['start_collaboration', 'send_to_advisor', 'end_collaboration'];
+    
+    if (this.activeMode !== 'colab' && colabTools.includes(name)) {
+      return undefined;
+    }
+
     if (this.activeMode === 'fast' && (name === 'enter_plan_mode' || name === 'exit_plan_mode')) {
       return undefined;
     }
@@ -52,10 +76,19 @@ export class ToolRegistry {
 
   getAll(): BaseTool[] {
     const all = Array.from(this.tools.values());
-    if (this.activeMode === 'fast') {
-      return all.filter(t => t.name !== 'enter_plan_mode' && t.name !== 'exit_plan_mode');
+    const colabTools = ['start_collaboration', 'send_to_advisor', 'end_collaboration'];
+
+    let filtered = all;
+
+    if (this.activeMode !== 'colab') {
+      filtered = filtered.filter(t => !colabTools.includes(t.name));
     }
-    return all;
+
+    if (this.activeMode === 'fast') {
+      filtered = filtered.filter(t => t.name !== 'enter_plan_mode' && t.name !== 'exit_plan_mode');
+    }
+
+    return filtered;
   }
 
   getDefinitions(): ToolDefinition[] {

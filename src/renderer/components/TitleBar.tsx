@@ -1,14 +1,17 @@
 import React from 'react'
 
 interface TitleBarProps {
-  mode: 'fast' | 'planner'
-  onModeChange: (mode: 'fast' | 'planner') => void
+  mode: 'fast' | 'planner' | 'colab'
+  onModeChange: (mode: 'fast' | 'planner' | 'colab') => void
   onSettingsClick: () => void
+  onMcpClick: () => void
+  onBrowserClick: () => void
+  showBrowser: boolean
   showPanel: boolean
   onTogglePanel: () => void
 }
 
-const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick, showPanel, onTogglePanel }) => {
+const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick, onMcpClick, onBrowserClick, showBrowser, showPanel, onTogglePanel }) => {
   return (
     <div className="h-10 bg-slate-900 border-b border-white/5 flex items-center justify-between px-3 select-none titlebar-drag">
       <div className="flex items-center gap-2 no-drag h-full">
@@ -25,6 +28,12 @@ const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick
           >
             Planner
           </button>
+          <button 
+            onClick={() => onModeChange('colab')}
+            className={`w-14 h-5 flex items-center justify-center rounded text-[8px] font-black uppercase tracking-widest transition-all duration-200 no-drag ${mode === 'colab' ? 'bg-indigo-600/90 text-white scale-105' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+          >
+            Colab
+          </button>
         </div>
 
         <button 
@@ -34,9 +43,32 @@ const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
+
+        <button 
+          onClick={onMcpClick}
+          className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-emerald-400 hover:bg-white/5 rounded transition-all no-drag ml-0.5"
+          title="MCP Settings (Model Context Protocol)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </button>
       </div>
 
       <div className="flex items-center no-drag h-full">
+        {/* Browser Preview Toggle */}
+        <button
+          onClick={onBrowserClick}
+          title={showBrowser ? 'Hide Browser Preview' : 'Show Browser Preview'}
+          className={`w-11 h-10 flex items-center justify-center transition-colors no-drag ${showBrowser ? 'text-emerald-400 bg-emerald-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </button>
+
         {/* Context Panel Toggle — left of window controls */}
         <button
           onClick={onTogglePanel}

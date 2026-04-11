@@ -7,6 +7,7 @@ export interface SystemPromptContext {
   shell: string;
   workspaceName?: string;
   additionalDirectives?: string;
+  toolsMetadata?: string; // List of available tool names/descriptions
 }
 
 /**
@@ -68,12 +69,14 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
     });
 
     const coreBlock = this.buildCoreInstructions();
+    const toolsBlock = context.toolsMetadata ? `# AVAILABLE TOOLS\nYou have access to the following dynamic and core capabilities:\n${context.toolsMetadata}` : "";
 
     // Assemble modular blocks
     return [
       basePrompt,
       envBlock,
       coreBlock,
+      toolsBlock,
       context.additionalDirectives || "",
     ]
       .filter((block) => block.trim().length > 0)
