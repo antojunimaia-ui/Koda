@@ -126,7 +126,7 @@ export class OpenRouterProvider extends BaseProvider {
       if (msg.role === "tool") {
         return {
           role: "tool" as const,
-          content: msg.content,
+          content: Array.isArray(msg.content) ? JSON.stringify(msg.content) : msg.content,
           tool_call_id: msg.toolCallId || "",
         };
       }
@@ -134,7 +134,7 @@ export class OpenRouterProvider extends BaseProvider {
       if (msg.role === "assistant" && msg.toolCalls?.length) {
         return {
           role: "assistant" as const,
-          content: msg.content || null,
+          content: Array.isArray(msg.content) ? null : (msg.content || null),
           tool_calls: msg.toolCalls.map((tc) => ({
             id: tc.id,
             type: "function" as const,
@@ -146,9 +146,23 @@ export class OpenRouterProvider extends BaseProvider {
         };
       }
 
+      // Build multimodal content if we have image parts — only valid for 'user' role
+      if (Array.isArray(msg.content) && msg.role === "user") {
+        const parts: OpenAI.Chat.ChatCompletionContentPart[] = msg.content.map(part => {
+          if (part.type === "image" && part.image) {
+            return {
+              type: "image_url" as const,
+              image_url: { url: part.image.dataUrl },
+            };
+          }
+          return { type: "text" as const, text: part.text || "" };
+        });
+        return { role: "user" as const, content: parts };
+      }
+
       return {
         role: msg.role as "system" | "user" | "assistant",
-        content: msg.content,
+        content: (Array.isArray(msg.content) ? "" : msg.content) as string,
       };
     });
   }

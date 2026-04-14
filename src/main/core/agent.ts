@@ -79,25 +79,19 @@ export class Agent {
   }
 
   async initialize(): Promise<void> {
-    // Run context gathering and provider loading in parallel
-    const [context, provider] = await Promise.all([
-      gatherProjectContext(),
-      this.createProviderAsync(),
-    ]);
+    // 1. Priority: Create provider and set it immediately so the agent is functional
+    this.provider = await this.createProviderAsync();
 
-    this.projectContext = context;
-    this.provider = provider;
+    // 2. Secondary: Gather project context (might be slow)
+    this.projectContext = await gatherProjectContext();
 
-    // Load MCP Tools
+    // 3. Load MCP Tools
     await this.reloadMcpTools();
 
-    // Inject project context into conversation
-    if (this.projectContext.summary) {
-      this.conversation.addUser(
-        `[System Context] Here is information about the current project:\n\n${this.projectContext.summary}\n\nPlease acknowledge you understand the project context briefly.`
-      );
-      // We don't actually send this - we'll prepend it as context
-    }
+    // 4. Update system prompt with new context and tools
+    this.rebuildPrompt();
+
+    // 5. Inject project context: handled via System Prompt in rebuildPrompt()
   }
 
   getInfo(): {
@@ -119,8 +113,8 @@ export class Agent {
   async processMessage(
     userMessage: string,
     onText: (text: string) => void,
-    onToolStart: (name: string) => void,
-    onToolEnd: (name: string, result: string, success: boolean) => void,
+    onToolStart: (name: string, args: any) => void,
+    onToolEnd: (name: string, result: string, success: boolean, args: any) => void,
     onError: (error: string) => void,
     images?: import("../providers/base.js").ContentPart[]
   ): Promise<void> {
@@ -216,7 +210,7 @@ export class Agent {
             case "tool_call_start":
               hasToolCalls = true;
               if (chunk.toolCall?.name) {
-                onToolStart(chunk.toolCall.name);
+                onToolStart(chunk.toolCall.name, chunk.toolCall.arguments);
               }
               break;
 
@@ -253,7 +247,7 @@ export class Agent {
             const success = result.success;
             const output = result.error || result.output;
 
-            onToolEnd(toolCall.name, output, success);
+            onToolEnd(toolCall.name, output, success, toolCall.arguments);
 
             // Add tool result to conversation
             this.conversation.addToolResult(
@@ -331,17 +325,10 @@ export class Agent {
   }
 
   resetConversation(): void {
-    // Re-evaluate context at reset
-    this.dynamicSystemPrompt = PromptBuilder.build(
-      this.settings.systemPrompt,
-      { workspaceName: this.projectContext?.name }
-    );
-    this.conversation = new Conversation(this.dynamicSystemPrompt);
-    if (this.projectContext?.summary) {
-      this.conversation.addUser(
-        `[System Context] ${this.projectContext.summary}`
-      );
-    }
+    // 1. Rebuild the system prompt to ensure it has latest context/mcp tools
+    this.rebuildPrompt();
+    // 2. Clear history (Conversation.clear preserves the system message)
+    this.conversation.clear();
   }
 
   /**
@@ -412,6 +399,7 @@ export class Agent {
       this.settings.systemPrompt,
       { 
         workspaceName: this.projectContext?.name,
+        projectSummary: this.projectContext?.summary,
         toolsMetadata: this.getToolsMetadata()
       }
     );

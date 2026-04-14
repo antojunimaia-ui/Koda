@@ -47,17 +47,22 @@ export class GoogleProvider extends BaseProvider {
         >;
 
         for (const [key, value] of Object.entries(rawProps)) {
+          const type =
+            value.type === "NUMBER"
+              ? SchemaType.NUMBER
+              : value.type === "BOOLEAN"
+                ? SchemaType.BOOLEAN
+                : value.type === "ARRAY"
+                  ? SchemaType.ARRAY
+                  : SchemaType.STRING;
+
           properties[key] = {
-            type:
-              value.type === "NUMBER"
-                ? SchemaType.NUMBER
-                : value.type === "BOOLEAN"
-                  ? SchemaType.BOOLEAN
-                  : value.type === "ARRAY"
-                    ? SchemaType.ARRAY
-                    : SchemaType.STRING,
+            type,
             description: value.description,
-          };
+            ...(type === SchemaType.ARRAY
+              ? { items: { type: SchemaType.STRING } }
+              : {}),
+          } as FunctionDeclarationSchemaProperty;
         }
 
         const schema: FunctionDeclarationSchema = {

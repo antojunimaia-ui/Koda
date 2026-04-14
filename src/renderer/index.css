@@ -132,17 +132,45 @@ kbd {
   @apply bg-transparent p-0;
 }
 
-/* Custom Scrollbar for Tools */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Global VS Code style scrollbars */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-transparent;
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-slate-700/50 rounded;
+
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.2);
+  border: 4px solid transparent;
+  background-clip: content-box;
+  border-radius: 10px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-600/80;
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 120, 120, 0.4);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(120, 120, 120, 0.6);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Compatibility classes */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 120, 120, 0.2) transparent;
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 120, 120, 0.2) transparent;
 }

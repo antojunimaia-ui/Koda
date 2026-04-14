@@ -14,14 +14,22 @@ contextBridge.exposeInMainWorld('koda', {
   setup: (config: { provider?: string, model?: string, apiKey?: string }) => ipcRenderer.invoke('agent:setup', config),
   openFile: (filePath: string, line?: number) => ipcRenderer.invoke('agent:open_file', filePath, line),
   onUpdate: (callback: (update: any) => void) => {
-    ipcRenderer.on('agent:update', (_event, update) => callback(update))
+    const listener = (_event: any, update: any) => callback(update)
+    ipcRenderer.on('agent:update', listener)
+    return () => ipcRenderer.removeListener('agent:update', listener)
   },
   removeUpdateListener: () => {
     ipcRenderer.removeAllListeners('agent:update')
   },
   planResponse: (approved: boolean) => ipcRenderer.invoke('agent:plan_response', approved),
+  shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => ipcRenderer.invoke('agent:shell_response', approved, alwaysAllowBase, alwaysAllowFull),
+  getApprovedCommands: () => ipcRenderer.invoke('agent:get_approved_commands'),
+  updateApprovedCommands: (lists: { base?: string[], full?: string[] }) => ipcRenderer.invoke('agent:update_approved_commands', lists),
   ptySendCtrlC: (pid: number) => ipcRenderer.invoke('pty:ctrl_c', pid),
   ptyKill: (pid: number) => ipcRenderer.invoke('pty:kill', pid),
+  ptyStart: (cwd?: string) => ipcRenderer.invoke('pty:start', cwd),
+  ptyWrite: (pid: number, data: string) => ipcRenderer.invoke('pty:write', pid, data),
+  ptyResize: (pid: number, cols: number, rows: number) => ipcRenderer.invoke('pty:resize', pid, cols, rows),
   getFiles: () => ipcRenderer.invoke('project:get_files'),
   getMcpConfigs: () => ipcRenderer.invoke('mcp:get_configs'),
   saveMcpConfigs: (configs: any[]) => ipcRenderer.invoke('mcp:save_configs', configs),

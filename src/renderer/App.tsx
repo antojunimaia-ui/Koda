@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react'
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { marked } from 'marked'
 import { markedHighlight } from 'marked-highlight'
 import hljs from 'highlight.js'
+// @ts-ignore
 import 'highlight.js/styles/tokyo-night-dark.css'
 import { BrailleSpinner } from './components/BrailleSpinner'
 import TitleBar from './components/TitleBar'
 import MCPSettings, { MCPServerConfig } from './components/MCPSettings'
 import BrowserPreview from './components/BrowserPreview'
+import TerminalPanel from './components/TerminalPanel'
 import AnsiConverter from 'ansi-to-html'
 
 const ansi = new AnsiConverter({
@@ -52,16 +55,28 @@ interface MessageEntry {
   done?: boolean
   tool?: {
     name: string
-    status: 'running' | 'done'
+    status: 'running' | 'done' | 'awaiting_approval'
     output?: string
     success: boolean
     pid?: number
+    command?: string
+    baseCommand?: string
+    args?: any
   }
   pty?: {
     pid: number
     output: string
     exited?: boolean
   }
+}
+
+interface KodaSettings {
+  showTerminal: boolean
+  showShellWait: boolean
+  showFileRead: boolean
+  showFileEdit: boolean
+  showListDir: boolean
+  showFileFind: boolean
 }
 
 // ─── Memoized message rows — only re-render when their own data changes ───────
@@ -92,8 +107,8 @@ const UserMessage = memo(({ text, images, onRollback }: { text: string; images?:
           className="opacity-30 hover:opacity-100 transition-opacity ml-1 mt-0.5 p-1 rounded hover:bg-rose-900/30 text-slate-500 hover:text-rose-400 flex-shrink-0"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
           </svg>
         </button>
       )}
@@ -110,7 +125,7 @@ const processMessageLinks = (text: string) => {
     // We only convert if it looks like a file path (has extension or is long enough)
     // Avoid accidentally matching things like "http:8080"
     if (finalPath.includes('.') || finalPath.includes('/') || finalPath.includes('\\')) {
-       return `[${match}](koda-open://${finalPath}:${line})`;
+      return `[${match}](koda-open://${finalPath}:${line})`;
     }
     return match;
   });
@@ -148,58 +163,202 @@ const AssistantMessage = memo(({ text, done }: { text?: string; done?: boolean }
   )
 })
 
-const ToolMessage = memo(({ tool }: { tool: MessageEntry['tool'] }) => (
-  <div className="flex flex-col ml-4 gap-2 my-2 border-l-2 border-slate-700/50 pl-3 py-1">
-    <div className="flex items-center gap-2">
-      <span className={tool?.status === 'running' ? 'text-yellow animate-pulse' : 'text-magenta'}>
-        {symbols.lightning}
-      </span>
-      <span className="text-white font-mono text-[13px] bg-slate-800/80 px-2 py-0.5 rounded shadow-sm border border-slate-700/50">
-        {tool?.name}
-      </span>
-      {tool?.status === 'running' ? (
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 text-[11px] animate-pulse">executing...</span>
-          {tool.pid && (
-            <button
-              onClick={() => window.koda.ptyKill(tool.pid!)}
-              className="px-1.5 py-0.5 rounded bg-rose-950/30 border border-rose-500/30 text-rose-400 text-[9px] font-bold uppercase hover:bg-rose-900/50 transition-colors"
-              title="Force kill this process"
-            >
-              Kill
-            </button>
-          )}
-        </div>
-      ) : (
-        <span className={`text-[11px] flex items-center gap-1 ${tool?.success ? 'text-emerald-400' : 'text-rose-400'}`}>
-          {tool?.success ? symbols.check : symbols.cross}
-          <span className="opacity-70">{tool?.success ? 'completed' : 'failed'}</span>
+// ─── Persistence Helper ──────────────────────────────────────────────────────
+const persistApprovedCommand = async (type: 'base' | 'full', command: string) => {
+  const key = type === 'base' ? 'koda_approved_base' : 'koda_approved_full'
+  const current = JSON.parse(localStorage.getItem(key) || '[]')
+  const updated = [...new Set([...current, command])]
+  localStorage.setItem(key, JSON.stringify(updated))
+
+  // Sync to main process
+  const base = JSON.parse(localStorage.getItem('koda_approved_base') || '[]')
+  const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
+  await window.koda.updateApprovedCommands({ base, full })
+}
+
+const ToolMessage = memo(({ tool, settings, agentInfo }: { tool: MessageEntry['tool'], settings: KodaSettings, agentInfo: any }) => {
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showDropdown])
+
+  const isOutputVisible = (
+    (tool?.name === 'shell' && settings.showTerminal) ||
+    (tool?.name === 'shell_wait' && settings.showShellWait) ||
+    (tool?.name === 'file_read' && settings.showFileRead) ||
+    (tool?.name === 'file_edit' && settings.showFileEdit) ||
+    (tool?.name === 'list_dir' && settings.showListDir) ||
+    (tool?.name === 'file_find' && settings.showFileFind) ||
+    (!['shell', 'shell_wait', 'file_read', 'file_edit', 'list_dir', 'file_find'].includes(tool?.name || ''))
+  );
+
+  const stats = tool?.name === 'file_edit' ? (() => {
+    let plus = 0, minus = 0;
+    tool.output?.split('\n').forEach(l => {
+      if (l.startsWith('+') && !l.startsWith('+++')) plus++;
+      else if (l.startsWith('-') && !l.startsWith('---')) minus++;
+    });
+    return { plus, minus };
+  })() : null;
+
+  return (
+    <div className="flex flex-col ml-4 gap-2 my-2 border-l-2 border-slate-700/50 pl-3 py-1">
+      <div className="flex items-center gap-2">
+        <span className={tool?.status === 'running' ? 'text-yellow animate-pulse' : 'text-magenta'}>
+          {symbols.lightning}
         </span>
+        <span className="text-white font-mono text-[13px] bg-slate-800/80 px-2 py-0.5 rounded shadow-sm border border-slate-700/50 flex items-center">
+          {stats && !settings.showFileEdit && (
+            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-700/50 mr-2">
+              <span className="text-cyan-400">+{stats.plus}</span>
+              <span className="text-rose-400">-{stats.minus}</span>
+            </div>
+          )}
+          {tool?.name === 'list_dir'
+            ? (() => {
+                const cwd = agentInfo?.cwd || '';
+                const p = tool?.args?.path;
+                if (!p || p === '.') return cwd;
+                if (p.startsWith('/') || p.match(/^[a-zA-Z]:[\\/]/)) return p;
+                const sep = cwd.includes('\\') ? '\\' : '/';
+                const cleanP = p.replace(/^\.\//, '');
+                return cwd.endsWith(sep) ? cwd + cleanP : cwd + sep + cleanP;
+              })()
+            : (tool?.name === 'file_read' || tool?.name === 'file_edit' || tool?.name === 'file_write')
+              ? (tool?.args?.path?.split(/[\\/]/).pop() || tool?.args?.path || tool?.name)
+              : tool?.name === 'shell'
+                ? (tool?.command || tool?.args?.command || tool?.name)
+                : tool?.name}
+        </span>
+        {tool?.status === 'running' && (
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 text-[11px] animate-pulse">executing...</span>
+            {tool.pid && (
+              <button
+                onClick={() => window.koda.ptyKill(tool.pid!)}
+                className="px-1.5 py-0.5 rounded bg-rose-950/30 border border-rose-500/30 text-rose-400 text-[9px] font-bold uppercase hover:bg-rose-900/50 transition-colors"
+                title="Force kill this process"
+              >
+                Kill
+              </button>
+            )}
+          </div>
+        )}
+        {tool?.status === 'awaiting_approval' && (
+          <div className="flex-1 flex justify-end items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300 relative">
+            <div className="flex items-center gap-1.5 mr-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              <span className="text-amber-500 text-[10px] font-bold uppercase tracking-wider">Awaiting Approval</span>
+            </div>
+
+            <button
+              onClick={() => window.koda.shellResponse(false, false, false)}
+              className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-rose-400 text-[10px] font-bold hover:bg-rose-900/20 hover:border-rose-500/50 transition-all active:scale-95"
+            >
+              Deny
+            </button>
+
+            <div className="flex items-stretch rounded-md border border-emerald-500/50 relative" ref={dropdownRef}>
+              <button
+                onClick={() => window.koda.shellResponse(true, false, false)}
+                className="px-3 py-1 bg-emerald-600/40 hover:bg-emerald-600/60 text-emerald-400 text-[10px] font-bold transition-all active:bg-emerald-600/80 rounded-l-[5px]"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                title="Approval options"
+                className={`px-2 flex items-center justify-center transition-colors rounded-r-[5px] ${showDropdown ? 'bg-emerald-500/40 text-white' : 'bg-emerald-700/40 hover:bg-emerald-700/60 text-emerald-400 border-l border-emerald-500/30'}`}
+              >
+                <svg className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Inline Dropdown Menu */}
+              {showDropdown && (
+                <div className="absolute right-0 top-full mt-1.5 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-[100] overflow-hidden animate-in slide-in-from-top-1 duration-200">
+                  <button
+                    onClick={async () => {
+                      await window.koda.shellResponse(true, true, false);
+                      await persistApprovedCommand('base', tool.baseCommand!);
+                      setShowDropdown(false);
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-emerald-900/20 transition-colors flex flex-col gap-0.5 border-b border-slate-700/30"
+                  >
+                    <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1.5">
+                      <span className="text-xs">⚡</span> Accept Base Command
+                    </span>
+                    <span className="text-[9px] text-slate-500 ml-5 opacity-70">Always allow "<code className="bg-slate-950 px-1 rounded">{tool.baseCommand!}</code>" this session</span>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      await window.koda.shellResponse(true, false, true);
+                      await persistApprovedCommand('full', tool.command!);
+                      setShowDropdown(false);
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-emerald-900/20 transition-colors flex flex-col gap-0.5 border-b border-slate-700/30"
+                  >
+                    <span className="text-cyan-400 font-bold text-[11px] flex items-center gap-1.5">
+                      <span className="text-xs">🚀</span> Accept Full Command
+                    </span>
+                    <span className="text-[9px] text-slate-500 ml-5 opacity-70 line-clamp-1">Always allow "<code className="bg-slate-950 px-1 rounded">{tool.command!}</code>"</span>
+                  </button>
+
+                  <button
+                    onClick={() => { window.koda.shellResponse(true, false, false); setShowDropdown(false); }}
+                    className="w-full px-4 py-2.5 text-left hover:bg-slate-700/50 transition-colors"
+                  >
+                    <span className="text-slate-300 font-bold text-[11px] flex items-center gap-1.5">
+                      <span>✔</span> Accept Once
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {tool?.status === 'done' && (
+          <span className={`text-[11px] flex items-center gap-1 ${tool?.success ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {tool?.success ? symbols.check : symbols.cross}
+            <span className="opacity-70">{tool?.success ? 'completed' : 'failed'}</span>
+          </span>
+        )}
+      </div>
+
+      {isOutputVisible && tool?.status === 'done' && tool.output && (
+        <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
+          {tool.output.split('\n').map((line, i) => {
+            if (line.trim() === '' && i === 0) return null;
+
+            let lineClass = "text-slate-300 hover:bg-slate-800/20";
+            if (line.startsWith('+')) lineClass = "text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2";
+            else if (line.startsWith('-')) lineClass = "text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2";
+
+            return (
+              <div
+                key={i}
+                className={`whitespace-pre-wrap break-all leading-relaxed px-1 rounded-sm transition-colors min-h-[1em] ${lineClass}`}
+                dangerouslySetInnerHTML={{ __html: ansi.toHtml(line) || '&nbsp;' }}
+              />
+            )
+          })}
+        </div>
       )}
     </div>
-
-    {tool?.status === 'done' && tool.output && (
-      <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
-        {tool.output.split('\n').map((line, i) => {
-          // If the line is completely empty and it's not the last line, skip it or render a small dot
-          if (line.trim() === '' && i === 0) return null;
-          
-          let lineClass = "text-slate-300 hover:bg-slate-800/20";
-          if (line.startsWith('+')) lineClass = "text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2";
-          else if (line.startsWith('-')) lineClass = "text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2";
-
-          return (
-            <div 
-              key={i} 
-              className={`whitespace-pre-wrap break-all leading-relaxed px-1 rounded-sm transition-colors min-h-[1em] ${lineClass}`}
-              dangerouslySetInnerHTML={{ __html: ansi.toHtml(line) || '&nbsp;' }}
-            />
-          )
-        })}
-      </div>
-    )}
-  </div>
-))
+  )
+})
 
 const ErrorMessage = memo(({ text }: { text: string }) => (
   <div className="ml-4 text-red flex gap-2 items-center">
@@ -268,8 +427,8 @@ const PtyMessage = memo(({ pty }: { pty: MessageEntry['pty'] }) => {
         )}
       </div>
 
-      <div 
-        ref={scrollRef} 
+      <div
+        ref={scrollRef}
         className="bg-[#0d1117] border border-slate-700 p-3 rounded-md text-[11px] text-[#58a6ff] font-mono max-h-[150px] overflow-y-auto custom-scrollbar whitespace-pre-wrap"
         dangerouslySetInnerHTML={{ __html: ansi.toHtml(pty?.output || '') }}
       />
@@ -277,11 +436,11 @@ const PtyMessage = memo(({ pty }: { pty: MessageEntry['pty'] }) => {
   )
 })
 
-const MessageRow = memo(({ msg, onRollback }: { msg: MessageEntry; onRollback?: () => void }) => (
+const MessageRow = memo(({ msg, onRollback, kodaSettings, agentInfo }: { msg: MessageEntry; onRollback?: () => void, kodaSettings: KodaSettings, agentInfo: any }) => (
   <div className="flex flex-col text-sm">
     {msg.type === 'user' && <UserMessage text={msg.text!} images={msg.images} onRollback={onRollback} />}
     {msg.type === 'assistant' && <AssistantMessage text={msg.text} done={msg.done} />}
-    {msg.type === 'tool' && <ToolMessage tool={msg.tool} />}
+    {msg.type === 'tool' && <ToolMessage tool={msg.tool} settings={kodaSettings} agentInfo={agentInfo} />}
     {msg.type === 'error' && <ErrorMessage text={msg.text!} />}
     {msg.type === 'system' && <SystemMessage text={msg.text!} />}
     {msg.type === 'pty' && <PtyMessage pty={msg.pty} />}
@@ -319,49 +478,36 @@ const THEMES: KodaTheme[] = [
 const DEFAULT_THEME = THEMES[0]
 
 // ─── Plan Approval Modal ──────────────────────────────────────────────────────
-const PlanApprovalModal = memo(({ plan, onApprove, onReject }: {
-  plan: string
-  onApprove: () => void
-  onReject: () => void
-}) => {
-  const html = marked.parse(plan) as string
+const PlanApprovalModal = memo(({ plan, onApprove, onReject }: { plan: string; onApprove: () => void; onReject: () => void }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="flex flex-col w-[700px] max-h-[80vh] bg-slate-900 border border-slate-700 rounded-lg overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-700 bg-slate-800/50">
-          <span className="text-2xl">📋</span>
-          <div>
-            <h2 className="text-white font-bold text-base">Koda needs your approval</h2>
-            <p className="text-slate-400 text-xs mt-0.5">Review the plan below before letting the agent write code</p>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="w-[500px] bg-slate-900 border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+        <div className="p-6 bg-slate-800/30 border-b border-white/5">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Execution Plan Approval</h2>
           </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
-            <span className="text-yellow-400 text-[10px] font-bold uppercase tracking-widest">Plan Mode</span>
+          <p className="text-slate-400 text-xs leading-relaxed">The agent has proposed a plan. Please review the steps below before proceeding.</p>
+        </div>
+        
+        <div className="p-6 max-h-[300px] overflow-y-auto custom-scrollbar">
+          <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+            {plan}
           </div>
         </div>
 
-        {/* Plan Content */}
-        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-          <div
-            className="markdown-body text-slate-300 leading-relaxed text-sm"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3 px-5 py-4 border-t border-slate-700 bg-slate-800/30">
-          <button
-            onClick={onApprove}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md bg-emerald-900/40 border border-emerald-500/50 text-emerald-400 font-bold text-sm hover:bg-emerald-800/60 transition-all hover:scale-[1.02] active:scale-95"
-          >
-            <span>✔</span> Approve & Execute
-          </button>
+        <div className="p-6 bg-slate-800/30 border-t border-white/5 flex gap-3">
           <button
             onClick={onReject}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md bg-rose-900/20 border border-rose-500/50 text-rose-400 font-bold text-sm hover:bg-rose-900/40 transition-all hover:scale-[1.02] active:scale-95"
+            className="flex-1 py-3 px-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition-all active:scale-95"
           >
-            <span>✖</span> Reject & Refine
+            Reject Plan
+          </button>
+          <button
+            onClick={onApprove}
+            className="flex-1 py-3 px-4 rounded-xl border border-emerald-500/30 bg-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 transition-all shadow-lg shadow-emerald-500/10 active:scale-95"
+          >
+            Approve & Execute
           </button>
         </div>
       </div>
@@ -369,8 +515,160 @@ const PlanApprovalModal = memo(({ plan, onApprove, onReject }: {
   )
 })
 
+// ─── Koda Settings Tab ────────────────────────────────────────────────────────
+const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings }: {
+  kodaSettings: KodaSettings,
+  setKodaSettings: React.Dispatch<React.SetStateAction<KodaSettings>>
+}) => {
+  const [approved, setApproved] = useState<{ base: string[], full: string[] }>({ base: [], full: [] })
+  const [newCmd, setNewCmd] = useState('')
+  const [type, setType] = useState<'base' | 'full'>('base')
+
+  useEffect(() => {
+    window.koda.getApprovedCommands().then(setApproved)
+  }, [])
+
+  const addCmd = async () => {
+    if (!newCmd.trim()) return
+    const updated = { ...approved, [type]: [...new Set([...approved[type], newCmd.trim()])] }
+    setApproved(updated)
+    await window.koda.updateApprovedCommands(updated)
+
+    // Save to LocalStorage
+    localStorage.setItem('koda_approved_base', JSON.stringify(updated.base))
+    localStorage.setItem('koda_approved_full', JSON.stringify(updated.full))
+
+    setNewCmd('')
+  }
+
+  const removeCmd = async (cmd: string, t: 'base' | 'full') => {
+    const updated = { ...approved, [t]: approved[t].filter(c => c !== cmd) }
+    setApproved(updated)
+    await window.koda.updateApprovedCommands(updated)
+
+    // Save to LocalStorage
+    localStorage.setItem('koda_approved_base', JSON.stringify(updated.base))
+    localStorage.setItem('koda_approved_full', JSON.stringify(updated.full))
+  }
+
+  return (
+    <div className="flex flex-col gap-8 animate-in slide-in-from-left-2 duration-300">
+      {/* Verbosity Section */}
+      <section>
+        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
+          <span className="w-1.5 h-4 bg-amber-400 rounded-full"></span>
+          Output Verbosity
+        </h3>
+        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">Toggle tool output visibility in chat. Does not affect agent context.</p>
+
+        <div className="flex flex-col gap-4 bg-slate-800/20 p-4 rounded-xl border border-slate-700/50">
+          <SettingToggle
+            label="Show Terminal Output"
+            description="Live output from running terminal processes (npm, etc)"
+            enabled={kodaSettings.showTerminal}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showTerminal: v }))}
+          />
+          <SettingToggle
+            label="Show Shell Wait Output"
+            description="Output from synchronous shell commands (ls, mkdir, etc)"
+            enabled={kodaSettings.showShellWait}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showShellWait: v }))}
+          />
+          <SettingToggle
+            label="Show File Read Output"
+            description="The content of files read by the agent"
+            enabled={kodaSettings.showFileRead}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showFileRead: v }))}
+          />
+          <SettingToggle
+            label="Show File Edit Output"
+            description="Diffs and changes made to files"
+            enabled={kodaSettings.showFileEdit}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showFileEdit: v }))}
+          />
+          <SettingToggle
+            label="Show List Dir Output"
+            description="Directory listings and file structures"
+            enabled={kodaSettings.showListDir}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showListDir: v }))}
+          />
+          <SettingToggle
+            label="Show File Find Output"
+            description="Search results and file matching logs"
+            enabled={kodaSettings.showFileFind}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showFileFind: v }))}
+          />
+        </div>
+      </section>
+
+      {/* Approved Commands Section */}
+      <section>
+        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
+          <span className="w-1.5 h-4 bg-emerald-500 rounded-full"></span>
+          Approved Commands
+        </h3>
+        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">Commands in this list will execute automatically without asking for permission.</p>
+
+        <div className="flex flex-col gap-4 bg-slate-800/20 p-4 rounded-xl border border-slate-700/50">
+          <div className="flex gap-2">
+            <select
+              value={type}
+              onChange={e => setType(e.target.value as any)}
+              className="bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500 transition-colors"
+            >
+              <option value="base">Base Command</option>
+              <option value="full">Full String</option>
+            </select>
+            <input
+              type="text"
+              value={newCmd}
+              onChange={e => setNewCmd(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addCmd()}
+              placeholder={type === 'base' ? "ex: npm" : "ex: npm install"}
+              className="flex-1 bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2 text-xs outline-none focus:border-emerald-500 transition-colors"
+            />
+            <button
+              onClick={addCmd}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
+            >Add</button>
+          </div>
+
+          <div className="flex flex-col gap-6 pt-2">
+            <div>
+              <label className="text-slate-500 font-black text-[9px] uppercase tracking-[0.2em] mb-3 block">Base Commands (Session)</label>
+              <div className="flex flex-wrap gap-2 min-h-[32px]">
+                {approved.base.length === 0 && <span className="text-slate-600 text-[10px] italic">No base commands approved yet.</span>}
+                {approved.base.map(cmd => (
+                  <span key={cmd} className="group flex items-center gap-2 px-2.5 py-1 bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 rounded-full text-xs font-mono shadow-sm">
+                    {cmd}
+                    <button onClick={() => removeCmd(cmd, 'base')} className="hover:text-rose-400 opacity-50 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px]">✕</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-800 pt-4">
+              <label className="text-slate-500 font-black text-[9px] uppercase tracking-[0.2em] mb-3 block">Full Command Strings (Session)</label>
+              <div className="flex flex-wrap gap-2 min-h-[32px]">
+                {approved.full.length === 0 && <span className="text-slate-600 text-[10px] italic">No full strings approved yet.</span>}
+                {approved.full.map(cmd => (
+                  <span key={cmd} className="group flex items-center gap-2 px-2.5 py-1 bg-cyan-900/30 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-mono shadow-sm max-w-full">
+                    <span className="truncate">{cmd}</span>
+                    <button onClick={() => removeCmd(cmd, 'full')} className="hover:text-rose-400 opacity-50 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] flex-shrink-0">✕</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+})
+
+
 // ─── Settings UI Modal ────────────────────────────────────────────────────────
-const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defaultAdvisorModel, theme, setTheme }: {
+const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defaultAdvisorModel, theme, setTheme, kodaSettings, setKodaSettings }: {
   onClose: () => void
   onSave: (config: { provider: string, model: string, advisorModel: string, apiKey: string }) => void
   defaultProvider: string
@@ -378,8 +676,10 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
   defaultAdvisorModel: string
   theme: KodaTheme
   setTheme: React.Dispatch<React.SetStateAction<KodaTheme>>
+  kodaSettings: KodaSettings
+  setKodaSettings: React.Dispatch<React.SetStateAction<KodaSettings>>
 }) => {
-  const [activeTab, setActiveTab] = useState<'api' | 'themes'>('api')
+  const [activeTab, setActiveTab] = useState<'api' | 'themes' | 'koda'>('api')
   const [provider, setProvider] = useState(defaultProvider || 'openai')
   const [model, setModel] = useState(defaultModel || 'gpt-4o')
   const [advisorModel, setAdvisorModel] = useState(defaultAdvisorModel || 'gpt-4o')
@@ -420,29 +720,36 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="flex w-[800px] h-[550px] bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
-        
+
         {/* Sidebar */}
         <div className="w-1/4 bg-slate-800/30 border-r border-slate-700/50 flex flex-col p-4 gap-2">
           <div className="text-cyan font-bold flex items-center gap-2 mb-6 px-2">
             <span className="text-xl">⚙️</span> Settings
           </div>
-          
-          <button 
+
+          <button
             onClick={() => setActiveTab('api')}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'api' ? 'bg-cyan/10 text-cyan border-r-2 border-cyan' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
           >
             <span>🏢</span> API & Models
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setActiveTab('themes')}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'themes' ? 'bg-magenta/10 text-magenta border-r-2 border-magenta' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
           >
             <span>🎨</span> Themes
           </button>
 
+          <button
+            onClick={() => setActiveTab('koda')}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'koda' ? 'bg-amber-400/10 text-amber-400 border-r-2 border-amber-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+          >
+            <span>🤖</span> Koda Settings
+          </button>
+
           <div className="mt-auto">
-             <button 
+            <button
               onClick={onClose}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold text-slate-500 hover:bg-rose-900/10 hover:text-rose-400 transition-all border border-transparent hover:border-rose-900/30"
             >
@@ -460,7 +767,7 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
                   <span className="w-1.5 h-4 bg-cyan rounded-full"></span>
                   API Configuration
                 </h3>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Provider</label>
@@ -563,26 +870,26 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
                 </div>
 
                 <div className="flex flex-col gap-3">
-                   <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Active Theme</label>
-                   <div className="grid grid-cols-2 gap-3">
-                      {THEMES.map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => setTheme(t)}
-                          className={`flex flex-col gap-2 p-3 rounded-lg border transition-all text-left group ${theme.id === t.id ? 'border-magenta bg-magenta/10 shadow-[0_0_15px_rgba(217,70,239,0.1)]' : 'border-slate-700 bg-slate-800/40 hover:border-slate-500 hover:bg-slate-800/70'}`}
-                        >
-                           <div className="flex justify-between items-center w-full">
-                              <span className={`text-xs font-bold ${theme.id === t.id ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{t.name}</span>
-                              {theme.id === t.id && <span className="text-magenta text-[10px]">●</span>}
-                           </div>
-                           <div className="flex gap-1">
-                              <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.bg }}></div>
-                              <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.accent }}></div>
-                              <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.accentAlt }}></div>
-                           </div>
-                        </button>
-                      ))}
-                   </div>
+                  <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Active Theme</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {THEMES.map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setTheme(t)}
+                        className={`flex flex-col gap-2 p-3 rounded-lg border transition-all text-left group ${theme.id === t.id ? 'border-magenta bg-magenta/10 shadow-[0_0_15px_rgba(217,70,239,0.1)]' : 'border-slate-700 bg-slate-800/40 hover:border-slate-500 hover:bg-slate-800/70'}`}
+                      >
+                        <div className="flex justify-between items-center w-full">
+                          <span className={`text-xs font-bold ${theme.id === t.id ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{t.name}</span>
+                          {theme.id === t.id && <span className="text-magenta text-[10px]">●</span>}
+                        </div>
+                        <div className="flex gap-1">
+                          <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.bg }}></div>
+                          <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.accent }}></div>
+                          <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.accentAlt }}></div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="mt-4 p-4 rounded-xl border border-slate-700/50" style={{ backgroundColor: theme.colors.bgAlt }}>
@@ -593,13 +900,14 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
                       <div className="text-xs font-bold" style={{ color: theme.colors.text }}>This is how Koda will look.</div>
                     </div>
                     <div className="p-3 rounded-lg border text-[10px] leading-relaxed" style={{ backgroundColor: theme.colors.sidebar, borderColor: theme.colors.border, color: theme.colors.textDim }}>
-                      The quick brown fox jumps over the lazy dog. 
+                      The quick brown fox jumps over the lazy dog.
                       <code className="ml-2 font-mono" style={{ color: theme.colors.accentAlt }}>npm run dev</code>
                     </div>
                   </div>
                 </div>
               </div>
             )}
+            {activeTab === 'koda' && <KodaSettingsTab kodaSettings={kodaSettings} setKodaSettings={setKodaSettings} />}
           </div>
 
           {/* Footer */}
@@ -628,20 +936,35 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
   )
 })
 
+const SettingToggle = ({ label, description, enabled, onChange }: { label: string, description: string, enabled: boolean, onChange: (v: boolean) => void }) => (
+  <div className="flex items-center justify-between group">
+    <div className="flex flex-col">
+      <span className="text-xs font-bold text-slate-200">{label}</span>
+      <span className="text-[10px] text-slate-500">{description}</span>
+    </div>
+    <button
+      onClick={() => onChange(!enabled)}
+      className={`w-10 h-5 rounded-full relative transition-all ${enabled ? 'bg-cyan' : 'bg-slate-700'}`}
+    >
+      <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${enabled ? 'left-6' : 'left-1'}`} />
+    </button>
+  </div>
+)
+
 const ThemeColorInput = ({ label, value, onChange, colorClass }: { label: string, value: string, onChange: (v: string) => void, colorClass?: string }) => (
   <div className="flex items-center justify-between gap-4">
     <label className="text-slate-400 text-[11px] font-medium">{label}</label>
     <div className="flex items-center gap-2">
-      <input 
-        type="text" 
-        value={value} 
+      <input
+        type="text"
+        value={value}
         onChange={e => onChange(e.target.value)}
         className="w-20 bg-slate-850 border border-slate-700 text-slate-300 rounded px-1.5 py-0.5 text-[10px] font-mono focus:border-cyan outline-none"
       />
       <div className="relative w-6 h-6 rounded border border-slate-700 group overflow-hidden">
-        <input 
-          type="color" 
-          value={value.startsWith('rgba') ? '#22d3ee' : value} 
+        <input
+          type="color"
+          value={value.startsWith('rgba') ? '#22d3ee' : value}
           onChange={e => onChange(e.target.value)}
           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
         />
@@ -690,9 +1013,8 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, cwd }
         <button
           onClick={e => { e.stopPropagation(); isPinned ? onUnpin(file.path) : onPin(file.path) }}
           title={isPinned ? 'Unpin from context' : 'Pin to context'}
-          className={`opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-[9px] ${
-            isPinned ? 'text-cyan-400 opacity-100' : 'text-slate-500 hover:text-cyan-400'
-          }`}
+          className={`opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-[9px] ${isPinned ? 'text-cyan-400 opacity-100' : 'text-slate-500 hover:text-cyan-400'
+            }`}
         >
           {isPinned ? '📌' : '📍'}
         </button>
@@ -705,7 +1027,7 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, cwd }
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-white/5 flex items-center gap-2">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400 flex-shrink-0">
-          <path d="M3 6h18M3 12h12M3 18h8"/>
+          <path d="M3 6h18M3 12h12M3 18h8" />
         </svg>
         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Context Panel</span>
       </div>
@@ -769,7 +1091,7 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, cwd }
         {files.length === 0 && pinnedFiles.length === 0 && (
           <div className="px-3 py-6 text-center">
             <div className="text-slate-600 text-[10px] font-mono leading-relaxed">
-              No files tracked yet.<br/>Start a task and the agent's<br/>file activity will appear here.
+              No files tracked yet.<br />Start a task and the agent's<br />file activity will appear here.
             </div>
           </div>
         )}
@@ -781,23 +1103,47 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, cwd }
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<MessageEntry[]>([])
+  const virtuosoRef = useRef<VirtuosoHandle>(null)
   const [input, setInput] = useState('')
   const [initializing, setInitializing] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [agentInfo, setAgentInfo] = useState({ provider: '...', model: '...', advisorModel: '...', project: '...', cwd: '...' })
   const [pendingPlan, setPendingPlan] = useState<string | null>(null)
+  const [pendingShellRequest, setPendingShellRequest] = useState<{ command: string; description: string; baseCommand: string } | null>(null)
   const [inPlanMode, setInPlanMode] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showMcpSettings, setShowMcpSettings] = useState(false)
   const [showBrowser, setShowBrowser] = useState(false)
-  const [browserWidth, setBrowserWidth] = useState(50) // Percentage
+  const [showTerminal, setShowTerminal] = useState(false)
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50) // Percentage
+  const [browserHeight, setBrowserHeight] = useState(60) // Percentage of top part
   const [isResizing, setIsResizing] = useState(false)
+  const [isResizingHeight, setIsResizingHeight] = useState(false)
   const [mode, setMode] = useState<'fast' | 'planner' | 'colab'>('fast')
   const [showPanel, setShowPanel] = useState(false)
   const [trackedFiles, setTrackedFiles] = useState<TrackedFile[]>([])
   const [pinnedFiles, setPinnedFiles] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('koda_pinned_files') || '[]') } catch { return [] }
   })
+  const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
+    try {
+      const saved = localStorage.getItem('koda_settings')
+      if (saved) return JSON.parse(saved)
+    } catch (e) { }
+    return {
+      showTerminal: true,
+      showShellWait: true,
+      showFileRead: true,
+      showFileEdit: true,
+      showListDir: true,
+      showFileFind: true
+    }
+  })
+
+  useEffect(() => {
+    localStorage.setItem('koda_settings', JSON.stringify(kodaSettings))
+  }, [kodaSettings])
+
   const [pendingImages, setPendingImages] = useState<AttachedImage[]>([])
   const [taskQueue, setTaskQueue] = useState<{ text: string; images: AttachedImage[] }[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -842,7 +1188,6 @@ const App: React.FC = () => {
     root.style.setProperty('--koda-user-msg', colors.userMsg)
   }, [theme])
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // ── Streaming batch: accumulate chunks in a ref, flush via rAF ──────
@@ -878,15 +1223,20 @@ const App: React.FC = () => {
   const scheduleScroll = useCallback(() => {
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
     scrollTimerRef.current = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'smooth' })
     }, 80)
-  }, [])
+  }, [messages.length])
 
   useEffect(() => {
     if (!window.koda) return
 
     window.koda.init().then(async (res: any) => {
       if (res.success) {
+        // Sync approved commands from LocalStorage
+        const base = JSON.parse(localStorage.getItem('koda_approved_base') || '[]')
+        const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
+        window.koda.updateApprovedCommands({ base, full })
+
         // Hydrate from localStorage if available
         const savedKey = localStorage.getItem('koda_api_key')
         if (savedKey) {
@@ -904,7 +1254,7 @@ const App: React.FC = () => {
       setInitializing(false)
     })
 
-    window.koda.onUpdate((update: any) => {
+    const unsubscribe = window.koda.onUpdate((update: any) => {
       if (update.type === 'text') {
         chunkBufferRef.current += update.content
         scheduleFlush()
@@ -930,14 +1280,14 @@ const App: React.FC = () => {
               updated[updated.length - 1] = { ...last, done: true }
             }
           }
-          return [...finalized, { id: nextId(), type: 'tool', tool: { name: update.name, status: 'running', success: false } }]
+          return [...finalized, { id: nextId(), type: 'tool', tool: { name: update.name, args: update.args, status: 'running', success: false } }]
         })
         scheduleScroll()
       } else if (update.type === 'tool_end') {
         setMessages(prev =>
           prev.map(m =>
-            m.type === 'tool' && m.tool && m.tool.name === update.name && m.tool.status === 'running'
-              ? { ...m, tool: { name: m.tool.name, status: 'done' as const, success: update.success, output: update.result } }
+            m.type === 'tool' && m.tool && m.tool.name === update.name && (m.tool.status === 'running' || m.tool.status === 'awaiting_approval')
+              ? { ...m, tool: { ...m.tool, status: 'done' as const, success: update.success, output: update.result, args: update.args || m.tool.args } }
               : m
           )
         )
@@ -974,6 +1324,24 @@ const App: React.FC = () => {
         scheduleScroll()
       } else if (update.type === 'plan_approval_requested') {
         setPendingPlan(update.plan)
+        scheduleScroll()
+      } else if (update.type === 'shell_awaiting_approval') {
+        setMessages(prev => {
+          const updated = [...prev]
+          const lastToolIdx = updated.map(m => m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null).lastIndexOf('shell')
+          if (lastToolIdx !== -1) {
+            updated[lastToolIdx] = {
+              ...updated[lastToolIdx],
+              tool: {
+                ...updated[lastToolIdx].tool!,
+                status: 'awaiting_approval',
+                command: update.command,
+                baseCommand: update.baseCommand
+              }
+            }
+          }
+          return updated
+        })
         scheduleScroll()
       } else if (update.type === 'plan_mode_exited') {
         setInPlanMode(false)
@@ -1036,7 +1404,7 @@ const App: React.FC = () => {
       // Small delay so UI settles before firing the next task
       setTimeout(() => handleSend(next.text, next.images), 200)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isProcessing])
 
   useEffect(() => {
@@ -1052,11 +1420,11 @@ const App: React.FC = () => {
         // Format: path:line
         const lastColon = decoded.lastIndexOf(':')
         if (lastColon !== -1 && !isNaN(parseInt(decoded.substring(lastColon + 1)))) {
-           const path = decoded.substring(0, lastColon)
-           const line = parseInt(decoded.substring(lastColon + 1), 10)
-           window.koda.openFile(path, line)
+          const path = decoded.substring(0, lastColon)
+          const line = parseInt(decoded.substring(lastColon + 1), 10)
+          window.koda.openFile(path, line)
         } else {
-           window.koda.openFile(decoded)
+          window.koda.openFile(decoded)
         }
       }
     }
@@ -1337,6 +1705,38 @@ Your current task is: ${userMsg}`
     setTimeout(() => inputRef.current?.focus(), 0)
   }, [handleInjectFile])
 
+  const startResizingHeight = useCallback(() => {
+    setIsResizingHeight(true)
+  }, [])
+
+  const stopResizingHeight = useCallback(() => {
+    setIsResizingHeight(false)
+  }, [])
+
+  const resizeHeight = useCallback((e: MouseEvent) => {
+    if (isResizingHeight) {
+      const containerHeight = window.innerHeight - 40 // TitleBar is ~40px
+      const newHeight = ((e.clientY - 40) / containerHeight) * 100
+      if (newHeight > 15 && newHeight < 85) {
+        setBrowserHeight(newHeight)
+      }
+    }
+  }, [isResizingHeight])
+
+  useEffect(() => {
+    if (isResizingHeight) {
+      window.addEventListener('mousemove', resizeHeight)
+      window.addEventListener('mouseup', stopResizingHeight)
+    } else {
+      window.removeEventListener('mousemove', resizeHeight)
+      window.removeEventListener('mouseup', stopResizingHeight)
+    }
+    return () => {
+      window.removeEventListener('mousemove', resizeHeight)
+      window.removeEventListener('mouseup', stopResizingHeight)
+    }
+  }, [isResizingHeight, resizeHeight, stopResizingHeight])
+
   const startResizing = useCallback(() => {
     setIsResizing(true)
   }, [])
@@ -1348,8 +1748,8 @@ Your current task is: ${userMsg}`
   const resize = useCallback((e: MouseEvent) => {
     if (isResizing) {
       const newWidth = (e.clientX / window.innerWidth) * 100
-      if (newWidth > 20 && newWidth < 80) { // Safety bounds
-        setBrowserWidth(newWidth)
+      if (newWidth > 15 && newWidth < 80) { // Safety bounds
+        setLeftPanelWidth(newWidth)
       }
     }
   }, [isResizing])
@@ -1400,15 +1800,17 @@ Your current task is: ${userMsg}`
           </div>
         </div>
       )}
-      <TitleBar 
-        mode={mode} 
-        onModeChange={setMode} 
-        onSettingsClick={() => setShowSettings(true)} 
+      <TitleBar
+        mode={mode}
+        onModeChange={setMode}
+        onSettingsClick={() => setShowSettings(true)}
         onMcpClick={() => setShowMcpSettings(true)}
         onBrowserClick={() => setShowBrowser(p => !p)}
         showBrowser={showBrowser}
-        showPanel={showPanel} 
-        onTogglePanel={() => setShowPanel(p => !p)} 
+        onTerminalClick={() => setShowTerminal(p => !p)}
+        showTerminal={showTerminal}
+        showPanel={showPanel}
+        onTogglePanel={() => setShowPanel(p => !p)}
       />
 
       {/* Plan Approval Modal */}
@@ -1424,6 +1826,8 @@ Your current task is: ${userMsg}`
         />
       )}
 
+      {/* Shell Approval Modal removed per user request - now inline */}
+
       {/* Settings Modal */}
       {showSettings && (
         <SettingsUI
@@ -1438,6 +1842,8 @@ Your current task is: ${userMsg}`
           defaultAdvisorModel={agentInfo.advisorModel}
           theme={theme}
           setTheme={setTheme}
+          kodaSettings={kodaSettings}
+          setKodaSettings={setKodaSettings}
         />
       )}
 
@@ -1446,225 +1852,270 @@ Your current task is: ${userMsg}`
         <MCPSettings
           onClose={() => setShowMcpSettings(false)}
           onSave={async (configs) => {
-             // Saving is handled inside MCPSettings component via IPC
-             // Here we could trigger a reload if needed
-             setShowMcpSettings(false)
+            // Saving is handled inside MCPSettings component via IPC
+            // Here we could trigger a reload if needed
+            setShowMcpSettings(false)
           }}
         />
       )}
 
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
-        {showBrowser && (
+        {(showBrowser || showTerminal) && (
           <>
-            <div 
-              style={{ width: `${browserWidth}%` }} 
-              className="min-w-[300px] relative"
+            <div
+              style={{ width: `${leftPanelWidth}%` }}
+              className="flex flex-col flex-shrink-0 min-w-[250px] relative h-full bg-[#0d1117]"
             >
-              <BrowserPreview onClose={() => setShowBrowser(false)} />
-              {isResizing && <div className="absolute inset-0 z-[100] cursor-col-resize" />}
+              {showBrowser && (
+                <div 
+                  className="flex-shrink-0 min-h-[100px] relative"
+                  style={{ height: showTerminal ? `${browserHeight}%` : '100%' }}
+                >
+                  <BrowserPreview onClose={() => setShowBrowser(false)} />
+                  {isResizingHeight && <div className="absolute inset-0 z-[100] cursor-row-resize" />}
+                </div>
+              )}
+
+              {showBrowser && showTerminal && (
+                <div
+                  onMouseDown={startResizingHeight}
+                  className={`h-1 hover:h-1.2 w-full cursor-row-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+                >
+                  <div className={`w-8 h-[1px] bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingHeight ? 'bg-white' : ''}`} />
+                </div>
+              )}
+
+              {showTerminal && (
+                <div 
+                  className="flex-1 min-h-[100px] relative"
+                  style={{ height: showBrowser ? `${100 - browserHeight}%` : '100%' }}
+                >
+                  <TerminalPanel 
+                    onClose={() => setShowTerminal(false)} 
+                    cwd={agentInfo.cwd}
+                  />
+                  {isResizingHeight && <div className="absolute inset-0 z-[100] cursor-row-resize" />}
+                </div>
+              )}
             </div>
-            
-            {/* Draggable Resizer - The handle in the middle */}
-            <div 
+
+            {/* Draggable Resizer - Main Horizontal Handle */}
+            <div
               onMouseDown={startResizing}
-              className={`w-1 hover:w-1.5 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'bg-emerald-500 w-1.5' : 'bg-white/5 hover:bg-emerald-500/50'}`}
+              className={`w-1 hover:w-1.5 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
             >
               <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizing ? 'bg-white' : ''}`} />
             </div>
           </>
         )}
-        <div className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative" style={{ width: showBrowser ? `${100 - browserWidth}%` : '100%' }}>
-        {/* FIXED BACKGROUND KODA LOGO (GLOBAL CENTER) */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <pre className="text-slate-500/10 text-[11px] md:text-sm lg:text-base leading-[1.1] select-none font-mono text-center filter blur-[0.2px] opacity-80">
-            {`:::    :::  ::::::::  :::::::::      :::
+
+        <div 
+          className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative" 
+          style={{ width: `${100 - (showBrowser || showTerminal ? leftPanelWidth : 0)}%` }}
+        >
+          {/* FIXED BACKGROUND KODA LOGO (GLOBAL CENTER) */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+            <pre className="text-slate-500/10 text-[11px] md:text-sm lg:text-base leading-[1.1] select-none font-mono text-center filter blur-[0.2px] opacity-80">
+              {`:::    :::  ::::::::  :::::::::      :::
 :+:   :+:  :+:    :+: :+:    :+:   :+: :+:
 +:+  +:+   +:+    +:+ +:+    +:+  +:+   +:+
 +#++:++    +#+    +:+ +#+    +:+ +#++:++#++:
 +#+  +#+   +#+    +#+ +#+    +#+ +#+     +#+
 #+#   #+#  #+#    #+# #+#    #+# #+#     #+#
 ###    ###  ########  #########  ###     ###`}
-          </pre>
-        </div>
-
-        {/* HEADER */}
-        <div className="terminal-header uppercase tracking-wider">
-          <div className="terminal-box flex flex-col gap-1">
-            <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-bold">
-              <span className="text-slate-400">Project: <span className="text-yellow">{agentInfo.project}</span></span>
-
-              <div className="flex items-center gap-3">
-                <span className="text-green opacity-80 text-[9px]">{agentInfo.model}</span>
-
-                <div className={`flex items-center gap-1.5 pl-2 border-l border-white/5 ${initializing ? 'text-slate-500' : isProcessing ? 'text-yellow' : 'text-green'}`}>
-                  {inPlanMode && (
-                    <span className="flex items-center gap-1 mr-1 text-yellow-400 font-bold uppercase text-[9px] tracking-widest">
-                      <span className="w-1 h-1 bg-yellow-400 rounded-full animate-pulse"></span>
-                    </span>
-                  )}
-                  <span className="text-[10px]">{initializing || isProcessing ? symbols.circle : symbols.bullet}</span>
-                  <span className="text-[10px] font-black tracking-tighter">
-                    {initializing ? 'Loading...' : isProcessing ? 'Busy' : 'Ready'}
-                  </span>
-                </div>
-              </div>
-            </div>
+            </pre>
           </div>
-          <div 
-            onClick={handlePathClick}
-            className="flex items-center gap-2 text-[10px] text-slate-500 font-mono cursor-pointer transition-all group mt-1"
-            title="Click to select new working directory"
-          >
-            <span className="opacity-40 group-hover:text-cyan group-hover:opacity-100 transition-all">{symbols.dir}</span>
-            <span className="text-slate-500 group-hover:text-slate-300 truncate max-w-[300px] transition-all">{agentInfo.cwd}</span>
-          </div>
-        </div>
 
-        {/* MESSAGE AREA CONTAINER */}
-        <div className="flex-1 min-h-0 relative">
-          {/* MESSAGE LIST (SCROLLABLE) */}
-          <div className="terminal-scroll-area h-full mt-2 pr-2 relative z-10 overflow-y-auto">
-            <div className="flex flex-col gap-3">
-              {messages.map(msg => (
-                <MessageRow key={msg.id} msg={msg} onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined} />
-              ))}
-              {showThinkingSpinner && (
-                <div className="flex flex-col ml-4">
-                  <BrailleSpinner label="Thinking..." color="cyan" />
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-        </div>
+          {/* HEADER */}
+          <div className="terminal-header uppercase tracking-wider">
+            <div className="terminal-box flex flex-col gap-1">
+              <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-bold">
+                <span className="text-slate-400">Project: <span className="text-yellow">{agentInfo.project}</span></span>
 
-        {/* Image preview strip — ABOVE the input row */}
-        {pendingImages.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-3 mb-1 pt-1">
-            {pendingImages.map((img, i) => (
-              <div key={i} className="relative group">
-                <img src={img.dataUrl} alt={img.name} className="h-16 rounded border border-slate-700 object-cover" />
-                <button
-                  onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >✕</button>
-              </div>
-            ))}
-          </div>
-        )}
+                <div className="flex items-center gap-3">
+                  <span className="text-green opacity-80 text-[9px]">{agentInfo.model}</span>
 
-        {/* Task Queue indicator — ABOVE the input row */}
-        {taskQueue.length > 0 && (
-          <div className="flex items-center gap-2 px-3 mb-1 py-1 border-t border-white/5">
-            <span className="text-[9px] font-black uppercase tracking-widest text-amber-400">⏳ Queue</span>
-            <div className="flex gap-1.5 flex-1 overflow-hidden">
-              {taskQueue.map((t, i) => (
-                <span key={i} className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-[160px]">{t.text}</span>
-              ))}
-            </div>
-            <button
-              onClick={() => setTaskQueue([])}
-              className="text-[9px] text-slate-600 hover:text-rose-400 transition-colors"
-              title="Clear queue"
-            >✕ clear</button>
-          </div>
-        )}
-
-        {/* INPUT */}
-        <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-20 mt-2 ${initializing ? 'terminal-input-disabled' : ''}`}>
-          <span className={`font-bold mt-[6px] ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
-          {initializing ? (
-            <span className="text-slate-600 animate-pulse italic text-sm">Initializing...</span>
-          ) : (
-            <textarea
-              ref={inputRef}
-              autoFocus
-              rows={1}
-              value={input}
-              onChange={e => {
-                handleInputChange(e.target.value)
-                // Auto-expand height
-                e.target.style.height = 'auto'
-                e.target.style.height = `${e.target.scrollHeight}px`
-              }}
-              onKeyDown={e => {
-                if (showSuggestions) {
-                  if (e.key === 'Enter' || e.key === 'Tab') {
-                    e.preventDefault()
-                    if (suggestions[suggestionIndex]) {
-                      selectSuggestion(suggestions[suggestionIndex])
-                    }
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault()
-                    setSuggestionIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1))
-                  } else if (e.key === 'ArrowDown') {
-                    e.preventDefault()
-                    setSuggestionIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : 0))
-                  } else if (e.key === 'Escape') {
-                    setShowSuggestions(false)
-                  }
-                  return
-                }
-
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSend()
-                  // Reset height
-                  if (inputRef.current) inputRef.current.style.height = 'auto'
-                } else if (e.key === 'ArrowUp' && input.indexOf('\n') === -1) {
-                  e.preventDefault()
-                  if (history.length > 0) {
-                    const nextIndex = historyIndex < history.length - 1 ? historyIndex + 1 : historyIndex
-                    setHistoryIndex(nextIndex)
-                    setInput(history[nextIndex])
-                  }
-                } else if (e.key === 'ArrowDown' && input.indexOf('\n') === -1) {
-                  e.preventDefault()
-                  if (historyIndex > 0) {
-                    const prevIndex = historyIndex - 1
-                    setHistoryIndex(prevIndex)
-                    setInput(history[prevIndex])
-                  } else if (historyIndex === 0) {
-                    setHistoryIndex(-1)
-                    setInput('')
-                  }
-                }
-              }}
-              placeholder={isProcessing ? 'Add to queue — agent will run next...' : 'Type your message...'}
-              className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-slate-600 font-bold resize-none py-1.5 leading-normal min-h-[20px] max-h-[200px] custom-scrollbar"
-            />
-          )}
-
-
-          {/* Suggestions Dropdown */}
-          {showSuggestions && (
-            <div className="absolute bottom-full left-0 mb-2 w-full max-w-[400px] bg-[#0d1117] border border-cyan-500/50 rounded-lg shadow-2xl z-50 overflow-hidden font-mono">
-              <div className="px-3 py-1.5 border-b border-slate-800 bg-slate-900/50 text-[10px] text-cyan-400 font-bold flex justify-between items-center">
-                <span>FILES</span>
-                <span className="opacity-50 font-normal">TAB to select</span>
-              </div>
-              <div className="max-h-[240px] overflow-y-auto custom-scrollbar">
-                {suggestions.map((file, i) => (
-                  <div
-                    key={file}
-                    onClick={() => selectSuggestion(file)}
-                    onMouseEnter={() => setSuggestionIndex(i)}
-                    className={`px-3 py-2 cursor-pointer text-xs flex items-center gap-2 transition-colors ${i === suggestionIndex ? 'bg-cyan-900/40 text-cyan-400' : 'text-slate-400 hover:bg-slate-800/40'
-                      }`}
-                  >
-                    <span className="opacity-50 text-[10px]">📄</span>
-                    <span className="truncate flex-1">
-                      {file.split('/').slice(0, -1).join('/') && (
-                        <span className="opacity-40">{file.split('/').slice(0, -1).join('/')}/</span>
-                      )}
-                      <span className="font-bold">{file.split('/').pop()}</span>
+                  <div className={`flex items-center gap-1.5 pl-2 border-l border-white/5 ${initializing ? 'text-slate-500' : isProcessing ? 'text-yellow' : 'text-green'}`}>
+                    {inPlanMode && (
+                      <span className="flex items-center gap-1 mr-1 text-yellow-400 font-bold uppercase text-[9px] tracking-widest">
+                        <span className="w-1 h-1 bg-yellow-400 rounded-full animate-pulse"></span>
+                      </span>
+                    )}
+                    <span className="text-[10px]">{initializing || isProcessing ? symbols.circle : symbols.bullet}</span>
+                    <span className="text-[10px] font-black tracking-tighter">
+                      {initializing ? 'Loading...' : isProcessing ? 'Busy' : 'Ready'}
                     </span>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
+            <div
+              onClick={handlePathClick}
+              className="flex items-center gap-2 text-[10px] text-slate-500 font-mono cursor-pointer transition-all group mt-1"
+              title="Click to select new working directory"
+            >
+              <span className="opacity-40 group-hover:text-cyan group-hover:opacity-100 transition-all">{symbols.dir}</span>
+              <span className="text-slate-500 group-hover:text-slate-300 truncate max-w-[300px] transition-all">{agentInfo.cwd}</span>
+            </div>
+          </div>
+
+          {/* MESSAGE AREA CONTAINER */}
+          <div className="flex-1 min-h-0 relative mt-2 pr-2">
+            <Virtuoso
+              ref={virtuosoRef}
+              data={messages}
+              followOutput="smooth"
+              className="terminal-scroll-area h-full custom-scrollbar"
+              itemContent={(_index, msg) => (
+                <MessageRow
+                  key={msg.id}
+                  msg={msg}
+                  onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined}
+                  kodaSettings={kodaSettings}
+                  agentInfo={agentInfo}
+                />
+              )}
+              components={{
+                Footer: () => (
+                  <div className="pb-4">
+                    {showThinkingSpinner && (
+                      <div className="flex flex-col ml-4 mt-3">
+                        <BrailleSpinner label="Thinking..." color="cyan" />
+                      </div>
+                    )}
+                  </div>
+                )
+              }}
+            />
+          </div>
+
+          {/* Image preview strip — ABOVE the input row */}
+          {pendingImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-3 mb-1 pt-1">
+              {pendingImages.map((img, i) => (
+                <div key={i} className="relative group">
+                  <img src={img.dataUrl} alt={img.name} className="h-16 rounded border border-slate-700 object-cover" />
+                  <button
+                    onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >✕</button>
+                </div>
+              ))}
+            </div>
           )}
-        </div>
+
+          {/* Task Queue indicator — ABOVE the input row */}
+          {taskQueue.length > 0 && (
+            <div className="flex items-center gap-2 px-3 mb-1 py-1 border-t border-white/5">
+              <span className="text-[9px] font-black uppercase tracking-widest text-amber-400">⏳ Queue</span>
+              <div className="flex gap-1.5 flex-1 overflow-hidden">
+                {taskQueue.map((t, i) => (
+                  <span key={i} className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-[160px]">{t.text}</span>
+                ))}
+              </div>
+              <button
+                onClick={() => setTaskQueue([])}
+                className="text-[9px] text-slate-600 hover:text-rose-400 transition-colors"
+                title="Clear queue"
+              >✕ clear</button>
+            </div>
+          )}
+
+          {/* INPUT */}
+          <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-20 mt-2 ${initializing ? 'terminal-input-disabled' : ''}`}>
+            <span className={`font-bold mt-[6px] ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
+            {initializing ? (
+              <span className="text-slate-600 animate-pulse italic text-sm">Initializing...</span>
+            ) : (
+              <textarea
+                ref={inputRef}
+                autoFocus
+                rows={1}
+                value={input}
+                onChange={e => {
+                  handleInputChange(e.target.value)
+                  // Auto-expand height
+                  e.target.style.height = 'auto'
+                  e.target.style.height = `${e.target.scrollHeight}px`
+                }}
+                onKeyDown={e => {
+                  if (showSuggestions) {
+                    if (e.key === 'Enter' || e.key === 'Tab') {
+                      e.preventDefault()
+                      if (suggestions[suggestionIndex]) {
+                        selectSuggestion(suggestions[suggestionIndex])
+                      }
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault()
+                      setSuggestionIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1))
+                    } else if (e.key === 'ArrowDown') {
+                      e.preventDefault()
+                      setSuggestionIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : 0))
+                    } else if (e.key === 'Escape') {
+                      setShowSuggestions(false)
+                    }
+                    return
+                  }
+
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSend()
+                    // Reset height
+                    if (inputRef.current) inputRef.current.style.height = 'auto'
+                  } else if (e.key === 'ArrowUp' && input.indexOf('\n') === -1) {
+                    e.preventDefault()
+                    if (history.length > 0) {
+                      const nextIndex = historyIndex < history.length - 1 ? historyIndex + 1 : historyIndex
+                      setHistoryIndex(nextIndex)
+                      setInput(history[nextIndex])
+                    }
+                  } else if (e.key === 'ArrowDown' && input.indexOf('\n') === -1) {
+                    e.preventDefault()
+                    if (historyIndex > 0) {
+                      const prevIndex = historyIndex - 1
+                      setHistoryIndex(prevIndex)
+                      setInput(history[prevIndex])
+                    } else if (historyIndex === 0) {
+                      setHistoryIndex(-1)
+                      setInput('')
+                    }
+                  }
+                }}
+                placeholder={isProcessing ? 'Add to queue — agent will run next...' : 'Type your message...'}
+                className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-slate-600 font-bold resize-none py-1.5 leading-normal min-h-[20px] max-h-[200px] custom-scrollbar"
+              />
+            )}
+
+
+            {/* Suggestions Dropdown */}
+            {showSuggestions && (
+              <div className="absolute bottom-full left-0 mb-2 w-full max-w-[400px] bg-[#0d1117] border border-cyan-500/50 rounded-lg shadow-2xl z-50 overflow-hidden font-mono">
+                <div className="px-3 py-1.5 border-b border-slate-800 bg-slate-900/50 text-[10px] text-cyan-400 font-bold flex justify-between items-center">
+                  <span>FILES</span>
+                  <span className="opacity-50 font-normal">TAB to select</span>
+                </div>
+                <div className="max-h-[240px] overflow-y-auto custom-scrollbar">
+                  {suggestions.map((file, i) => (
+                    <div
+                      key={file}
+                      onClick={() => selectSuggestion(file)}
+                      onMouseEnter={() => setSuggestionIndex(i)}
+                      className={`px-3 py-2 cursor-pointer text-xs flex items-center gap-2 transition-colors ${i === suggestionIndex ? 'bg-cyan-900/40 text-cyan-400' : 'text-slate-400 hover:bg-slate-800/40'
+                        }`}
+                    >
+                      <span className="opacity-50 text-[10px]">📄</span>
+                      <span className="truncate flex-1">
+                        {file.split('/').slice(0, -1).join('/') && (
+                          <span className="opacity-40">{file.split('/').slice(0, -1).join('/')}/</span>
+                        )}
+                        <span className="font-bold">{file.split('/').pop()}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Context Panel */}

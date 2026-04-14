@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Agent } from './core/agent.js'
 import { resolvePlanApproval } from './tools/plan.js'
-import { sendCtrlC, killPty } from './tools/shell.js'
+import { sendCtrlC, killPty, ShellTool, startInteractiveTerminal, writeToPty, resizePty } from './tools/shell.js'
 import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
 import { clearTrackedFiles } from './services/file-tracker.js'
 import dotenv from 'dotenv'
@@ -104,13 +104,15 @@ ipcMain.handle('window:open_directory', async () => {
 // IPC Handlers for the Agent
 ipcMain.handle('agent:init', async () => {
   try {
-    agent = new Agent()
-    // Initialize in background — don't block the UI
-    agent.initialize().catch((err) => {
-      console.error('[Agent] Background initialization failed:', err)
-    })
+    // Only create a new agent if one doesn't exist
+    // This prevents conversation resets on UI re-renders or minor setup changes
+    if (!agent) {
+      agent = new Agent()
+      await agent.initialize()
+    }
     return { success: true, info: agent.getInfo() }
   } catch (error) {
+    console.error('[Agent] Initialization failed:', error)
     return { success: false, error: (error as Error).message }
   }
 })
@@ -126,8 +128,8 @@ ipcMain.handle('agent:message', async (event, messageId: number, message: string
     await agent.processMessage(
       message,
       (text) => mainWindow?.webContents.send('agent:update', { type: 'text', content: text }),
-      (name) => mainWindow?.webContents.send('agent:update', { type: 'tool_start', name }),
-      (name, result, success) => mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result, success }),
+      (name, args) => mainWindow?.webContents.send('agent:update', { type: 'tool_start', name, args }),
+      (name, result, success, args) => mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result, success, args }),
       (error) => mainWindow?.webContents.send('agent:update', { type: 'error', message: error }),
       images as any
     )
@@ -221,6 +223,20 @@ ipcMain.handle('agent:model', async (event, model: string) => {
 
 ipcMain.handle('agent:plan_response', async (_event, approved: boolean) => {
   resolvePlanApproval(approved)
+  return { success: true }
+})
+
+ipcMain.handle('agent:shell_response', async (_event, approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => {
+  ShellTool.resolveApproval(approved, alwaysAllowBase, alwaysAllowFull)
+  return { success: true }
+})
+
+ipcMain.handle('agent:get_approved_commands', async () => {
+  return ShellTool.getApprovedCommands()
+})
+
+ipcMain.handle('agent:update_approved_commands', async (_event, lists) => {
+  ShellTool.updateApprovedCommands(lists)
   return { success: true }
 })
 
@@ -400,6 +416,22 @@ ipcMain.handle('pty:ctrl_c', async (_event, pid: number) => {
 ipcMain.handle('pty:kill', async (_event, pid: number) => {
   const ok = killPty(pid)
   return { success: ok, error: ok ? undefined : `No active PTY with PID ${pid}` }
+})
+
+ipcMain.handle('pty:start', async (_event, cwd?: string) => {
+  const finalCwd = cwd || agent?.getInfo().cwd || process.cwd()
+  const pid = startInteractiveTerminal(finalCwd)
+  return { success: true, pid }
+})
+
+ipcMain.handle('pty:write', async (_event, pid: number, data: string) => {
+  const ok = writeToPty(pid, data)
+  return { success: ok }
+})
+
+ipcMain.handle('pty:resize', async (_event, pid: number, cols: number, rows: number) => {
+  const ok = resizePty(pid, cols, rows)
+  return { success: ok }
 })
 
 ipcMain.handle('project:get_files', async () => {

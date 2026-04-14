@@ -47,6 +47,75 @@ export function listPtyProcesses(): number[] {
   return Array.from(backgroundProcesses.keys());
 }
 
+/** Start a persistent interactive terminal for the user. */
+export function startInteractiveTerminal(cwd: string): number {
+  const shell = os.platform() === "win32" ? "powershell.exe" : "bash";
+  const ptyProcess = pty.spawn(shell, [], {
+    name: "xterm-256color",
+    cols: 80,
+    rows: 24,
+    cwd: cwd,
+    env: process.env as any,
+  });
+
+  const pid = ptyProcess.pid;
+  const state: PtyState = {
+    process: ptyProcess,
+    outputBuffer: "",
+    isExited: false,
+    runInBackground: true,
+  };
+  backgroundProcesses.set(pid, state);
+
+  const window = BrowserWindow.getAllWindows()[0];
+  if (window) {
+    window.webContents.send("agent:update", {
+      type: "terminal:spawned",
+      pid: pid,
+    });
+  }
+
+  ptyProcess.onData((data) => {
+    state.outputBuffer = (state.outputBuffer + data).slice(-50000);
+    const window = BrowserWindow.getAllWindows()[0];
+    if (window) {
+      window.webContents.send("agent:update", {
+        type: "terminal:output",
+        pid: pid,
+        data: data,
+      });
+    }
+  });
+
+  ptyProcess.onExit(({ exitCode }) => {
+    state.isExited = true;
+    state.exitCode = exitCode;
+    const window = BrowserWindow.getAllWindows()[0];
+    if (window) {
+      window.webContents.send("agent:update", { type: "terminal:exit", pid });
+    }
+    backgroundProcesses.delete(pid);
+  });
+
+  return pid;
+}
+
+/** Write data to a PTY process. */
+export function writeToPty(pid: number, data: string): boolean {
+  const state = backgroundProcesses.get(pid);
+  if (!state) return false;
+  state.process.write(data);
+  return true;
+}
+
+/** Resize a PTY process. */
+export function resizePty(pid: number, cols: number, rows: number): boolean {
+  const state = backgroundProcesses.get(pid);
+  if (!state) return false;
+  state.process.resize(cols, rows);
+  return true;
+}
+
 export class ShellTool extends BaseTool {
   name = "shell";
   description =
@@ -84,10 +153,46 @@ export class ShellTool extends BaseTool {
     },
   ];
 
-  // Identifies if command safe to run without user approval
+    // Identifies if command safe to run without user approval
   public isReadOnly(command: string): boolean {
-    const safePrefixes = ["ls", "cat", "echo", "pwd", "whoami", "grep", "find", "git status", "git log", "git diff"];
-    return safePrefixes.some(prefix => command.trim().startsWith(prefix));
+    const safePrefixes = ["ls ", "cat ", "echo ", "pwd", "whoami", "grep ", "find ", "git status", "git log", "git diff", "dir", "type "];
+    const trimmed = command.trim();
+    return safePrefixes.some(prefix => trimmed === prefix || trimmed.startsWith(prefix));
+  }
+
+  // Session-persistent lists of commands allowed by the user
+  private static alwaysAllowedBaseCommands: Set<string> = new Set();
+  private static alwaysAllowedFullCommands: Set<string> = new Set();
+  
+  // Promise handling for UI approval
+  private static pendingApproval: {
+    resolve: (response: { approved: boolean, alwaysAllowBase?: boolean, alwaysAllowFull?: boolean }) => void;
+  } | null = null;
+
+  /** Get the current list of session-approved commands */
+  public static getApprovedCommands() {
+    return {
+      base: Array.from(this.alwaysAllowedBaseCommands),
+      full: Array.from(this.alwaysAllowedFullCommands)
+    };
+  }
+
+  /** Update the session-approved commands list */
+  public static updateApprovedCommands(lists: { base?: string[], full?: string[] }) {
+    if (lists.base) {
+      this.alwaysAllowedBaseCommands = new Set(lists.base);
+    }
+    if (lists.full) {
+      this.alwaysAllowedFullCommands = new Set(lists.full);
+    }
+  }
+
+  /** Called by IPC to resolve a pending shell approval */
+  public static resolveApproval(approved: boolean, alwaysAllowBase: boolean = false, alwaysAllowFull: boolean = false) {
+    if (this.pendingApproval) {
+      this.pendingApproval.resolve({ approved, alwaysAllowBase, alwaysAllowFull });
+      this.pendingApproval = null;
+    }
   }
 
   async execute(args: Record<string, unknown>): Promise<ToolResult> {
@@ -98,17 +203,46 @@ export class ShellTool extends BaseTool {
     const desc = args.description as string;
     const runInBackground = true; // Forced to true per user request
     const cwd = (args.cwd as string) || process.cwd();
-    const timeoutMsg = (args.timeout as number) || TIMEOUT_MS;
+    
+    // Check if command or its base is already allowed
+    const baseCommand = command.trim().split(/\s+/)[0];
+    const isBaseAllowed = ShellTool.alwaysAllowedBaseCommands.has(baseCommand);
+    const isFullAllowed = ShellTool.alwaysAllowedFullCommands.has(command.trim());
+    const isSafe = this.isReadOnly(command);
+
+    if (!isSafe && !isBaseAllowed && !isFullAllowed) {
+      // Request approval from renderer
+      const window = BrowserWindow.getAllWindows()[0];
+      if (window) {
+        window.webContents.send('agent:update', { 
+          type: 'shell_awaiting_approval', 
+          command, 
+          description: desc,
+          baseCommand
+        });
+
+        // Wait for user response
+        const { approved, alwaysAllowBase, alwaysAllowFull } = await new Promise<{ approved: boolean, alwaysAllowBase?: boolean, alwaysAllowFull?: boolean }>((resolve) => {
+          ShellTool.pendingApproval = { resolve };
+        });
+
+        if (!approved) {
+          return this.failure(`Command execution rejected by user: ${command}`);
+        }
+
+        if (alwaysAllowBase) {
+          ShellTool.alwaysAllowedBaseCommands.add(baseCommand);
+        }
+        if (alwaysAllowFull) {
+          ShellTool.alwaysAllowedFullCommands.add(command.trim());
+        }
+      }
+    }
 
     // Block dangerous commands explicitly
     const dangerous = ["rm -rf /", "format c:", "del /s /q c:\\", "mkfs"];
     if (dangerous.some((d) => command.toLowerCase().includes(d))) {
       return this.failure(`⚠️ Blocked: Command '${command}' triggers destructive safety constraints.`);
-    }
-
-    // Guard against blocking UI sleep/loops
-    if (!runInBackground && command.trim().match(/^sleep\s+\d+$/)) {
-      return this.failure(`⚠️ Blocked: You attempted to run a synchronous sleep. Run blocking commands in the background with run_in_background: true.`);
     }
 
     console.log(`[ShellTool PTY] Executing: ${desc} \n($ ${command}) | Background: ${runInBackground}`);

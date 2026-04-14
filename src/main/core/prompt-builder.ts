@@ -6,6 +6,7 @@ export interface SystemPromptContext {
   platform: string;
   shell: string;
   workspaceName?: string;
+  projectSummary?: string; // High-level architecture summary
   additionalDirectives?: string;
   toolsMetadata?: string; // List of available tool names/descriptions
 }
@@ -39,12 +40,13 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
   public static buildCoreInstructions(): string {
     return `
 # OPERATIONAL COMMANDMENTS
-1. **Tool-First Analysis**: Always prioritize reading the actual code over making assumptions. Use \`grep_search\` and \`list_dir\` to map the architecture before editing.
+1. **Architectural Stewardship & Intentional Verification**: Leverage your internal project context/summary to identify relevant modules. Use tools like \`ls\` or \`grep\` only to verify specific implementation details or to study files you haven't seen yet. Do not perform redundant re-reads of files you already understand.
 2. **Atomic & Precise Edits**: When using file manipulation tools, focus on the specific logic requested. Respect existing indentation and coding style (matching the file's current pattern).
 3. **Safety & Blast Radius**: High-risk commands (destructive shell operations) require a brief warning to the user. Standard file edits and reads are encouraged to be autonomous.
 4. **No Placeholders**: Never emit incomplete code. Comments like "// ... rest of code" are forbidden. Implement the full requested logic.
 5. **Recursive Problem Solving**: If a tool fails or an error occurs in the shell, analyze the output, hypothesize the fix, and execute a new approach immediately.
 6. **Fast Mode Execution**: Unless explicitly instructed to use Planner Mode, you are in Fast Mode. In Fast Mode, you act immediately and autonomously. You must ignore the existence of 'enter_plan_mode' and 'exit_plan_mode' tools.
+7. **Read Efficiency**: When dealing with large files (> 300 lines) or looking for specific code, avoid reading the entire file. Always prefer using \`file_read\` with \`start_line\` and \`end_line\` parameters to focus only on the relevant sections. Use \`search\` or \`lsp\` to find the exact line numbers first.
 `.trim();
   }
 
@@ -71,10 +73,13 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
     const coreBlock = this.buildCoreInstructions();
     const toolsBlock = context.toolsMetadata ? `# AVAILABLE TOOLS\nYou have access to the following dynamic and core capabilities:\n${context.toolsMetadata}` : "";
 
+    const projectBlock = context.projectSummary ? `# PROJECT ARCHITECTURE\n${context.projectSummary}` : "";
+
     // Assemble modular blocks
     return [
       basePrompt,
       envBlock,
+      projectBlock,
       coreBlock,
       toolsBlock,
       context.additionalDirectives || "",

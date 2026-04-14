@@ -7,11 +7,13 @@ interface TitleBarProps {
   onMcpClick: () => void
   onBrowserClick: () => void
   showBrowser: boolean
+  onTerminalClick: () => void
+  showTerminal: boolean
   showPanel: boolean
   onTogglePanel: () => void
 }
 
-const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick, onMcpClick, onBrowserClick, showBrowser, showPanel, onTogglePanel }) => {
+const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick, onMcpClick, onBrowserClick, showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel }) => {
   return (
     <div className="h-10 bg-slate-900 border-b border-white/5 flex items-center justify-between px-3 select-none titlebar-drag">
       <div className="flex items-center gap-2 no-drag h-full">
@@ -56,6 +58,18 @@ const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick
       </div>
 
       <div className="flex items-center no-drag h-full">
+        {/* Terminal Toggle */}
+        <button
+          onClick={onTerminalClick}
+          title={showTerminal ? 'Hide Terminal' : 'Show Terminal'}
+          className={`w-11 h-10 flex items-center justify-center transition-colors no-drag ${showTerminal ? 'text-amber-400 bg-amber-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+        </button>
+
         {/* Browser Preview Toggle */}
         <button
           onClick={onBrowserClick}
