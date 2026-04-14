@@ -72,7 +72,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({ onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="flex w-[850px] h-[600px] bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
         
         {/* Sidebar */}

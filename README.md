@@ -30,10 +30,14 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 
 - **Autonomous pair-programming** — Koda reads your project structure, understands the architecture, and edits files directly. No copy-paste required.
 - **Snapshot & rollback** — before every message, Koda captures a full in-memory snapshot of all workspace files. Hover any user message and click `↺` to restore both files and agent memory to that exact point.
+- **Project sessions** — conversation history and pinned files are saved per working directory and restored automatically when you switch back to a project.
+- **Task queue** — send the next task while the agent is still working. Koda queues it and fires it automatically when the current task finishes.
 - **Real PTY terminal** — native shell integration via `node-pty`. Koda spawns background processes, waits for output patterns, sends stdin (passwords, `y/n` prompts), and kills processes by PID — all autonomously.
-- **Interactive terminal panel** — a full `xterm.js` terminal embedded in the UI, connected to a live PTY, with resize support and ANSI rendering.
+- **Interactive terminal panel** — a full `xterm.js` terminal for you to use directly, independent of the agent, with resize support and ANSI rendering.
+- **Split-view panels** — browser preview and terminal panel share the left side with a draggable vertical divider. The main horizontal divider is also resizable.
 - **Built-in browser preview** — a `<webview>`-based browser panel with navigation controls, defaulting to `localhost:5173`. Useful for inspecting running apps without leaving Koda.
 - **Web navigation agent** — via [`operantid.js`](https://www.npmjs.com/package/operantid.js), Koda can spawn a sub-agent that controls a real browser to navigate, interact with UI elements, and extract data from websites.
+- **Shell approval system** — non-read-only commands pause for your approval inline, with three levels: once, base command (session), or full string (session). Allowlists persist in `localStorage`.
 - **Planner mode** — for complex tasks, Koda enters a read-only exploration cycle, writes a detailed Markdown plan, and waits for your explicit approval before touching any file.
 - **Collaborative mode** — Koda can open a multi-turn session with a second LLM (the "advisor") for architectural brainstorming, then proceed with the implementation.
 - **MCP support** — connect any Model Context Protocol server (local process or external SSE endpoint). Tools are discovered at runtime via JSON-RPC handshake and injected into the agent's arsenal dynamically.
@@ -41,6 +45,8 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 - **13 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
 - **File tracker** — every file the agent reads or modifies is tracked in-session and surfaced in the context panel.
 - **At-mentions (`@`)** — type `@` in the chat input to open a file selector and inject file context directly into your message.
+- **Drag & drop** — drop image files to attach them to the next message; drop code files to inject an `@[path]` mention automatically.
+- **Configurable verbosity** — toggle output visibility per tool type (shell, file_read, file_edit, search, LSP, browser, etc.) without affecting agent context.
 - **4 built-in themes** — Tokyo Night, GitHub Dark, Cyberpunk Neon, Monokai. Live preview, JSON-based, fully customizable.
 - **Context-aware system prompt** — the system prompt is rebuilt dynamically on every session, injecting the current working directory, OS, shell, project name, framework, and available tools.
 

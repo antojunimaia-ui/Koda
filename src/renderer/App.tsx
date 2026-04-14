@@ -492,7 +492,7 @@ const DEFAULT_THEME = THEMES[0]
 // ─── Plan Approval Modal ──────────────────────────────────────────────────────
 const PlanApprovalModal = memo(({ plan, onApprove, onReject }: { plan: string; onApprove: () => void; onReject: () => void }) => {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
       <div className="w-[500px] bg-slate-900 border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
         <div className="p-6 bg-slate-800/30 border-b border-white/5">
           <div className="flex items-center gap-3 mb-2">
@@ -766,7 +766,7 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="flex w-[800px] h-[550px] bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
 
         {/* Sidebar */}
@@ -1903,53 +1903,51 @@ Your current task is: ${userMsg}`
         onTogglePanel={() => setShowPanel(p => !p)}
       />
 
-      {/* Plan Approval Modal */}
-      {pendingPlan && (
-        <PlanApprovalModal
-          plan={pendingPlan}
-          onApprove={() => {
-            window.koda.planResponse(true)
-          }}
-          onReject={() => {
-            window.koda.planResponse(false)
-          }}
-        />
-      )}
+      {/* Main Container below TitleBar */}
+      <div className="flex-1 relative flex flex-col min-h-0">
+        {/* Plan Approval Modal */}
+        {pendingPlan && (
+          <PlanApprovalModal
+            plan={pendingPlan}
+            onApprove={() => {
+              window.koda.planResponse(true)
+            }}
+            onReject={() => {
+              window.koda.planResponse(false)
+            }}
+          />
+        )}
 
-      {/* Shell Approval Modal removed per user request - now inline */}
+        {/* Settings Modal */}
+        {showSettings && (
+          <SettingsUI
+            onClose={() => setShowSettings(false)}
+            defaultProvider={agentInfo.provider}
+            defaultModel={agentInfo.model}
+            onSave={async (config: any) => {
+              const res = await window.koda.setup(config)
+              if (res.success) setAgentInfo(res.info)
+              setShowSettings(false)
+            }}
+            defaultAdvisorModel={agentInfo.advisorModel}
+            theme={theme}
+            setTheme={setTheme}
+            kodaSettings={kodaSettings}
+            setKodaSettings={setKodaSettings}
+          />
+        )}
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <SettingsUI
-          onClose={() => setShowSettings(false)}
-          defaultProvider={agentInfo.provider}
-          defaultModel={agentInfo.model}
-          onSave={async (config) => {
-            const res = await window.koda.setup(config)
-            if (res.success) setAgentInfo(res.info)
-            setShowSettings(false)
-          }}
-          defaultAdvisorModel={agentInfo.advisorModel}
-          theme={theme}
-          setTheme={setTheme}
-          kodaSettings={kodaSettings}
-          setKodaSettings={setKodaSettings}
-        />
-      )}
+        {/* MCP Settings Modal */}
+        {showMcpSettings && (
+          <MCPSettings
+            onClose={() => setShowMcpSettings(false)}
+            onSave={async (configs: any) => {
+              setShowMcpSettings(false)
+            }}
+          />
+        )}
 
-      {/* MCP Settings Modal */}
-      {showMcpSettings && (
-        <MCPSettings
-          onClose={() => setShowMcpSettings(false)}
-          onSave={async (configs) => {
-            // Saving is handled inside MCPSettings component via IPC
-            // Here we could trigger a reload if needed
-            setShowMcpSettings(false)
-          }}
-        />
-      )}
-
-      <div className="flex flex-1 min-h-0 overflow-hidden relative">
+        <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {(showBrowser || showTerminal) && (
           <>
             <div
@@ -2221,7 +2219,8 @@ Your current task is: ${userMsg}`
         )}
       </div>
     </div>
-  )
+  </div>
+)
 }
 
 export default App
