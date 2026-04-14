@@ -410,4 +410,12 @@ export class Agent {
       this.conversation = new Conversation(this.dynamicSystemPrompt);
     }
   }
+
+  getHistory(): any[] {
+    return this.conversation.getMessages();
+  }
+
+  setHistory(messages: any[]): void {
+    this.conversation.setMessages(messages);
+  }
 }

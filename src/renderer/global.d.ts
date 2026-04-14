@@ -9,6 +9,7 @@ declare global {
       sendMessage: (messageId: number, message: string, images?: any[]) => Promise<{ success: boolean; response: string; error?: string }>
       snapshotRestore: (messageId: number) => Promise<{ success: boolean; error?: string }>
       reset: () => Promise<{ success: boolean; error?: string }>
+      softReset: () => Promise<{ success: boolean; error?: string }>
       getTokens: () => Promise<string>
       getInfo: () => Promise<{ provider: string; model: string; project: string; cwd: string }>
       cd: (path: string) => Promise<{ success: boolean; info?: any; error?: string }>
@@ -31,6 +32,8 @@ declare global {
       getFiles: () => Promise<{ success: boolean; files: string[]; error?: string }>
       getMcpConfigs: () => Promise<any[]>
       saveMcpConfigs: (configs: any[]) => Promise<{ success: boolean; error?: string }>
+      getProjectSession: (projectPath: string) => Promise<any>
+      saveProjectSession: (projectPath: string, data: any) => Promise<void>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>

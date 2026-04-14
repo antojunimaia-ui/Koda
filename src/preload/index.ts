@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('koda', {
   sendMessage: (messageId: number, message: string, images?: any[]) => ipcRenderer.invoke('agent:message', messageId, message, images),
   snapshotRestore: (messageId: number) => ipcRenderer.invoke('snapshot:restore', messageId),
   reset: () => ipcRenderer.invoke('agent:reset'),
+  softReset: () => ipcRenderer.invoke('agent:soft_reset'),
   getTokens: () => ipcRenderer.invoke('agent:tokens'),
   getInfo: () => ipcRenderer.invoke('agent:info'),
   cd: (path: string) => ipcRenderer.invoke('agent:cd', path),
@@ -33,6 +34,8 @@ contextBridge.exposeInMainWorld('koda', {
   getFiles: () => ipcRenderer.invoke('project:get_files'),
   getMcpConfigs: () => ipcRenderer.invoke('mcp:get_configs'),
   saveMcpConfigs: (configs: any[]) => ipcRenderer.invoke('mcp:save_configs', configs),
+  getProjectSession: (projectPath: string) => ipcRenderer.invoke('agent:get_session', projectPath),
+  saveProjectSession: (projectPath: string, data: any) => ipcRenderer.invoke('agent:save_session', projectPath, data),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),

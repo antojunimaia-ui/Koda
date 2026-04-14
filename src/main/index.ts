@@ -6,6 +6,7 @@ import { resolvePlanApproval } from './tools/plan.js'
 import { sendCtrlC, killPty, ShellTool, startInteractiveTerminal, writeToPty, resizePty } from './tools/shell.js'
 import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
 import { clearTrackedFiles } from './services/file-tracker.js'
+import { sessionManager } from './services/session-manager.js'
 import dotenv from 'dotenv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -153,6 +154,17 @@ ipcMain.handle('snapshot:restore', async (_event, messageId: number) => {
 
 ipcMain.handle('agent:reset', async () => {
   if (!agent) return { error: 'Agent not initialized' }
+  const info = agent.getInfo()
+  agent.resetConversation()
+  clearTrackedFiles()
+  if (info.cwd) {
+    await sessionManager.clearSession(info.cwd);
+  }
+  return { success: true }
+})
+
+ipcMain.handle('agent:soft_reset', async () => {
+  if (!agent) return { error: 'Agent not initialized' }
   agent.resetConversation()
   clearTrackedFiles()
   return { success: true }
@@ -178,6 +190,29 @@ ipcMain.handle('agent:cd', async (event, targetPath: string) => {
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
+})
+
+ipcMain.handle('agent:get_session', async (event, projectPath: string) => {
+  return sessionManager.getSession(projectPath);
+})
+
+ipcMain.handle('agent:save_session', async (event, projectPath: string, data: any) => {
+  const { rendererMessages, backendMessages, pinnedFiles } = data;
+  
+  // Se backendMessages for null, pegamos o histórico atual do agente
+  let historyToSave = backendMessages;
+  if (agent && !historyToSave) {
+    historyToSave = agent.getHistory();
+  } else if (agent && historyToSave) {
+    agent.setHistory(historyToSave);
+  }
+
+  return sessionManager.saveSession(projectPath, { 
+    messages: rendererMessages, 
+    backendHistory: historyToSave,
+    pinnedFiles,
+    timestamp: Date.now() 
+  } as any);
 })
 
 ipcMain.handle('agent:apikey', async (event, key: string) => {

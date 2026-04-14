@@ -75,8 +75,14 @@ interface KodaSettings {
   showShellWait: boolean
   showFileRead: boolean
   showFileEdit: boolean
+  showFileWrite: boolean
   showListDir: boolean
   showFileFind: boolean
+  showSearch: boolean
+  showLspQuery: boolean
+  showBrowserAgent: boolean
+  showPlanMode: boolean
+  showColab: boolean
 }
 
 // ─── Memoized message rows — only re-render when their own data changes ───────
@@ -197,9 +203,15 @@ const ToolMessage = memo(({ tool, settings, agentInfo }: { tool: MessageEntry['t
     (tool?.name === 'shell_wait' && settings.showShellWait) ||
     (tool?.name === 'file_read' && settings.showFileRead) ||
     (tool?.name === 'file_edit' && settings.showFileEdit) ||
+    (tool?.name === 'file_write' && settings.showFileWrite) ||
     (tool?.name === 'list_dir' && settings.showListDir) ||
     (tool?.name === 'file_find' && settings.showFileFind) ||
-    (!['shell', 'shell_wait', 'file_read', 'file_edit', 'list_dir', 'file_find'].includes(tool?.name || ''))
+    (tool?.name === 'search' && settings.showSearch) ||
+    (tool?.name === 'lsp_query' && settings.showLspQuery) ||
+    (tool?.name === 'browser_agent' && settings.showBrowserAgent) ||
+    (['enter_plan_mode', 'exit_plan_mode'].includes(tool?.name || '') && settings.showPlanMode) ||
+    (['start_collaboration', 'send_to_advisor', 'end_collaboration'].includes(tool?.name || '') && settings.showColab) ||
+    (!['shell', 'shell_wait', 'file_read', 'file_edit', 'file_write', 'list_dir', 'file_find', 'search', 'lsp_query', 'browser_agent', 'enter_plan_mode', 'exit_plan_mode', 'start_collaboration', 'send_to_advisor', 'end_collaboration'].includes(tool?.name || ''))
   );
 
   const stats = tool?.name === 'file_edit' ? (() => {
@@ -597,6 +609,42 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings }: {
             description="Search results and file matching logs"
             enabled={kodaSettings.showFileFind}
             onChange={v => setKodaSettings(prev => ({ ...prev, showFileFind: v }))}
+          />
+          <SettingToggle
+            label="Show File Write Output"
+            description="Details of files created or overwritten"
+            enabled={kodaSettings.showFileWrite}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showFileWrite: v }))}
+          />
+          <SettingToggle
+            label="Show Search Output"
+            description="Results from regex searches across files"
+            enabled={kodaSettings.showSearch}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showSearch: v }))}
+          />
+          <SettingToggle
+            label="Show LSP Query Output"
+            description="Results from semantic code analysis (Hover/Definition)"
+            enabled={kodaSettings.showLspQuery}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showLspQuery: v }))}
+          />
+          <SettingToggle
+            label="Show Browser Agent Output"
+            description="Reports from web navigation sub-agents"
+            enabled={kodaSettings.showBrowserAgent}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showBrowserAgent: v }))}
+          />
+          <SettingToggle
+            label="Show Plan Mode Output"
+            description="Transitions and strategies developed in Plan Mode"
+            enabled={kodaSettings.showPlanMode}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showPlanMode: v }))}
+          />
+          <SettingToggle
+            label="Show Collaboration Output"
+            description="Messages exchanged with advisor LLMs"
+            enabled={kodaSettings.showColab}
+            onChange={v => setKodaSettings(prev => ({ ...prev, showColab: v }))}
           />
         </div>
       </section>
@@ -1103,7 +1151,6 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, cwd }
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<MessageEntry[]>([])
-  const virtuosoRef = useRef<VirtuosoHandle>(null)
   const [input, setInput] = useState('')
   const [initializing, setInitializing] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -1115,63 +1162,106 @@ const App: React.FC = () => {
   const [showMcpSettings, setShowMcpSettings] = useState(false)
   const [showBrowser, setShowBrowser] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
-  const [leftPanelWidth, setLeftPanelWidth] = useState(50) // Percentage
-  const [browserHeight, setBrowserHeight] = useState(60) // Percentage of top part
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50)
+  const [browserHeight, setBrowserHeight] = useState(60)
   const [isResizing, setIsResizing] = useState(false)
   const [isResizingHeight, setIsResizingHeight] = useState(false)
   const [mode, setMode] = useState<'fast' | 'planner' | 'colab'>('fast')
   const [showPanel, setShowPanel] = useState(false)
   const [trackedFiles, setTrackedFiles] = useState<TrackedFile[]>([])
-  const [pinnedFiles, setPinnedFiles] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('koda_pinned_files') || '[]') } catch { return [] }
-  })
-  const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
-    try {
-      const saved = localStorage.getItem('koda_settings')
-      if (saved) return JSON.parse(saved)
-    } catch (e) { }
-    return {
-      showTerminal: true,
-      showShellWait: true,
-      showFileRead: true,
-      showFileEdit: true,
-      showListDir: true,
-      showFileFind: true
-    }
-  })
-
-  useEffect(() => {
-    localStorage.setItem('koda_settings', JSON.stringify(kodaSettings))
-  }, [kodaSettings])
-
+  const [pinnedFiles, setPinnedFiles] = useState<string[]>([])
   const [pendingImages, setPendingImages] = useState<AttachedImage[]>([])
   const [taskQueue, setTaskQueue] = useState<{ text: string; images: AttachedImage[] }[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [theme, setTheme] = useState<KodaTheme>(() => {
-    try {
-      const saved = localStorage.getItem('koda_theme')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        // Basic validation for the new theme structure
-        if (parsed && parsed.id && parsed.colors && parsed.colors.bg) {
-          return parsed
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load theme:', e)
-    }
-    return DEFAULT_THEME
-  })
-
   const [history, setHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
-
   const [allFiles, setAllFiles] = useState<string[]>([])
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestionIndex, setSuggestionIndex] = useState(0)
   const [suggestionTriggerPos, setSuggestionTriggerPos] = useState(-1)
   const [isFetchingFiles, setIsFetchingFiles] = useState(false)
+
+  const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
+    try {
+      const saved = localStorage.getItem('koda_settings')
+      if (saved) return JSON.parse(saved)
+    } catch (e) { }
+    return {
+      showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,
+      showFileWrite: true, showListDir: true, showFileFind: true, showSearch: true,
+      showLspQuery: true, showBrowserAgent: true, showPlanMode: true, showColab: true
+    }
+  })
+
+  const [theme, setTheme] = useState<KodaTheme>(() => {
+    try {
+      const saved = localStorage.getItem('koda_theme')
+      if (saved) return JSON.parse(saved)
+    } catch (e) { }
+    return DEFAULT_THEME
+  })
+
+  // Refs
+  const virtuosoRef = useRef<VirtuosoHandle>(null)
+  const lastSavedCwd = useRef<string>('')
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const chunkBufferRef = useRef<string>('')
+  const rafRef = useRef<number | null>(null)
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const onSelectMode = useCallback((m: 'fast' | 'planner' | 'colab') => {
+    setMode(m)
+  }, [])
+
+  // ── Session Management ──
+  const loadSession = useCallback(async (projectPath: string) => {
+    if (!projectPath || projectPath === '...' || projectPath === lastSavedCwd.current) return
+    lastSavedCwd.current = projectPath
+    
+    setMessages([{ id: nextId(), type: 'system', text: `📂 Loading project context: ${projectPath}...` }])
+    
+    const session = await window.koda.getProjectSession(projectPath)
+    if (session) {
+      setMessages(session.messages || [])
+      setPinnedFiles(session.pinnedFiles || [])
+      // Sync back to agent internal state
+      await window.koda.saveProjectSession(projectPath, {
+        rendererMessages: session.messages,
+        backendMessages: session.backendHistory,
+        pinnedFiles: session.pinnedFiles
+      })
+    } else {
+      setMessages([])
+      setPinnedFiles([])
+      await window.koda.softReset()
+    }
+  }, [])
+
+  // Auto-save debounced
+  useEffect(() => {
+    if (initializing || !agentInfo.cwd || agentInfo.cwd === '...') return
+    const timer = setTimeout(async () => {
+      await window.koda.saveProjectSession(agentInfo.cwd, {
+        rendererMessages: messages,
+        backendMessages: null, // index.ts will fill this from getHistory()
+        pinnedFiles: pinnedFiles
+      })
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [messages, pinnedFiles, agentInfo.cwd, initializing])
+
+  // Context Switcher
+  useEffect(() => {
+    if (agentInfo.cwd && agentInfo.cwd !== '...' && agentInfo.cwd !== lastSavedCwd.current) {
+      loadSession(agentInfo.cwd)
+    }
+  }, [agentInfo.cwd, loadSession])
+
+  // ── Theme & Global Settings ──
+  useEffect(() => {
+    localStorage.setItem('koda_settings', JSON.stringify(kodaSettings))
+  }, [kodaSettings])
 
   useEffect(() => {
     localStorage.setItem('koda_theme', JSON.stringify(theme))
@@ -1187,13 +1277,8 @@ const App: React.FC = () => {
     root.style.setProperty('--koda-border', colors.border)
     root.style.setProperty('--koda-user-msg', colors.userMsg)
   }, [theme])
-
-  const inputRef = useRef<HTMLTextAreaElement>(null)
-
   // ── Streaming batch: accumulate chunks in a ref, flush via rAF ──────
   // This completely bypasses React batching drops because string concat is sync.
-  const chunkBufferRef = useRef<string>('')
-  const rafRef = useRef<number | null>(null)
 
   const flushStreaming = useCallback(() => {
     rafRef.current = null
@@ -1219,7 +1304,6 @@ const App: React.FC = () => {
   }, [flushStreaming])
 
   // ── Debounced scroll: only scroll when content actually settles ────────────
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scheduleScroll = useCallback(() => {
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
     scrollTimerRef.current = setTimeout(() => {
@@ -1242,10 +1326,14 @@ const App: React.FC = () => {
         if (savedKey) {
           try {
             const setupRes = await window.koda.setup({ apiKey: savedKey })
-            if (setupRes.success) setAgentInfo(setupRes.info)
+            if (setupRes.success) {
+                setAgentInfo(setupRes.info)
+                loadSession(setupRes.info.cwd)
+            }
           } catch (e) { }
         } else {
           setAgentInfo(res.info)
+          loadSession(res.info.cwd)
         }
       } else {
         console.error('Failed to initialize agent:', res.error)
@@ -1320,8 +1408,10 @@ const App: React.FC = () => {
         ))
       } else if (update.type === 'plan_mode_entered') {
         setInPlanMode(true)
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: '📋 Koda entered Plan Mode — exploring the code before writing anything.' }])
+        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: '📋 Koda exited Plan Mode — all changes approved and history updated.' }])
         scheduleScroll()
+      } else if (update.type === 'info_updated') {
+        setAgentInfo(update.info)
       } else if (update.type === 'plan_approval_requested') {
         setPendingPlan(update.plan)
         scheduleScroll()

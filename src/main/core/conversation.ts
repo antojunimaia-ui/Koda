@@ -162,4 +162,8 @@ export class Conversation {
       this.messages = this.messages.slice(0, length);
     }
   }
+
+  setMessages(messages: Message[]): void {
+    this.messages = [...messages];
+  }
 }
