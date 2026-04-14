@@ -1166,7 +1166,7 @@ const App: React.FC = () => {
   const [browserHeight, setBrowserHeight] = useState(60)
   const [isResizing, setIsResizing] = useState(false)
   const [isResizingHeight, setIsResizingHeight] = useState(false)
-  const [mode, setMode] = useState<'fast' | 'planner' | 'colab'>('fast')
+  const [mode, setMode] = useState<'fast' | 'planner' | 'colab' | 'teach'>('fast')
   const [showPanel, setShowPanel] = useState(false)
   const [trackedFiles, setTrackedFiles] = useState<TrackedFile[]>([])
   const [pinnedFiles, setPinnedFiles] = useState<string[]>([])
@@ -1210,7 +1210,7 @@ const App: React.FC = () => {
   const rafRef = useRef<number | null>(null)
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const onSelectMode = useCallback((m: 'fast' | 'planner' | 'colab') => {
+  const onSelectMode = useCallback((m: 'fast' | 'planner' | 'colab' | 'teach') => {
     setMode(m)
   }, [])
 
@@ -1609,6 +1609,15 @@ Your current task is: ${userMsg}`
 4. Use 'send_to_advisor' to exchange ideas, ask follow-up questions, and refine your plan.
 5. Once you have a solid strategy approved by the advisor, use 'end_collaboration' and proceed to implementation.
 6. This mode is for COMPLEX architectural discussions. Use it to deliver superior engineering.
+
+Your current task is: ${userMsg}`
+    } else if (mode === 'teach') {
+      finalMsg = `[TEACHING MODE PROTOCOL - ACTIVE]
+1. You are acting as an Elite Technical Mentor.
+2. For every non-obvious change you make, EXPLAIN why you chose that approach (Y) over common alternatives (X).
+3. Use code blocks to illustrate small comparisons if helpful.
+4. Keep explanations technical yet accessible, focusing on 'na raça' learning (best practices, trade-offs, performance).
+5. Do not just code; educate through your actions.
 
 Your current task is: ${userMsg}`
     }

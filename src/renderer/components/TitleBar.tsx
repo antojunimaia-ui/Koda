@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+
+type Mode = 'fast' | 'planner' | 'colab' | 'teach'
 
 interface TitleBarProps {
-  mode: 'fast' | 'planner' | 'colab'
-  onModeChange: (mode: 'fast' | 'planner' | 'colab') => void
+  mode: Mode
+  onModeChange: (mode: Mode) => void
   onSettingsClick: () => void
   onMcpClick: () => void
   onBrowserClick: () => void
@@ -13,29 +15,78 @@ interface TitleBarProps {
   onTogglePanel: () => void
 }
 
-const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick, onMcpClick, onBrowserClick, showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel }) => {
+const MODES: { id: Mode; label: string; icon: string; desc: string; color: string }[] = [
+  { id: 'fast', label: 'Fast Mode', icon: '⚡', desc: 'Direct execution, high speed', color: 'text-cyan-400' },
+  { id: 'planner', label: 'Planner', icon: '📋', desc: 'Strategy first, safe edits', color: 'text-amber-400' },
+  { id: 'colab', label: 'Collaborative', icon: '👥', desc: 'Multi-agent architectural design', color: 'text-indigo-400' },
+  { id: 'teach', label: 'Teach & Code', icon: '🎓', desc: 'Step-by-step technical mentoring', color: 'text-emerald-400' },
+]
+
+const TitleBar: React.FC<TitleBarProps> = ({ 
+  mode, onModeChange, onSettingsClick, onMcpClick, 
+  onBrowserClick, showBrowser, onTerminalClick, showTerminal, 
+  showPanel, onTogglePanel 
+}) => {
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const activeMode = MODES.find(m => m.id === mode) || MODES[0]
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   return (
-    <div className="h-10 bg-slate-900 border-b border-white/5 flex items-center justify-between px-3 select-none titlebar-drag">
-      <div className="flex items-center gap-2 no-drag h-full">
-        <div className="flex bg-slate-900/60 rounded-md p-0.5 border border-white/5 shadow-inner">
-          <button 
-            onClick={() => onModeChange('fast')}
-            className={`w-14 h-5 flex items-center justify-center rounded text-[8px] font-black uppercase tracking-widest transition-all duration-200 no-drag ${mode === 'fast' ? 'bg-cyan-600/90 text-white scale-105' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+    <div className="h-10 bg-slate-900 border-b border-white/5 flex items-center justify-between px-3 select-none titlebar-drag shrink-0 z-[1000]">
+      <div className="flex items-center gap-1 no-drag h-full">
+        {/* Mode Selector Dropdown */}
+        <div className="relative h-full flex items-center" ref={dropdownRef}>
+          <button
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-white/10 rounded-md border border-white/5 transition-all no-drag group"
           >
-            Fast
+            <span className="text-xs">{activeMode.icon}</span>
+            <span className={`text-[10px] font-black uppercase tracking-widest ${activeMode.color}`}>{activeMode.label}</span>
+            <svg 
+              width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" 
+              className={`text-slate-500 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
           </button>
-          <button 
-            onClick={() => onModeChange('planner')}
-            className={`w-16 h-5 flex items-center justify-center rounded text-[8px] font-black uppercase tracking-widest transition-all duration-200 no-drag ${mode === 'planner' ? 'bg-amber-600/90 text-white scale-105' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
-          >
-            Planner
-          </button>
-          <button 
-            onClick={() => onModeChange('colab')}
-            className={`w-14 h-5 flex items-center justify-center rounded text-[8px] font-black uppercase tracking-widest transition-all duration-200 no-drag ${mode === 'colab' ? 'bg-indigo-600/90 text-white scale-105' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
-          >
-            Colab
-          </button>
+
+          {showDropdown && (
+            <div className="absolute top-full left-0 mt-1 w-64 bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 z-[1100]">
+              <div className="p-1">
+                {MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      onModeChange(m.id)
+                      setShowDropdown(false)
+                    }}
+                    className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${mode === m.id ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">{m.icon}</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${mode === m.id ? m.color : 'text-slate-400 group-hover:text-slate-200'}`}>
+                          {m.label}
+                        </span>
+                      </div>
+                      {mode === m.id && <div className={`w-1 h-1 rounded-full ${m.color.replace('text-', 'bg-')}`} />}
+                    </div>
+                    <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">{m.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <button 
@@ -89,7 +140,6 @@ const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick
           title={showPanel ? 'Hide context panel' : 'Show context panel'}
           className={`w-11 h-10 flex items-center justify-center transition-colors no-drag ${showPanel ? 'text-cyan-400 bg-cyan-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
         >
-          {/* Files/tree icon */}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 6h18M3 12h12M3 18h8"/>
           </svg>
@@ -121,4 +171,3 @@ const TitleBar: React.FC<TitleBarProps> = ({ mode, onModeChange, onSettingsClick
 }
 
 export default TitleBar
-
