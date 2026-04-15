@@ -53,6 +53,7 @@ interface MessageEntry {
   text?: string
   images?: AttachedImage[]
   done?: boolean
+  remote?: boolean
   tool?: {
     name: string
     status: 'running' | 'done' | 'awaiting_approval'
@@ -87,7 +88,7 @@ interface KodaSettings {
 
 // ─── Memoized message rows — only re-render when their own data changes ───────
 
-const UserMessage = memo(({ text, images, onRollback }: { text: string; images?: AttachedImage[]; onRollback?: () => void }) => (
+const UserMessage = memo(({ text, images, onRollback, remote }: { text: string; images?: AttachedImage[]; onRollback?: () => void; remote?: boolean }) => (
   <div className="flex flex-col gap-2 mb-1 mt-2 bg-slate-800/20 p-2 rounded-md group relative">
     {/* Image thumbnails */}
     {images && images.length > 0 && (
@@ -105,7 +106,10 @@ const UserMessage = memo(({ text, images, onRollback }: { text: string; images?:
     )}
     <div className="flex gap-3 items-start">
       <span className="text-cyan-400 font-bold mt-0.5 select-none">{symbols.arrow}</span>
-      <span className="text-slate-100 font-medium leading-relaxed flex-1">{text}</span>
+      <span className="text-slate-100 font-medium leading-relaxed flex-1">
+        {remote && <span className="inline-flex items-center gap-1 mr-2 text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-900/30 border border-emerald-500/30 px-1.5 py-0.5 rounded align-middle">🌐 Remote</span>}
+        {text}
+      </span>
       {onRollback && (
         <button
           onClick={onRollback}
@@ -181,6 +185,124 @@ const persistApprovedCommand = async (type: 'base' | 'full', command: string) =>
   const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
   await window.koda.updateApprovedCommands({ base, full })
 }
+
+// ─── Diff Viewer ─────────────────────────────────────────────────────────────
+interface DiffHunk {
+  header: string
+  lines: { type: 'add' | 'del' | 'ctx' | 'hdr'; content: string; oldNum?: number; newNum?: number }[]
+}
+
+function parseDiff(raw: string): DiffHunk[] {
+  // Strip ANSI codes
+  const clean = raw.replace(/\x1b\[[0-9;]*m/g, '')
+  const lines = clean.split('\n')
+  const hunks: DiffHunk[] = []
+  let current: DiffHunk | null = null
+  let oldLine = 0, newLine = 0
+
+  for (const line of lines) {
+    if (line.startsWith('@@')) {
+      const m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/)
+      if (m) { oldLine = parseInt(m[1]); newLine = parseInt(m[2]) }
+      current = { header: line, lines: [] }
+      hunks.push(current)
+      continue
+    }
+    if (!current) continue
+    if (line.startsWith('+') && !line.startsWith('+++')) {
+      current.lines.push({ type: 'add', content: line.slice(1), newNum: newLine++ })
+    } else if (line.startsWith('-') && !line.startsWith('---')) {
+      current.lines.push({ type: 'del', content: line.slice(1), oldNum: oldLine++ })
+    } else if (!line.startsWith('+++') && !line.startsWith('---') && !line.startsWith('\\')) {
+      current.lines.push({ type: 'ctx', content: line.slice(1), oldNum: oldLine++, newNum: newLine++ })
+    }
+  }
+  return hunks
+}
+
+const DiffViewer = memo(({ output }: { output: string }) => {
+  const hunks = parseDiff(output)
+  if (hunks.length === 0) return null
+
+  return (
+    <div className="mt-1 rounded-md overflow-hidden border border-slate-700/60 text-[11px] font-mono max-h-[420px] overflow-y-auto custom-scrollbar">
+      {hunks.map((hunk, hi) => (
+        <div key={hi}>
+          {/* Hunk header */}
+          <div className="px-3 py-1 bg-slate-800/80 text-slate-500 border-b border-slate-700/40 select-none">
+            {hunk.header}
+          </div>
+          {/* Side-by-side rows */}
+          <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            {/* Build paired rows: deletions paired with additions, context spans both */}
+            {(() => {
+              const rows: React.ReactNode[] = []
+              const dels = hunk.lines.filter(l => l.type === 'del')
+              const adds = hunk.lines.filter(l => l.type === 'add')
+              const maxPaired = Math.max(dels.length, adds.length)
+              let di = 0, ai = 0, ci = 0
+              const allLines = hunk.lines
+
+              // Walk lines in order, pairing del+add, passing ctx through
+              let i = 0
+              while (i < allLines.length) {
+                const line = allLines[i]
+                if (line.type === 'ctx') {
+                  rows.push(
+                    <div key={`ctx-l-${i}`} className="px-2 py-0.5 bg-transparent text-slate-500 border-r border-slate-700/30 flex gap-2 min-h-[1.4em]">
+                      <span className="text-slate-600 select-none w-6 text-right flex-shrink-0">{line.oldNum}</span>
+                      <span className="whitespace-pre-wrap break-all">{line.content || ' '}</span>
+                    </div>,
+                    <div key={`ctx-r-${i}`} className="px-2 py-0.5 bg-transparent text-slate-500 flex gap-2 min-h-[1.4em]">
+                      <span className="text-slate-600 select-none w-6 text-right flex-shrink-0">{line.newNum}</span>
+                      <span className="whitespace-pre-wrap break-all">{line.content || ' '}</span>
+                    </div>
+                  )
+                  i++
+                } else if (line.type === 'del') {
+                  // Collect consecutive del block
+                  const delBlock: typeof allLines = []
+                  while (i < allLines.length && allLines[i].type === 'del') delBlock.push(allLines[i++])
+                  // Collect following add block
+                  const addBlock: typeof allLines = []
+                  while (i < allLines.length && allLines[i].type === 'add') addBlock.push(allLines[i++])
+                  const maxLen = Math.max(delBlock.length, addBlock.length)
+                  for (let j = 0; j < maxLen; j++) {
+                    const d = delBlock[j]
+                    const a = addBlock[j]
+                    rows.push(
+                      <div key={`del-${i}-${j}`} className={`px-2 py-0.5 flex gap-2 min-h-[1.4em] border-r border-slate-700/30 ${d ? 'bg-rose-950/40 text-rose-300' : 'bg-transparent'}`}>
+                        <span className="text-rose-600/60 select-none w-6 text-right flex-shrink-0">{d?.oldNum ?? ''}</span>
+                        <span className="whitespace-pre-wrap break-all">{d ? (d.content || ' ') : ''}</span>
+                      </div>,
+                      <div key={`add-${i}-${j}`} className={`px-2 py-0.5 flex gap-2 min-h-[1.4em] ${a ? 'bg-cyan-950/40 text-cyan-300' : 'bg-transparent'}`}>
+                        <span className="text-cyan-600/60 select-none w-6 text-right flex-shrink-0">{a?.newNum ?? ''}</span>
+                        <span className="whitespace-pre-wrap break-all">{a ? (a.content || ' ') : ''}</span>
+                      </div>
+                    )
+                  }
+                } else if (line.type === 'add') {
+                  // Orphan add (no preceding del)
+                  rows.push(
+                    <div key={`emp-${i}`} className="px-2 py-0.5 bg-transparent border-r border-slate-700/30 min-h-[1.4em]" />,
+                    <div key={`add-${i}`} className="px-2 py-0.5 bg-cyan-950/40 text-cyan-300 flex gap-2 min-h-[1.4em]">
+                      <span className="text-cyan-600/60 select-none w-6 text-right flex-shrink-0">{line.newNum}</span>
+                      <span className="whitespace-pre-wrap break-all">{line.content || ' '}</span>
+                    </div>
+                  )
+                  i++
+                } else {
+                  i++
+                }
+              }
+              return rows
+            })()}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+})
 
 const ToolMessage = memo(({ tool, settings, agentInfo }: { tool: MessageEntry['tool'], settings: KodaSettings, agentInfo: any }) => {
   const [showDropdown, setShowDropdown] = useState(false)
@@ -350,23 +472,23 @@ const ToolMessage = memo(({ tool, settings, agentInfo }: { tool: MessageEntry['t
       </div>
 
       {isOutputVisible && tool?.status === 'done' && tool.output && (
-        <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
-          {tool.output.split('\n').map((line, i) => {
-            if (line.trim() === '' && i === 0) return null;
-
-            let lineClass = "text-slate-300 hover:bg-slate-800/20";
-            if (line.startsWith('+')) lineClass = "text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2";
-            else if (line.startsWith('-')) lineClass = "text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2";
-
-            return (
-              <div
-                key={i}
-                className={`whitespace-pre-wrap break-all leading-relaxed px-1 rounded-sm transition-colors min-h-[1em] ${lineClass}`}
-                dangerouslySetInnerHTML={{ __html: ansi.toHtml(line) || '&nbsp;' }}
-              />
-            )
-          })}
-        </div>
+        tool?.name === 'file_edit'
+          ? <DiffViewer output={tool.output} />
+          : <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
+              {tool.output.split('\n').map((line, i) => {
+                if (line.trim() === '' && i === 0) return null;
+                let lineClass = "text-slate-300 hover:bg-slate-800/20";
+                if (line.startsWith('+')) lineClass = "text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2";
+                else if (line.startsWith('-')) lineClass = "text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2";
+                return (
+                  <div
+                    key={i}
+                    className={`whitespace-pre-wrap break-all leading-relaxed px-1 rounded-sm transition-colors min-h-[1em] ${lineClass}`}
+                    dangerouslySetInnerHTML={{ __html: ansi.toHtml(line) || '&nbsp;' }}
+                  />
+                )
+              })}
+            </div>
       )}
     </div>
   )
@@ -450,7 +572,7 @@ const PtyMessage = memo(({ pty }: { pty: MessageEntry['pty'] }) => {
 
 const MessageRow = memo(({ msg, onRollback, kodaSettings, agentInfo }: { msg: MessageEntry; onRollback?: () => void, kodaSettings: KodaSettings, agentInfo: any }) => (
   <div className="flex flex-col text-sm">
-    {msg.type === 'user' && <UserMessage text={msg.text!} images={msg.images} onRollback={onRollback} />}
+    {msg.type === 'user' && <UserMessage text={msg.text!} images={msg.images} onRollback={onRollback} remote={msg.remote} />}
     {msg.type === 'assistant' && <AssistantMessage text={msg.text} done={msg.done} />}
     {msg.type === 'tool' && <ToolMessage tool={msg.tool} settings={kodaSettings} agentInfo={agentInfo} />}
     {msg.type === 'error' && <ErrorMessage text={msg.text!} />}
@@ -715,6 +837,141 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings }: {
 })
 
 
+// ─── Remote Control Tab ───────────────────────────────────────────────────────
+const RemoteControlTab = memo(() => {
+  const [enabled, setEnabled] = useState(() => localStorage.getItem('koda_webhook_enabled') === 'true')
+  const [port, setPort] = useState(() => parseInt(localStorage.getItem('koda_webhook_port') || '3141', 10))
+  const [token, setToken] = useState(() => localStorage.getItem('koda_webhook_token') || '')
+  const [status, setStatus] = useState<{ running: boolean; port: number | null }>({ running: false, port: null })
+  const [error, setError] = useState('')
+  const [showToken, setShowToken] = useState(false)
+
+  useEffect(() => {
+    window.koda.webhookStatus().then(setStatus)
+  }, [])
+
+  const generateToken = () => {
+    const t = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+      .map(b => b.toString(16).padStart(2, '0')).join('')
+    setToken(t)
+  }
+
+  const handleToggle = async (val: boolean) => {
+    setEnabled(val)
+    setError('')
+    localStorage.setItem('koda_webhook_enabled', String(val))
+    if (val) {
+      if (!token) { setError('Generate a token first.'); setEnabled(false); return }
+      const res = await window.koda.webhookStart({ port, token })
+      if (!res.success) { setError(res.error || 'Failed to start'); setEnabled(false); return }
+    } else {
+      await window.koda.webhookStop()
+    }
+    const s = await window.koda.webhookStatus()
+    setStatus(s)
+  }
+
+  const handleSavePort = async () => {
+    localStorage.setItem('koda_webhook_port', String(port))
+    localStorage.setItem('koda_webhook_token', token)
+    if (enabled) {
+      await window.koda.webhookStop()
+      const res = await window.koda.webhookStart({ port, token })
+      if (!res.success) setError(res.error || 'Failed to restart')
+      const s = await window.koda.webhookStatus()
+      setStatus(s)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-8 animate-in slide-in-from-left-2 duration-300">
+      <section>
+        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-1">
+          <span className="w-1.5 h-4 bg-emerald-400 rounded-full"></span>
+          Remote Control
+        </h3>
+        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">
+          Expose a local HTTP API so external tools (GitHub Actions, bots, scripts) can send tasks to Koda via Tailscale or localhost.
+        </p>
+
+        {/* Status + toggle */}
+        <div className="flex items-center justify-between bg-slate-800/20 p-4 rounded-xl border border-slate-700/50 mb-4">
+          <div className="flex items-center gap-3">
+            <span className={`w-2 h-2 rounded-full ${status.running ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
+            <div>
+              <span className="text-xs font-bold text-slate-200">{status.running ? `Online — port ${status.port}` : 'Offline'}</span>
+              <p className="text-[10px] text-slate-500 mt-0.5">HTTP server on 0.0.0.0 (all interfaces)</p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleToggle(!enabled)}
+            className={`w-10 h-5 rounded-full relative transition-all ${enabled && status.running ? 'bg-emerald-500' : 'bg-slate-700'}`}
+          >
+            <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${enabled && status.running ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
+
+        {error && <p className="text-rose-400 text-[11px] mb-3">⚠ {error}</p>}
+
+        {/* Port */}
+        <div className="flex flex-col gap-4 bg-slate-800/20 p-4 rounded-xl border border-slate-700/50">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Port</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={port}
+                onChange={e => setPort(parseInt(e.target.value) || 3141)}
+                className="w-28 bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-emerald-500 transition-colors"
+              />
+              <button onClick={handleSavePort} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-all">Apply</button>
+            </div>
+          </div>
+
+          {/* Token */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Auth Token</label>
+            <div className="flex gap-2">
+              <input
+                type={showToken ? 'text' : 'password'}
+                value={token}
+                onChange={e => { setToken(e.target.value); localStorage.setItem('koda_webhook_token', e.target.value) }}
+                placeholder="Generate or paste a token..."
+                className="flex-1 bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-emerald-500 transition-colors"
+              />
+              <button onClick={() => setShowToken(p => !p)} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-xs transition-all">{showToken ? '🙈' : '👁'}</button>
+              <button onClick={generateToken} className="px-3 py-2 bg-emerald-700/50 hover:bg-emerald-600/60 text-emerald-300 rounded-lg text-xs font-bold transition-all">Generate</button>
+            </div>
+            <p className="text-[10px] text-slate-500">Send as <code className="bg-slate-800 px-1 rounded">Authorization: Bearer &lt;token&gt;</code> header.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Endpoints reference */}
+      <section>
+        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-3">
+          <span className="w-1.5 h-4 bg-slate-500 rounded-full"></span>
+          Endpoints
+        </h3>
+        <div className="flex flex-col gap-2 font-mono text-[11px]">
+          {[
+            { method: 'GET',  path: '/status',   desc: 'Agent status (public)',         color: 'text-cyan-400' },
+            { method: 'POST', path: '/task',      desc: '{ message } → send task',       color: 'text-emerald-400' },
+            { method: 'POST', path: '/reset',     desc: 'Reset conversation',            color: 'text-amber-400' },
+            { method: 'GET',  path: '/messages',  desc: 'Get conversation history',      color: 'text-cyan-400' },
+          ].map(e => (
+            <div key={e.path} className="flex items-center gap-3 bg-slate-800/40 px-3 py-2 rounded-lg border border-slate-700/40">
+              <span className={`font-black w-10 flex-shrink-0 ${e.color}`}>{e.method}</span>
+              <code className="text-slate-300 flex-shrink-0">{e.path}</code>
+              <span className="text-slate-500 text-[10px]">{e.desc}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+})
+
 // ─── Settings UI Modal ────────────────────────────────────────────────────────
 const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defaultAdvisorModel, theme, setTheme, kodaSettings, setKodaSettings }: {
   onClose: () => void
@@ -727,7 +984,7 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
   kodaSettings: KodaSettings
   setKodaSettings: React.Dispatch<React.SetStateAction<KodaSettings>>
 }) => {
-  const [activeTab, setActiveTab] = useState<'api' | 'themes' | 'koda'>('api')
+  const [activeTab, setActiveTab] = useState<'api' | 'themes' | 'koda' | 'remote'>('api')
   const [provider, setProvider] = useState(defaultProvider || 'openai')
   const [model, setModel] = useState(defaultModel || 'gpt-4o')
   const [advisorModel, setAdvisorModel] = useState(defaultAdvisorModel || 'gpt-4o')
@@ -794,6 +1051,13 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'koda' ? 'bg-amber-400/10 text-amber-400 border-r-2 border-amber-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
           >
             <span>🤖</span> Koda Settings
+          </button>
+
+          <button
+            onClick={() => setActiveTab('remote')}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'remote' ? 'bg-emerald-400/10 text-emerald-400 border-r-2 border-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+          >
+            <span>🌐</span> Remote Control
           </button>
 
           <div className="mt-auto">
@@ -956,6 +1220,7 @@ const SettingsUI = memo(({ onClose, onSave, defaultProvider, defaultModel, defau
               </div>
             )}
             {activeTab === 'koda' && <KodaSettingsTab kodaSettings={kodaSettings} setKodaSettings={setKodaSettings} />}
+            {activeTab === 'remote' && <RemoteControlTab />}
           </div>
 
           {/* Footer */}
@@ -1216,6 +1481,7 @@ const App: React.FC = () => {
   const chunkBufferRef = useRef<string>('')
   const rafRef = useRef<number | null>(null)
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const taskStartRef = useRef<number | null>(null)
 
   const onSelectMode = useCallback((m: 'fast' | 'planner' | 'colab' | 'teach') => {
     setMode(m)
@@ -1332,6 +1598,9 @@ const App: React.FC = () => {
         window.koda.listSkills().then(r => {
           if (r.success && r.skills) setAvailableSkills(r.skills)
         })
+
+        // Request notification permission
+        if (Notification.permission === 'default') Notification.requestPermission()
 
         // Hydrate from localStorage if available
         const savedKey = localStorage.getItem('koda_api_key')
@@ -1458,7 +1727,6 @@ const App: React.FC = () => {
       } else if (update.type === 'pty_spawned') {
         setMessages(prev => {
           const updated = [...prev]
-          // Find the latest running tool with this name (usually the one just started)
           const index = updated.map(m => m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null).lastIndexOf(update.name)
           if (index !== -1) {
             updated[index] = {
@@ -1468,6 +1736,25 @@ const App: React.FC = () => {
           }
           return updated
         })
+      } else if (update.type === 'done') {
+        const elapsed = taskStartRef.current ? Date.now() - taskStartRef.current : 0
+        taskStartRef.current = null
+        // Only notify if task took more than 3s and window is not focused
+        if (elapsed > 3000 && !document.hasFocus() && Notification.permission === 'granted') {
+          new Notification('Koda', { body: 'Task completed ✔', icon: '/icon.png', silent: true })
+        }
+      } else if (update.type === 'remote_task') {
+        setMessages(prev => [...prev, {
+          id: update.messageId,
+          type: 'user' as const,
+          text: update.message,
+          remote: true,
+        }])
+        setIsProcessing(true)
+        taskStartRef.current = Date.now()
+        scheduleScroll()
+      } else if (update.type === 'remote_reset') {
+        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: '🌐 Remote: conversation reset.' }])
       }
     })
 
@@ -1647,6 +1934,7 @@ Your current task is: ${userMsg}`
     const msgId = nextId() // capture and increment ID FIRST, guaranteed in sync
     setMessages(prev => [...prev, { id: msgId, type: 'user', text: userMsg, images: currentImages.length > 0 ? currentImages : undefined }])
     setIsProcessing(true)
+    taskStartRef.current = Date.now()
     scheduleScroll()
 
     // Convert AttachedImage[] to ContentPart[] for the backend

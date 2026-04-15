@@ -42,6 +42,9 @@ export interface AppSettings {
   maxTokens: number;
   temperature: number;
   systemPrompt: string;
+  webhookEnabled: boolean;
+  webhookPort: number;
+  webhookToken: string;
 }
 
 const DEFAULT_MODELS: Record<LLMProvider, string> = {
@@ -103,6 +106,9 @@ export function getSettings(): AppSettings {
     maxTokens: parseInt(process.env.MAX_TOKENS || "8192", 10),
     temperature: parseFloat(process.env.TEMPERATURE || "0.3"),
     systemPrompt: getSystemPrompt(),
+    webhookEnabled: process.env.WEBHOOK_ENABLED === 'true',
+    webhookPort: parseInt(process.env.WEBHOOK_PORT || "3141", 10),
+    webhookToken: process.env.WEBHOOK_TOKEN || "",
   };
 }
 

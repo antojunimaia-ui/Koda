@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('koda', {
   getProjectSession: (projectPath: string) => ipcRenderer.invoke('agent:get_session', projectPath),
   saveProjectSession: (projectPath: string, data: any) => ipcRenderer.invoke('agent:save_session', projectPath, data),
   listSkills: () => ipcRenderer.invoke('skills:list'),
+  webhookStart: (config: { port: number; token: string }) => ipcRenderer.invoke('webhook:start', config),
+  webhookStop: () => ipcRenderer.invoke('webhook:stop'),
+  webhookStatus: () => ipcRenderer.invoke('webhook:status'),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),

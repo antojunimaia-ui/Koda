@@ -7,6 +7,7 @@ import { sendCtrlC, killPty, ShellTool, startInteractiveTerminal, writeToPty, re
 import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
 import { clearTrackedFiles } from './services/file-tracker.js'
 import { sessionManager } from './services/session-manager.js'
+import { startWebhookServer, stopWebhookServer, getWebhookStatus } from './services/webhook-server.js'
 import dotenv from 'dotenv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -134,6 +135,7 @@ ipcMain.handle('agent:message', async (event, messageId: number, message: string
       (error) => mainWindow?.webContents.send('agent:update', { type: 'error', message: error }),
       images as any
     )
+    mainWindow?.webContents.send('agent:update', { type: 'done' })
     return { success: true }
   } catch (error) {
     return { success: false, error: (error as Error).message }
@@ -492,6 +494,25 @@ ipcMain.handle('skills:list', async () => {
   } catch (err: any) {
     return { success: false, error: err.message }
   }
+})
+
+// Webhook / Remote Control
+ipcMain.handle('webhook:start', async (_event, config: { port: number; token: string }) => {
+  try {
+    await startWebhookServer({ ...config, enabled: true }, () => agent, mainWindow)
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('webhook:stop', async () => {
+  await stopWebhookServer()
+  return { success: true }
+})
+
+ipcMain.handle('webhook:status', () => {
+  return getWebhookStatus()
 })
 
 // MCP Configuration Store

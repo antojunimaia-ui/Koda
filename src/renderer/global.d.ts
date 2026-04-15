@@ -35,6 +35,9 @@ declare global {
       getProjectSession: (projectPath: string) => Promise<any>
       saveProjectSession: (projectPath: string, data: any) => Promise<void>
       listSkills: () => Promise<{ success: boolean; skills?: Array<{ name: string; description: string; triggers: string[] }>; error?: string }>
+      webhookStart: (config: { port: number; token: string }) => Promise<{ success: boolean; error?: string }>
+      webhookStop: () => Promise<{ success: boolean }>
+      webhookStatus: () => Promise<{ running: boolean; port: number | null }>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>
