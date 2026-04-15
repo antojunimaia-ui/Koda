@@ -42,6 +42,11 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 - **Planner mode** — for complex tasks, Koda enters a read-only exploration cycle, writes a detailed Markdown plan, and waits for your explicit approval before touching any file.
 - **Collaborative mode** — Koda can open a multi-turn session with a second LLM (the "advisor") for architectural brainstorming, then proceed with the implementation.
 - **Teach & Code mode** — Koda acts as a technical mentor, explaining every non-obvious decision with trade-offs and alternatives as it codes.
+- **Skills system** — Markdown-based skill files inject specialized instructions into the agent's context on demand. Invoke with `/skill-name [message]` or let the agent load them autonomously via `load_skill`. Global skills live in `~/.koda/skills/`, project-local in `.koda/skills/`.
+- **Dynamic slash menu** — typing `/` in the chat input opens a live-filtered dropdown listing all native commands and available skills, with keyboard navigation identical to `@` file mentions.
+- **Inline diff viewer** — `file_edit` outputs render as a side-by-side visual diff with line numbers, additions in cyan and deletions in rose, grouped by hunk.
+- **System notifications** — native OS notification fires when a long task (>3s) completes and the window is not in focus.
+- **Remote Control API** — built-in HTTP server (default port `3141`) exposes `POST /task`, `GET /status`, `POST /reset`, and `GET /messages`. Pair with Tailscale for secure remote access from any device on your network. Tasks appear in chat with a `🌐 Remote` badge.
 - **MCP support** — connect any Model Context Protocol server (local process or external SSE endpoint). Tools are discovered at runtime via JSON-RPC handshake and injected into the agent's arsenal dynamically.
 - **LSP integration** — semantic queries via `typescript-language-server`: hover types, go-to-definition, and symbol resolution without reading entire files.
 - **13 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
@@ -100,6 +105,7 @@ All tools extend `BaseTool` and are registered in `ToolRegistry`. The registry e
 | `start_collaboration` | Initializes an advisor LLM session with a dedicated system prompt. *(Colab mode only)* |
 | `send_to_advisor` | Sends a message to the advisor and streams back the response. *(Colab mode only)* |
 | `end_collaboration` | Terminates the advisor session and clears its conversation state. *(Colab mode only)* |
+| `load_skill` | Loads a skill by name from `~/.koda/skills/` or `.koda/skills/` and injects its instructions into context. The agent calls this autonomously when it detects a matching task domain. |
 
 ### Shell Approval System
 
@@ -183,6 +189,31 @@ Type these directly in the chat input:
 | `/tokens` or `/cost` | Displays estimated token usage for the current context |
 | `/model --<name>` | Switches the active model |
 | `/apikey <key>` | Sets the API key inline |
+| `/<skill-name> [message]` | Activates a skill and optionally sends a task in the same message |
+
+---
+
+## Remote Control API
+
+Koda includes a built-in HTTP server for remote task execution. Enable it in **Settings → Remote Control**.
+
+| Method | Path | Auth | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/status` | Public | Agent status, busy state, current project and model |
+| `POST` | `/task` | Token | Send a task — body: `{ "message": "..." }` |
+| `POST` | `/reset` | Token | Reset conversation remotely |
+| `GET` | `/messages` | Token | Retrieve full conversation history as JSON |
+
+The server listens on `0.0.0.0:3141` (configurable). Pair with **[Tailscale](https://tailscale.com)** to access it securely from any device on your private network — GitHub Actions, bots, scripts, other agents.
+
+```bash
+curl -X POST http://100.x.x.x:3141/task \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "run the test suite and fix any failures"}'
+```
+
+Tasks sent via the API appear in chat with a `🌐 Remote` badge.
 
 ---
 
@@ -228,7 +259,9 @@ src/
 │   │   ├── session-manager.ts   # Disk-persisted project sessions (userData/sessions/<md5>.json)
 │   │   ├── mcp-manager.ts       # MCP server lifecycle + JSON-RPC tool discovery + callTool
 │   │   ├── lsp-client.ts        # typescript-language-server client (hover, goToDefinition)
-│   │   └── file-tracker.ts      # In-session file access tracker (read/modified)
+│   │   ├── file-tracker.ts      # In-session file access tracker (read/modified)
+│   │   ├── skill-manager.ts     # Loads .md skills from ~/.koda/skills/ and .koda/skills/
+│   │   └── webhook-server.ts    # HTTP remote control server (0.0.0.0, token auth)
 │   ├── config/
 │   │   └── settings.ts          # AppSettings, .env loading, provider defaults
 │   └── utils/
