@@ -17,6 +17,7 @@ import { TogetherProvider } from "../providers/together.js";
 import { XAIProvider } from "../providers/xai.js";
 import { ZhipuProvider } from "../providers/zhipu.js";
 import { MaritacaProvider } from "../providers/maritaca.js";
+import { KodaCloudProvider } from "../providers/koda-cloud.js";
 import { mcpManager } from "../services/mcp-manager.js";
 import { MCPTool } from "../tools/mcp-tool.js";
 import { skillManager } from "../services/skill-manager.js";
@@ -74,6 +75,8 @@ export class Agent {
         return new ZhipuProvider(model, apiKey, maxTokens, temperature);
       case "maritaca":
         return new MaritacaProvider(model, apiKey, maxTokens, temperature);
+      case "koda-cloud":
+        return new KodaCloudProvider(model);
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
@@ -336,6 +339,8 @@ export class Agent {
       this.settings.provider = "zhipu";
     } else if (model.includes("sabia") || model.includes("maritaca")) {
       this.settings.provider = "maritaca";
+    } else if (model.includes("cloud") || model.includes("koda-cloud")) {
+      this.settings.provider = "koda-cloud";
     }
 
     this.provider = await this.createProviderAsync();

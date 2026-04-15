@@ -409,6 +409,27 @@ const App: React.FC = () => {
     setPinnedFiles(prev => prev.filter(p => p !== path))
   }, [])
 
+  // ── handlePaste ─────────────────────────────────────────────────────────────
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.indexOf('image') !== -1) {
+        const file = item.getAsFile()
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = () => {
+            setPendingImages(prev => [
+              ...prev,
+              { dataUrl: reader.result as string, mimeType: file.type, name: file.name || 'pasted-image.png' }
+            ])
+          }
+          reader.readAsDataURL(file)
+        }
+      }
+    }
+  }, [])
+
   // ── handleInputChange (slash menu + @mentions) ───────────────────────────────
   const handleInputChange = async (val: string) => {
     setInput(val)
@@ -727,6 +748,7 @@ const App: React.FC = () => {
                     e.target.style.height = 'auto'
                     e.target.style.height = `${e.target.scrollHeight}px`
                   }}
+                  onPaste={handlePaste}
                   onKeyDown={e => {
                     if (showSlashMenu) {
                       if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (slashItems[slashIndex]) selectSlashItem(slashItems[slashIndex]) }

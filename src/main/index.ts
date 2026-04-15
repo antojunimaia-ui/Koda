@@ -439,6 +439,20 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
       }
     }
 
+    if (provider === 'koda-cloud') {
+      try {
+        const res = await fetch('http://cn-01.hostzera.com.br:2137/v1/models')
+        if (res.ok) {
+          const data = await res.json()
+          return { success: true, models: data.models || data.data.map((m: any) => m.id) }
+        }
+        // Fallback while proxy is being updated
+        return { success: true, models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'] }
+      } catch (err) {
+        return { success: true, models: ['gemini-1.5-flash', 'gemini-1.5-pro'] }
+      }
+    }
+
     return { success: false, error: 'Unknown provider' }
   } catch (err: any) {
     return { success: false, error: err.message }

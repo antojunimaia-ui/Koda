@@ -15,8 +15,27 @@ const persistApprovedCommand = async (type: 'base' | 'full', command: string) =>
   await window.koda.updateApprovedCommands({ base, full })
 }
 
+const TOOL_ICONS: Record<string, string> = {
+  file_read:           '👁',
+  file_edit:           '✏️',
+  file_write:          '💾',
+  list_dir:            '📂',
+  file_find:           '🔍',
+  search:              '🔎',
+  shell:               '⚡',
+  shell_wait:          '⏱️',
+  lsp_query:           '🧠',
+  browser_agent:       '🌐',
+  enter_plan_mode:     '📋',
+  exit_plan_mode:      '📋',
+  start_collaboration: '🤝',
+  send_to_advisor:     '💬',
+  end_collaboration:   '🤝',
+  load_skill:          '🎯',
+  get_diagnostics:     '🩺',
+}
+
 const symbols = {
-  lightning: '⚡',
   check: '✔',
   cross: '✖',
 }
@@ -91,8 +110,12 @@ const ToolMessage = memo(({ tool, settings, agentInfo }: ToolMessageProps) => {
   return (
     <div className="flex flex-col ml-4 gap-2 my-2 border-l-2 border-slate-700/50 pl-3 py-1">
       <div className="flex items-center gap-2">
-        <span className={tool?.status === 'running' ? 'text-yellow animate-pulse' : 'text-magenta'}>
-          {symbols.lightning}
+        <span
+          className={tool?.status === 'running' ? 'animate-pulse' : ''}
+          title={tool?.name}
+          style={{ fontSize: '14px', lineHeight: 1 }}
+        >
+          {TOOL_ICONS[tool?.name || ''] ?? '⚙️'}
         </span>
         <span className="text-white font-mono text-[13px] bg-slate-800/80 px-2 py-0.5 rounded shadow-sm border border-slate-700/50 flex items-center">
           {stats && !settings.showFileEdit && (

@@ -10,6 +10,7 @@ export class LSPClient {
   private connection: rpc.MessageConnection | null = null;
   private rootPath: string;
   private openedFiles = new Set<string>();
+  private diagnostics = new Map<string, lsp.Diagnostic[]>();
 
   constructor(rootPath: string) {
     this.rootPath = rootPath;
@@ -20,12 +21,14 @@ export class LSPClient {
   }
 
   async start(): Promise<void> {
-    const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-    this.childProcess = spawn(
-      cmd,
-      ['typescript-language-server', '--stdio'],
-      { cwd: this.rootPath }
-    );
+    const config = await this.detectServer();
+    if (!config) {
+      console.log("[LSP] No supported language server found for this project.");
+      return;
+    }
+
+    const npx = process.platform === "win32" ? "npx.cmd" : "npx";
+    this.childProcess = spawn(config.cmd, config.args, { cwd: this.rootPath });
 
     this.childProcess.stderr?.on('data', (data) => {
       console.log(`[LSP] stderr: ${data}`);
@@ -37,6 +40,11 @@ export class LSPClient {
     );
 
     this.connection.listen();
+    
+    // Listen for diagnostics from the server (Universal "Problems" source)
+    this.connection.onNotification(lsp.PublishDiagnosticsNotification.type.method, (params: lsp.PublishDiagnosticsParams) => {
+      this.diagnostics.set(params.uri, params.diagnostics);
+    });
 
     const initParams: lsp.InitializeParams = {
       processId: process.pid,
@@ -114,5 +122,37 @@ export class LSPClient {
       textDocument: { uri: fileUri },
       position: { line: line - 1, character: character - 1 }
     });
+  }
+
+  getDiagnostics() {
+    return Array.from(this.diagnostics.entries()).map(([uri, diags]) => ({
+      uri,
+      diagnostics: diags
+    }));
+  }
+
+  private async detectServer(): Promise<{ cmd: string; args: string[] } | null> {
+    const { access } = await import("fs/promises");
+    const hasFile = async (f: string) => {
+      try { await access(resolve(this.rootPath, f)); return true; } catch { return false; }
+    };
+
+    const isWin = process.platform === 'win32';
+    const npx = isWin ? 'npx.cmd' : 'npx';
+
+    if (await hasFile("tsconfig.json") || await hasFile("package.json")) {
+      return { cmd: npx, args: ["typescript-language-server", "--stdio"] };
+    }
+    if (await hasFile("pyproject.toml") || await hasFile("requirements.txt") || await hasFile("setup.py")) {
+      return { cmd: npx, args: ["pyright-langserver", "--stdio"] };
+    }
+    if (await hasFile("Cargo.toml")) {
+      return { cmd: "rust-analyzer", args: [] };
+    }
+    if (await hasFile("go.mod")) {
+      return { cmd: "gopls", args: [] };
+    }
+
+    return null;
   }
 }

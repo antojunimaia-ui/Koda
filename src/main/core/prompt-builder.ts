@@ -47,6 +47,7 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
 5. **Recursive Problem Solving**: If a tool fails or an error occurs in the shell, analyze the output, hypothesize the fix, and execute a new approach immediately.
 6. **Fast Mode Execution**: Unless explicitly instructed to use Planner Mode, you are in Fast Mode. In Fast Mode, you act immediately and autonomously. You must ignore the existence of 'enter_plan_mode' and 'exit_plan_mode' tools.
 7. **Read Efficiency**: When dealing with large files (> 300 lines) or looking for specific code, avoid reading the entire file. Always prefer using \`file_read\` with \`start_line\` and \`end_line\` parameters to focus only on the relevant sections. Use \`search\` or \`lsp\` to find the exact line numbers first.
+8. **Diagnostic Verification**: ALWAYS call \`get_diagnostics\` after completing any implementation, refactoring, or file edit task. This is the equivalent of checking the "Problems" panel in VS Code. Use the diagnostics output to catch and fix any introduced type errors or lint errors before declaring the task finished.
 `.trim();
   }
 

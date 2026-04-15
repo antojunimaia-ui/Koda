@@ -136,6 +136,7 @@ const SettingsUI = memo(({
                       <option value="xai">xAI</option>
                       <option value="zhipu">Zhipu AI</option>
                       <option value="maritaca">Maritaca AI</option>
+                      <option value="koda-cloud">Koda Cloud</option>
                     </select>
                   </div>
 
@@ -153,18 +154,18 @@ const SettingsUI = memo(({
                       <input type="text" value={model} onChange={e => setModel(e.target.value)} className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan transition-colors font-mono text-xs" placeholder="ex: llama3" />
                     )}
                   </div>
+                </div>
 
-                  <div className="flex flex-col gap-2">
-                    <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Advisor Model</label>
-                    {models.length > 0 ? (
-                      <select value={advisorModel} onChange={e => setAdvisorModel(e.target.value)} className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-magenta transition-colors custom-scrollbar font-mono text-xs">
-                        {!models.includes(advisorModel) && <option value={advisorModel}>{advisorModel} (Current)</option>}
-                        {models.map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                    ) : (
-                      <input type="text" value={advisorModel} onChange={e => setAdvisorModel(e.target.value)} className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-magenta transition-colors font-mono text-xs" placeholder="ex: claude-3-sonnet" />
-                    )}
-                  </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Advisor Model</label>
+                  {models.length > 0 ? (
+                    <select value={advisorModel} onChange={e => setAdvisorModel(e.target.value)} className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-magenta transition-colors custom-scrollbar font-mono text-xs w-full">
+                      {!models.includes(advisorModel) && <option value={advisorModel}>{advisorModel} (Current)</option>}
+                      {models.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  ) : (
+                    <input type="text" value={advisorModel} onChange={e => setAdvisorModel(e.target.value)} className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-magenta transition-colors font-mono text-xs w-full" placeholder="ex: claude-3-sonnet" />
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -175,9 +176,10 @@ const SettingsUI = memo(({
                   <input
                     type="password"
                     value={apiKey}
+                    disabled={provider === 'koda-cloud'}
                     onChange={e => setApiKey(e.target.value)}
-                    className="bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan transition-colors font-mono text-xs"
-                    placeholder={provider === 'ollama' || provider === 'llamacpp' ? 'Not required for local...' : 'Your secret API key...'}
+                    className={`bg-slate-800 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan transition-colors font-mono text-xs ${provider === 'koda-cloud' ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
+                    placeholder={provider === 'koda-cloud' ? 'Cloud Provider handles API keys for you' : (provider === 'ollama' || provider === 'llamacpp' ? 'Not required for local...' : 'Your secret API key...')}
                   />
                   <p className="text-[10px] text-slate-500 italic mt-1">Keys are stored securely in your local storage only.</p>
                 </div>

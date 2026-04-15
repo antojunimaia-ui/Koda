@@ -118,6 +118,7 @@ Todas as Tools ficam em `src/main/tools/` e **DEVEM** estender `BaseTool` (`base
 | `search` | `search.ts` | Leitura | Não |
 | `list_dir` | `list-dir.ts` | Leitura | Não |
 | `file_find` | `file-find.ts` | Leitura | Não |
+| `get_diagnostics` | `diagnostics.ts` | Análise | Não |
 | `browser` | `browser.ts` | Leitura | Não |
 | `lsp` | `lsp.ts` | Análise | Não |
 | `enter_plan_mode` | `plan.ts` | Modo | Apenas no modo `planner` |
