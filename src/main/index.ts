@@ -483,6 +483,17 @@ ipcMain.handle('project:get_files', async () => {
   }
 })
 
+// Skills
+ipcMain.handle('skills:list', async () => {
+  try {
+    const { skillManager } = await import('./services/skill-manager.js')
+    const skills = await skillManager.getAll()
+    return { success: true, skills: skills.map(s => ({ name: s.name, description: s.description, triggers: s.triggers })) }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
 // MCP Configuration Store
 let mcpConfigs: any[] = []
 let mcpLoaded = false

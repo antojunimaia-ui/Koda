@@ -34,6 +34,7 @@ declare global {
       saveMcpConfigs: (configs: any[]) => Promise<{ success: boolean; error?: string }>
       getProjectSession: (projectPath: string) => Promise<any>
       saveProjectSession: (projectPath: string, data: any) => Promise<void>
+      listSkills: () => Promise<{ success: boolean; skills?: Array<{ name: string; description: string; triggers: string[] }>; error?: string }>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>

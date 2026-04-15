@@ -10,6 +10,7 @@ import { BrowserTool } from "./browser.js";
 import { LSPTool } from "./lsp.js";
 import { StartColabTool, SendColabTool, EndColabTool } from "./collaborate.js";
 import { EnterPlanModeTool, ExitPlanModeTool } from "./plan.js";
+import { LoadSkillTool } from "./skill.js";
 import { trackFile } from "../services/file-tracker.js";
 import { AppSettings } from "../config/settings.js";
 import { resolve } from "path";
@@ -36,10 +37,11 @@ export class ToolRegistry {
     this.register(new StartColabTool(settings));
     this.register(new SendColabTool());
     this.register(new EndColabTool());
+    this.register(new LoadSkillTool());
   }
 
   clearNonCoreTools(): void {
-    const coreTools = ["file_read", "file_write", "file_edit", "shell", "search", "list_dir", "file_find", "browser", "lsp", "enter_plan_mode", "exit_plan_mode", "kill_pty", "list_pty", "shell_input", "shell_wait", "start_collaboration", "send_to_advisor", "end_collaboration"];
+    const coreTools = ["file_read", "file_write", "file_edit", "shell", "search", "list_dir", "file_find", "browser", "lsp", "enter_plan_mode", "exit_plan_mode", "kill_pty", "list_pty", "shell_input", "shell_wait", "start_collaboration", "send_to_advisor", "end_collaboration", "load_skill"];
     for (const name of this.tools.keys()) {
       if (!coreTools.includes(name)) {
         this.tools.delete(name);

@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('koda', {
   saveMcpConfigs: (configs: any[]) => ipcRenderer.invoke('mcp:save_configs', configs),
   getProjectSession: (projectPath: string) => ipcRenderer.invoke('agent:get_session', projectPath),
   saveProjectSession: (projectPath: string, data: any) => ipcRenderer.invoke('agent:save_session', projectPath, data),
+  listSkills: () => ipcRenderer.invoke('skills:list'),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),

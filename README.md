@@ -30,7 +30,7 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 
 - **Autonomous pair-programming** — Koda reads your project structure, understands the architecture, and edits files directly. No copy-paste required.
 - **Snapshot & rollback** — before every message, Koda captures a full in-memory snapshot of all workspace files. Hover any user message and click `↺` to restore both files and agent memory to that exact point.
-- **Project sessions** — conversation history and pinned files are saved per working directory and restored automatically when you switch back to a project.
+- **Persistent project sessions** — conversation history and pinned files are saved to disk per working directory (MD5-hashed path in `userData/sessions/`) and restored automatically when you switch back to a project.
 - **Task queue** — send the next task while the agent is still working. Koda queues it and fires it automatically when the current task finishes.
 - **Real PTY terminal** — native shell integration via `node-pty`. Koda spawns background processes, waits for output patterns, sends stdin (passwords, `y/n` prompts), and kills processes by PID — all autonomously.
 - **Interactive terminal panel** — a full `xterm.js` terminal for you to use directly, independent of the agent, with resize support and ANSI rendering.
@@ -38,8 +38,10 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 - **Built-in browser preview** — a `<webview>`-based browser panel with navigation controls, defaulting to `localhost:5173`. Useful for inspecting running apps without leaving Koda.
 - **Web navigation agent** — via [`operantid.js`](https://www.npmjs.com/package/operantid.js), Koda can spawn a sub-agent that controls a real browser to navigate, interact with UI elements, and extract data from websites.
 - **Shell approval system** — non-read-only commands pause for your approval inline, with three levels: once, base command (session), or full string (session). Allowlists persist in `localStorage`.
+- **4 operation modes** — Fast, Planner, Colab, and Teach & Code, selectable from a dropdown in the TitleBar.
 - **Planner mode** — for complex tasks, Koda enters a read-only exploration cycle, writes a detailed Markdown plan, and waits for your explicit approval before touching any file.
 - **Collaborative mode** — Koda can open a multi-turn session with a second LLM (the "advisor") for architectural brainstorming, then proceed with the implementation.
+- **Teach & Code mode** — Koda acts as a technical mentor, explaining every non-obvious decision with trade-offs and alternatives as it codes.
 - **MCP support** — connect any Model Context Protocol server (local process or external SSE endpoint). Tools are discovered at runtime via JSON-RPC handshake and injected into the agent's arsenal dynamically.
 - **LSP integration** — semantic queries via `typescript-language-server`: hover types, go-to-definition, and symbol resolution without reading entire files.
 - **13 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
@@ -54,19 +56,23 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 
 ## Operation Modes
 
-Switchable from the TitleBar. The active mode is enforced at the API level — tools that don't belong to the current mode are completely hidden from the LLM.
+Switchable from the TitleBar via a dropdown selector. The active mode is enforced at the API level — tools that don't belong to the current mode are completely hidden from the LLM.
 
-### Fast *(default)*
+### ⚡ Fast *(default)*
 
 Immediate autonomous execution. The agent acts on your request without any planning step. `enter_plan_mode` and `exit_plan_mode` are removed from the tool list entirely — the LLM cannot see or invoke them.
 
-### Planner
+### 📋 Planner
 
 Before writing any code, Koda enters a read-only exploration cycle using only `file_read`, `search`, `list_dir`, `file_find`, and `lsp_query`. It then calls `exit_plan_mode` with a complete Markdown plan. A modal appears in the UI for you to **Approve** or **Reject**. Destructive tools (`file_write`, `file_edit`, `shell`) are blocked at the registry level until approval is granted.
 
-### Colab
+### 👥 Colab
 
 Activates three additional tools: `start_collaboration`, `send_to_advisor`, and `end_collaboration`. Koda can open a multi-turn conversation with a second model instance (configured as `advisorModel` in settings) to brainstorm architecture before implementing.
+
+### 🎓 Teach & Code
+
+Koda acts as a technical mentor. For every non-obvious change, it explains why that approach was chosen over common alternatives, using code comparisons when helpful. Ideal for learning a codebase or understanding architectural decisions as they happen.
 
 ---
 
@@ -219,6 +225,7 @@ src/
 │   │   └── mcp-tool.ts          # Dynamic MCP tool wrapper
 │   ├── services/
 │   │   ├── snapshot.ts          # In-memory workspace snapshots (create/restore/list)
+│   │   ├── session-manager.ts   # Disk-persisted project sessions (userData/sessions/<md5>.json)
 │   │   ├── mcp-manager.ts       # MCP server lifecycle + JSON-RPC tool discovery + callTool
 │   │   ├── lsp-client.ts        # typescript-language-server client (hover, goToDefinition)
 │   │   └── file-tracker.ts      # In-session file access tracker (read/modified)

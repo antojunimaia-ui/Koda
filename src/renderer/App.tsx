@@ -1182,6 +1182,13 @@ const App: React.FC = () => {
   const [suggestionTriggerPos, setSuggestionTriggerPos] = useState(-1)
   const [isFetchingFiles, setIsFetchingFiles] = useState(false)
 
+  // Slash command menu
+  interface SlashItem { name: string; description: string; icon: string; isSkill?: boolean }
+  const [slashItems, setSlashItems] = useState<SlashItem[]>([])
+  const [showSlashMenu, setShowSlashMenu] = useState(false)
+  const [slashIndex, setSlashIndex] = useState(0)
+  const [availableSkills, setAvailableSkills] = useState<Array<{ name: string; description: string }>>([])
+
   const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
     try {
       const saved = localStorage.getItem('koda_settings')
@@ -1320,6 +1327,11 @@ const App: React.FC = () => {
         const base = JSON.parse(localStorage.getItem('koda_approved_base') || '[]')
         const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
         window.koda.updateApprovedCommands({ base, full })
+
+        // Load available skills for slash menu
+        window.koda.listSkills().then(r => {
+          if (r.success && r.skills) setAvailableSkills(r.skills)
+        })
 
         // Hydrate from localStorage if available
         const savedKey = localStorage.getItem('koda_api_key')
@@ -1589,6 +1601,16 @@ const App: React.FC = () => {
         setInitializing(true)
         return
       }
+
+      // Skill invocation: /skill-name [optional message]
+      // The agent handles the actual skill loading — renderer just shows a UI hint
+      const skillName = cmd.slice(1) // remove /
+      const knownCmds = ['/clear', '/help', '/reset', '/model', '/apikey', '/tokens', '/cost', '/debug']
+      if (!knownCmds.includes(cmd)) {
+        // Show a skill activation badge in the UI before the agent processes it
+        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: `🎯 Activating skill: ${skillName}...` }])
+        // Fall through to send to agent — don't return
+      }
     }
 
     let finalMsg = userMsg
@@ -1668,12 +1690,40 @@ Your current task is: ${userMsg}`
     }
   }, [input, isProcessing, pendingImages, scheduleScroll, mode])
 
+  const STATIC_COMMANDS: { name: string; description: string; icon: string }[] = [
+    { name: '/help',   description: 'Show available commands',          icon: '❓' },
+    { name: '/clear',  description: 'Clear chat messages',              icon: '🗑️' },
+    { name: '/reset',  description: 'Reset conversation memory',        icon: '♻️' },
+    { name: '/tokens', description: 'Show token usage estimate',        icon: '📊' },
+    { name: '/model',  description: 'View or switch active model',      icon: '🤖' },
+    { name: '/apikey', description: 'Set API key inline',               icon: '🔑' },
+  ]
+
   const handleInputChange = async (val: string) => {
     setInput(val)
 
-    // Detect @ for suggestions
     const cursor = inputRef.current?.selectionStart || 0
     const textBefore = val.slice(0, cursor)
+
+    // ── Slash command menu ──────────────────────────────────────────────────
+    const slashMatch = textBefore.match(/^\/(\S*)$/)
+    if (slashMatch) {
+      const query = slashMatch[1].toLowerCase()
+      const skillItems: { name: string; description: string; icon: string; isSkill: boolean }[] =
+        availableSkills.map(s => ({ name: `/${s.name}`, description: s.description, icon: '🎯', isSkill: true }))
+      const allItems = [...STATIC_COMMANDS, ...skillItems]
+      const filtered = query
+        ? allItems.filter(c => c.name.slice(1).startsWith(query))
+        : allItems
+      setSlashItems(filtered)
+      setShowSlashMenu(filtered.length > 0)
+      setSlashIndex(0)
+      setShowSuggestions(false)
+      return
+    }
+    setShowSlashMenu(false)
+
+    // ── @ file mentions ─────────────────────────────────────────────────────
     const atMatch = textBefore.match(/@(\S*)$/)
 
     if (atMatch) {
@@ -1738,6 +1788,22 @@ Your current task is: ${userMsg}`
       inputRef.current?.focus()
       const newPos = textBeforeAt.length + file.length + 4 // +4 for @[] and space
       inputRef.current?.setSelectionRange(newPos, newPos)
+    }, 0)
+  }
+
+  const selectSlashItem = (item: { name: string; isSkill?: boolean }) => {
+    // Replace the current /query with the selected command + trailing space
+    setInput(item.name + ' ')
+    setShowSlashMenu(false)
+    setTimeout(() => {
+      inputRef.current?.focus()
+      const pos = item.name.length + 1
+      inputRef.current?.setSelectionRange(pos, pos)
+      // Reset textarea height
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto'
+        inputRef.current.style.height = `${inputRef.current.scrollHeight}px`
+      }
     }, 0)
   }
 
@@ -2136,6 +2202,22 @@ Your current task is: ${userMsg}`
                   e.target.style.height = `${e.target.scrollHeight}px`
                 }}
                 onKeyDown={e => {
+                  if (showSlashMenu) {
+                    if (e.key === 'Enter' || e.key === 'Tab') {
+                      e.preventDefault()
+                      if (slashItems[slashIndex]) selectSlashItem(slashItems[slashIndex])
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault()
+                      setSlashIndex(prev => (prev > 0 ? prev - 1 : slashItems.length - 1))
+                    } else if (e.key === 'ArrowDown') {
+                      e.preventDefault()
+                      setSlashIndex(prev => (prev < slashItems.length - 1 ? prev + 1 : 0))
+                    } else if (e.key === 'Escape') {
+                      setShowSlashMenu(false)
+                    }
+                    return
+                  }
+
                   if (showSuggestions) {
                     if (e.key === 'Enter' || e.key === 'Tab') {
                       e.preventDefault()
@@ -2183,6 +2265,41 @@ Your current task is: ${userMsg}`
               />
             )}
 
+
+            {/* Slash Command Menu */}
+            {showSlashMenu && (
+              <div className="absolute bottom-full left-0 mb-2 w-full max-w-[420px] bg-[#0d1117] border border-slate-600/60 rounded-lg shadow-2xl z-50 overflow-hidden font-mono">
+                <div className="px-3 py-1.5 border-b border-slate-800 bg-slate-900/50 text-[10px] text-slate-400 font-bold flex justify-between items-center">
+                  <span>COMMANDS</span>
+                  <span className="opacity-50 font-normal">TAB to select</span>
+                </div>
+                <div className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                  {slashItems.map((item, i) => (
+                    <div
+                      key={item.name}
+                      onClick={() => selectSlashItem(item)}
+                      onMouseEnter={() => setSlashIndex(i)}
+                      className={`px-3 py-2 cursor-pointer text-xs flex items-center gap-2.5 transition-colors ${
+                        i === slashIndex
+                          ? item.isSkill ? 'bg-amber-900/30 text-amber-300' : 'bg-slate-800/80 text-white'
+                          : 'text-slate-400 hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <span className="text-[13px] flex-shrink-0">{item.icon}</span>
+                      <span className={`font-bold flex-shrink-0 ${item.isSkill ? 'text-amber-400' : 'text-cyan-400'}`}>
+                        {item.name}
+                      </span>
+                      {item.description && (
+                        <span className="opacity-50 truncate text-[11px]">{item.description}</span>
+                      )}
+                      {item.isSkill && (
+                        <span className="ml-auto flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-amber-500/60 bg-amber-900/20 px-1.5 py-0.5 rounded">skill</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Suggestions Dropdown */}
             {showSuggestions && (

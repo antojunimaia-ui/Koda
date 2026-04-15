@@ -19,6 +19,7 @@ import { ZhipuProvider } from "../providers/zhipu.js";
 import { MaritacaProvider } from "../providers/maritaca.js";
 import { mcpManager } from "../services/mcp-manager.js";
 import { MCPTool } from "../tools/mcp-tool.js";
+import { skillManager } from "../services/skill-manager.js";
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs/promises';
@@ -142,10 +143,35 @@ export class Agent {
       }
       
       if (commandText === "/help") {
-        onText("🛠️ **Available Koda Commands:**\n\n- `/clear` or `/reset`: Clears current conversation history and agent memory\n- `/tokens` or `/cost`: Displays an estimate of LLM token usage and cost\n- `/help`: Displays this help menu\n\n*Tip: Click on the **PATH** display in the header to change your working directory natively.*");
-        return
+        const allSkills = await skillManager.getAll();
+        const skillList = allSkills.length > 0
+          ? '\n\n**Skills:**\n' + allSkills.map(s => `- \`/${s.name}\`${s.description ? ` — ${s.description}` : ''}`).join('\n')
+          : '';
+        onText(`🛠️ **Available Koda Commands:**\n\n- \`/clear\` or \`/reset\`: Clears current conversation history and agent memory\n- \`/tokens\` or \`/cost\`: Displays an estimate of LLM token usage and cost\n- \`/help\`: Displays this help menu\n- \`/<skill-name> [message]\`: Activates a skill and optionally sends a message${skillList}\n\n*Tip: Click on the **PATH** display in the header to change your working directory natively.*`);
+        return;
       }
-      
+
+      // Skill invocation: /skill-name [optional message]
+      const slashParts = userMessage.trim().split(/\s+/);
+      const skillName = slashParts[0].slice(1); // remove leading /
+      const skill = await skillManager.getByName(skillName);
+      if (skill) {
+        const restOfMessage = slashParts.slice(1).join(' ').trim();
+        const skillContext = `[SKILL ACTIVATED: ${skill.name}]\n\n${skill.content}`;
+        if (restOfMessage) {
+          // Skill + message: re-enter with enriched message (no longer a slash command)
+          this.isProcessing = false;
+          const enriched = `${skillContext}\n\n---\n\n${restOfMessage}`;
+          return this.processMessage(enriched, onText, onToolStart, onToolEnd, onError, images);
+        } else {
+          // Skill only: acknowledge and inject into conversation context
+          onText(`✅ Skill **${skill.name}** activated.${skill.description ? ` ${skill.description}` : ''}\n\nSend your task and I'll apply this skill's instructions.`);
+          this.conversation.addUser(`[SKILL CONTEXT - apply these instructions to all subsequent tasks]\n\n${skillContext}`);
+          this.conversation.addAssistant(`Skill **${skill.name}** loaded. I'll apply its instructions to your tasks.`);
+          return;
+        }
+      }
+
       onText(`⚠️ Unknown command: \`${commandText}\`\nType \`/help\` to see the list of available commands.`);
       return;
     }
