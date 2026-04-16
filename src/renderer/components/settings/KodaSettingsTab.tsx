@@ -36,6 +36,39 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings }: KodaSettingsTab
 
   return (
     <div className="flex flex-col gap-8 animate-in slide-in-from-left-2 duration-300">
+      {/* UI Mode Section */}
+      <section>
+        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
+          <span className="w-1.5 h-4 bg-indigo-500 rounded-full"></span>
+          Interface Style
+        </h3>
+        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">Choose between the classic Terminal interface or a modern, streamlined UI.</p>
+        
+        <div className="flex gap-4 bg-slate-800/20 p-4 rounded-xl border border-slate-700/50">
+          <button 
+            onClick={() => setKodaSettings(prev => ({ ...prev, uiMode: 'classic' }))}
+            className={`flex-1 flex flex-col items-center gap-3 p-4 rounded-lg border transition-all ${kodaSettings.uiMode === 'classic' || !kodaSettings.uiMode ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'}`}
+          >
+            <span className="text-2xl">📟</span>
+            <div className="text-center">
+              <div className="font-bold text-xs text-white">Classic CLI</div>
+              <div className="text-[9px] opacity-60">Retro Terminal Vibes</div>
+            </div>
+          </button>
+          
+          <button 
+            onClick={() => setKodaSettings(prev => ({ ...prev, uiMode: 'modern' }))}
+            className={`flex-1 flex flex-col items-center gap-3 p-4 rounded-lg border transition-all ${kodaSettings.uiMode === 'modern' ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'}`}
+          >
+            <span className="text-2xl">✨</span>
+            <div className="text-center">
+              <div className="font-bold text-xs text-white">Modern Pro</div>
+              <div className="text-[9px] opacity-60">Clean & Productive</div>
+            </div>
+          </button>
+        </div>
+      </section>
+
       {/* Verbosity Section */}
       <section>
         <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">

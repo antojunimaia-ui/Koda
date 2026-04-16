@@ -46,6 +46,7 @@ export interface KodaSettings {
   showBrowserAgent: boolean
   showPlanMode: boolean
   showColab: boolean
+  uiMode: 'classic' | 'modern'
 }
 
 export interface KodaTheme {
