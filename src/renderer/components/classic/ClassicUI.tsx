@@ -114,7 +114,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                 {showBrowser && (
                   <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: showTerminal ? `${browserHeight}%` : '100%' }}>
                     <BrowserPreview onClose={() => onBrowserClick()} />
-                    {isResizingHeight && <div className="absolute inset-0 z-[100] cursor-row-resize" />}
+                    {(isResizingHeight || isResizing) && <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />}
                   </div>
                 )}
                 {showBrowser && showTerminal && (
@@ -128,7 +128,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                 {showTerminal && (
                   <div className="flex-1 min-h-[100px] relative" style={{ height: showBrowser ? `${100 - browserHeight}%` : '100%' }}>
                     <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} />
-                    {isResizingHeight && <div className="absolute inset-0 z-[100] cursor-row-resize" />}
+                    {(isResizingHeight || isResizing) && <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />}
                   </div>
                 )}
               </div>

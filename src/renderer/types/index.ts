@@ -72,6 +72,7 @@ export interface TrackedFile {
 }
 
 export interface AgentInfo {
+  providerId?: string
   provider: string
   model: string
   advisorModel: string

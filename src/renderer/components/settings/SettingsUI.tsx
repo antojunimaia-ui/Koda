@@ -42,7 +42,7 @@ const SettingsUI = memo(({
   const [isLoadingModels, setIsLoadingModels] = useState(false)
 
   useEffect(() => {
-    if (!apiKey && provider !== 'openrouter') {
+    if (!apiKey && !['openrouter', 'ollama', 'llamacpp', 'koda-cloud'].includes(provider)) {
       setModels([])
       return
     }

@@ -46,7 +46,8 @@ export class Agent {
   }
 
   private async createProviderAsync(): Promise<BaseProvider> {
-    const { provider, model, apiKey, maxTokens, temperature } = this.settings;
+    const { provider: rawProvider, model, apiKey, maxTokens, temperature } = this.settings;
+    const provider = String(rawProvider || "openai").toLowerCase();
 
     switch (provider) {
       case "openai":
@@ -99,6 +100,7 @@ export class Agent {
   }
 
   getInfo(): {
+    providerId: string;
     provider: string;
     model: string;
     advisorModel: string;
@@ -106,6 +108,7 @@ export class Agent {
     cwd: string;
   } {
     return {
+      providerId: this.settings.provider,
       provider: this.provider?.providerName ?? this.settings.provider,
       model: this.settings.model,
       advisorModel: this.settings.advisorModel,
@@ -347,7 +350,7 @@ export class Agent {
   }
 
   async updateSettings(updates: { provider?: any, model?: string, advisorModel?: string, apiKey?: string }): Promise<void> {
-    if (updates.provider) this.settings.provider = updates.provider;
+    if (updates.provider) this.settings.provider = String(updates.provider).toLowerCase() as any;
     if (updates.model) this.settings.model = updates.model;
     if (updates.advisorModel) this.settings.advisorModel = updates.advisorModel;
     if (updates.apiKey !== undefined) this.settings.apiKey = updates.apiKey;

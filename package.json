@@ -116,7 +116,8 @@
       "installerHeaderIcon": "public/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Koda AI"
+      "shortcutName": "Koda AI",
+      "include": "installer.nsh"
     },
     "asar": true,
     "asarUnpack": [

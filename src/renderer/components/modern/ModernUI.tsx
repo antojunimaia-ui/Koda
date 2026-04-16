@@ -8,6 +8,8 @@ import { MessageEntry, AttachedImage, AgentInfo, Mode, KodaTheme } from '../../t
 import TitleBar from '../TitleBar.js'
 import { BrailleSpinner } from '../BrailleSpinner.js'
 import MessageRow from '../messages/MessageRow.js'
+import BrowserPreview from '../BrowserPreview.js'
+import TerminalPanel from '../TerminalPanel.js'
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -43,6 +45,12 @@ interface ModernUIProps {
   suggestionIndex: number
   selectSuggestion: (f: string) => void
   setSuggestionIndex: React.Dispatch<React.SetStateAction<number>>
+  leftPanelWidth: number
+  startResizing: (e: React.MouseEvent) => void
+  isResizing: boolean
+  browserHeight: number
+  isResizingHeight: boolean
+  startResizingHeight: (e: React.MouseEvent) => void
 }
 
 // ─── Auto Resize Hook ────────────────────────────────────────────────────────
@@ -102,7 +110,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
   inputRef: externalInputRef, virtuosoRef, onSettingsClick, onMcpClick, onBrowserClick,
   showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel,
   slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
-  suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex
+  suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
+  leftPanelWidth, startResizing, isResizing, browserHeight, isResizingHeight, startResizingHeight
 }) => {
   
   const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
@@ -175,7 +184,48 @@ const ModernUI: React.FC<ModernUIProps> = ({
         onTogglePanel={onTogglePanel}
       />
 
-      <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full relative pt-4">
+      <div className="flex-1 relative flex flex-col min-h-0">
+        <div className="flex flex-1 min-h-0 overflow-hidden relative">
+
+          {/* Classic Terminal Look Panels */}
+          {(showBrowser || showTerminal) && (
+            <>
+              <div style={{ width: `${leftPanelWidth}%` }} className="flex flex-col flex-shrink-0 min-w-[250px] relative h-full bg-[#0d1117] border-r border-white/5">
+                {showBrowser && (
+                  <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: showTerminal ? `${browserHeight}%` : '100%' }}>
+                    <BrowserPreview onClose={() => onBrowserClick()} />
+                    {(isResizingHeight || isResizing) && <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />}
+                  </div>
+                )}
+                {showBrowser && showTerminal && (
+                  <div
+                    onMouseDown={startResizingHeight}
+                    className={`h-1 w-full cursor-row-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+                  >
+                    <div className={`w-8 h-[1px] bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingHeight ? 'bg-white' : ''}`} />
+                  </div>
+                )}
+                {showTerminal && (
+                  <div className="flex-1 min-h-[100px] relative" style={{ height: showBrowser ? `${100 - browserHeight}%` : '100%' }}>
+                    <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} />
+                    {(isResizingHeight || isResizing) && <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />}
+                  </div>
+                )}
+              </div>
+              <div
+                onMouseDown={startResizing}
+                className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+              >
+                <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizing ? 'bg-white' : ''}`} />
+              </div>
+            </>
+          )}
+
+          <div
+            className="flex flex-col flex-1 relative min-h-0"
+            style={{ width: `${100 - (showBrowser || showTerminal ? leftPanelWidth : 0)}%` }}
+          >
+            <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full relative pt-4">
         {/* Message List */}
         <div className="flex-1 min-h-0 px-4">
           <Virtuoso
@@ -272,7 +322,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
               </div>
             )}
 
-            <div className="overflow-y-auto max-h-[300px] px-4 py-3">
+            <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -282,42 +332,42 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask Koda anything..."
-                className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[60px] resize-none leading-relaxed"
+                className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
                 style={{ overflow: "hidden" }}
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 border-t border-white/5 bg-neutral-900/40 rounded-b-2xl">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-2xl">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={onFileAttach}
-                  className="group p-2 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1.5"
+                  className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1"
                 >
-                  <Paperclip className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
-                  <span className="text-xs text-zinc-500 hidden group-hover:inline transition-opacity">
+                  <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
+                  <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">
                     Attach
                   </span>
                 </button>
                 
                 <div 
                   onClick={handlePathClick}
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group"
+                  className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group"
                 >
-                  <span className="text-[10px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-                  <span className="text-[10px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd}</span>
+                  <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
+                  <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">PROVIDER: {agentInfo.provider}</span>
+                <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">{agentInfo.provider}</span>
                 
                 <button
                   type="button"
                   onClick={() => handleSend()}
                   disabled={!input.trim() || isProcessing}
                   className={`
-                    flex items-center justify-center p-2 rounded-lg transition-all
+                    flex items-center justify-center p-1 rounded-lg transition-all
                     ${input.trim() && !isProcessing 
                       ? "bg-white text-black hover:bg-zinc-200" 
                       : "bg-neutral-800 text-zinc-600 cursor-not-allowed"}
@@ -326,6 +376,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
                   <ArrowUpIcon className="w-4 h-4" />
                   <span className="sr-only">Send</span>
                 </button>
+              </div>
+            </div>
+          </div>
               </div>
             </div>
           </div>

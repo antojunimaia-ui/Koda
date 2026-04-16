@@ -55,6 +55,7 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 - **Drag & drop** — drop image files to attach them to the next message; drop code files to inject an `@[path]` mention automatically.
 - **Configurable verbosity** — toggle output visibility per tool type (shell, file_read, file_edit, search, LSP, browser, etc.) without affecting agent context.
 - **4 built-in themes** — Tokyo Night, GitHub Dark, Cyberpunk Neon, Monokai. Live preview, JSON-based, fully customizable.
+- **Dual-UI architecture** — toggle instantly between a retro `Classic CLI` and a sleek `Modern Pro` workspace layout via Settings. Both modes support all Koda features.
 - **Context-aware system prompt** — the system prompt is rebuilt dynamically on every session, injecting the current working directory, OS, shell, project name, framework, and available tools.
 
 ---
@@ -272,8 +273,10 @@ src/
 ├── preload/
 │   └── index.ts                 # contextBridge: exposes window.koda API to renderer
 └── renderer/                    # React 19 + Tailwind CSS 4
-    ├── App.tsx                  # Main UI: chat, virtualized message list, slash commands, @ mentions
+    ├── App.tsx                  # Main UI orchestrator: state management, dual-ui toggle
     ├── components/
+    │   ├── classic/ClassicUI.tsx# Cyberpunk terminal-inspired interface
+    │   ├── modern/ModernUI.tsx  # Sleek, minimal backdrop-blur interface
     │   ├── TitleBar.tsx         # Mode switcher (Fast/Planner/Colab) + panel toggles + window controls
     │   ├── TerminalPanel.tsx    # xterm.js terminal connected to a live PTY
     │   ├── BrowserPreview.tsx   # Electron <webview> browser panel with navigation controls

@@ -50,7 +50,7 @@ const App: React.FC = () => {
   const [input, setInput] = useState('')
   const [initializing, setInitializing] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [agentInfo, setAgentInfo] = useState<AgentInfo>({ provider: '...', model: '...', advisorModel: '...', project: '...', cwd: '...' })
+  const [agentInfo, setAgentInfo] = useState<AgentInfo>({ providerId: '...', provider: '...', model: '...', advisorModel: '...', project: '...', cwd: '...' })
   const [mode, setMode] = useState<Mode>('fast')
 
   // ── Panel visibility ────────────────────────────────────────────────────────
@@ -484,7 +484,7 @@ const App: React.FC = () => {
       {showSettings && (
         <SettingsUI
           onClose={() => setShowSettings(false)}
-          defaultProvider={agentInfo.provider}
+          defaultProvider={agentInfo.providerId || agentInfo.provider}
           defaultModel={agentInfo.model}
           onSave={async (config: any) => {
             const res = await window.koda.setup(config)
@@ -540,6 +540,15 @@ const App: React.FC = () => {
           showTerminal={showTerminal}
           showPanel={showPanel}
           onTogglePanel={() => setShowPanel(p => !p)}
+          
+          // Layout state
+          leftPanelWidth={leftPanelWidth}
+          startResizing={startResizing}
+          isResizing={isResizing}
+          browserHeight={browserHeight}
+          isResizingHeight={isResizingHeight}
+          startResizingHeight={startResizingHeight}
+
           slashItems={slashItems}
           showSlashMenu={showSlashMenu}
           slashIndex={slashIndex}
@@ -622,18 +631,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Modern Mode Overlays */}
-      {showBrowser && kodaSettings.uiMode === 'modern' && (
-        <div className="absolute right-0 top-12 bottom-0 w-1/2 z-40 lg:w-1/3 bg-[#0d1117] border-l border-white/10 shadow-2xl animate-in slide-in-from-right duration-300">
-           <BrowserPreview onClose={() => setShowBrowser(false)} />
-        </div>
-      )}
-      
-      {showTerminal && kodaSettings.uiMode === 'modern' && (
-        <div className="absolute bottom-0 left-0 right-0 h-1/2 z-40 bg-[#0d1117] border-t border-white/10 shadow-2xl animate-in slide-in-from-bottom duration-300">
-           <TerminalPanel onClose={() => setShowTerminal(false)} cwd={agentInfo.cwd} />
-        </div>
-      )}
 
       {/* Universal Context Panel Overlay */}
       {showPanel && (
