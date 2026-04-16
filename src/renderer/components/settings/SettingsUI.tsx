@@ -66,8 +66,12 @@ const SettingsUI = memo(({
 
   const handleSave = () => {
     localStorage.setItem('koda_api_key', apiKey)
+    localStorage.setItem('koda_provider', provider)
+    localStorage.setItem('koda_model', model)
+    localStorage.setItem('koda_advisor_model', advisorModel)
     onSave({ provider, model, advisorModel, apiKey })
   }
+
 
   const TAB_STYLE = (id: string, activeColor: string, activePrefix: string) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${

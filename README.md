@@ -13,7 +13,7 @@
 **Koda is your ideal development partner.**
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v26.8.4-cyan)](package.json)
+[![Version](https://img.shields.io/badge/Version-v26.0.0-cyan)](package.json)
 [![Electron](https://img.shields.io/badge/Electron-41.x-47848F?logo=electron&logoColor=white)](https://electronjs.org/)
 [![React](https://img.shields.io/badge/React-19.x-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -51,11 +51,14 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 - **LSP integration** — semantic queries via `typescript-language-server`: hover types, go-to-definition, and symbol resolution without reading entire files.
 - **13 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
 - **File tracker** — every file the agent reads or modifies is tracked in-session and surfaced in the context panel.
-- **At-mentions (`@`)** — type `@` in the chat input to open a file selector and inject file context directly into your message.
+- **At-mentions (`@`)** — type `@` to open a file selector. Koda now automatically expands these mentions in the backend, reading the file content and injecting it directly into the prompt (capped at 50KB to maintain speed).
 - **Drag & drop** — drop image files to attach them to the next message; drop code files to inject an `@[path]` mention automatically.
 - **Configurable verbosity** — toggle output visibility per tool type (shell, file_read, file_edit, search, LSP, browser, etc.) without affecting agent context.
 - **4 built-in themes** — Tokyo Night, GitHub Dark, Cyberpunk Neon, Monokai. Live preview, JSON-based, fully customizable.
-- **Dual-UI architecture** — toggle instantly between a retro `Classic CLI` and a sleek `Modern Pro` workspace layout via Settings. Both modes support all Koda features.
+- **Dual-UI Architecture** — toggle instantly between a retro `Classic CLI` and a sleek `Modern Pro` workspace layout via Settings.
+- **Resizing Resilience** — integrated "Shield Overlays" that prevent WebViews (Browser/Terminal) from intercepting mouse events during layout resizing, ensuring smooth UI scaling.
+- **Provider & State Persistence** — Koda now remembers your chosen Provider, Model, and API Key even after restarts, restoring your specific environment automatically.
+- **Dual-UI Split-Panes** — The Modern UI now features the same robust split-pane architecture for Browser and Terminal as the Classic UI, with perfect layout synchronization.
 - **Context-aware system prompt** — the system prompt is rebuilt dynamically on every session, injecting the current working directory, OS, shell, project name, framework, and available tools.
 
 ---
@@ -136,7 +139,7 @@ Models are fetched dynamically via each provider's API. Just enter your key and 
 | **Together AI** | All models from the Together platform |
 | **xAI** | Grok family |
 | **Zhipu AI** | GLM family; falls back to a curated list |
-| **Maritaca AI** | Sabiá family; falls back to a curated list |
+| **Koda Cloud** | Premium models (Claude 3.7, Gemini 2.0) via secure proxy—no local keys needed |
 | **Ollama** | Local models via `/v1/models` or legacy `/api/tags` |
 | **Llama.cpp** | Local inference via HTTP server on port 8080 |
 

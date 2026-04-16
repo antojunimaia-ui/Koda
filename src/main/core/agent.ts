@@ -195,14 +195,44 @@ export class Agent {
     }
 
     try {
+      // Expand @-mentions in the user message
+      let enrichedMessage = userMessage;
+      const mentionRegex = /@\[(.*?)\]/g;
+      let match;
+      const mentions = new Set<string>();
+      
+      while ((match = mentionRegex.exec(userMessage)) !== null) {
+        mentions.add(match[1]);
+      }
+
+      for (const filePath of mentions) {
+        try {
+          const absPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+          const stats = await fs.stat(absPath);
+          if (stats.isFile()) {
+            // Limit file size to 50KB for mentions to avoid PayloadTooLarge errors
+            if (stats.size > 50 * 1024) {
+              enrichedMessage = enrichedMessage.replace(`@[${filePath}]`, `@[${filePath}] (File too large to include full content: ${Math.round(stats.size/1024)}KB)`);
+            } else {
+              const content = await fs.readFile(absPath, 'utf-8');
+              const language = path.extname(filePath).slice(1) || 'text';
+              enrichedMessage = enrichedMessage.replace(`@[${filePath}]`, `\n--- FILE: ${filePath} ---\n\`\`\`${language}\n${content}\n\`\`\`\n`);
+            }
+          }
+        } catch (err) {
+          console.warn(`Failed to expand mention @[${filePath}]:`, err);
+        }
+      }
+
       // Add context to first user message
-      let messageToSend = userMessage;
+      let messageToSend = enrichedMessage;
       if (
         this.conversation.getMessageCount() <= 1 &&
         this.projectContext?.summary
       ) {
-        messageToSend = `[Project Context]\n${this.projectContext.summary}\n\n[User Message]\n${userMessage}`;
+        messageToSend = `[Project Context]\n${this.projectContext.summary}\n\n[User Message]\n${enrichedMessage}`;
       }
+
 
       this.conversation.addUser(messageToSend, images);
 

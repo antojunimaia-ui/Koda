@@ -183,9 +183,18 @@ const App: React.FC = () => {
         if (Notification.permission === 'default') Notification.requestPermission()
 
         const savedKey = localStorage.getItem('koda_api_key')
-        if (savedKey) {
+        const savedProvider = localStorage.getItem('koda_provider')
+        const savedModel = localStorage.getItem('koda_model')
+        const savedAdvisor = localStorage.getItem('koda_advisor_model')
+
+        if (savedKey || savedProvider || savedModel) {
           try {
-            const setupRes = await window.koda.setup({ apiKey: savedKey })
+            const setupRes = await window.koda.setup({ 
+              apiKey: savedKey || undefined,
+              provider: savedProvider || undefined,
+              model: savedModel || undefined,
+              advisorModel: savedAdvisor || undefined
+            })
             if (setupRes.success) {
               setAgentInfo(setupRes.info)
               loadSession(setupRes.info.cwd)
@@ -195,6 +204,7 @@ const App: React.FC = () => {
           setAgentInfo(res.info)
           loadSession(res.info.cwd)
         }
+
       } else {
         console.error('Failed to initialize agent:', res.error)
         setMessages([{ id: nextId(), type: 'error', text: `System initialization failed: ${res.error}` }])
@@ -252,15 +262,21 @@ const App: React.FC = () => {
       setTaskQueue(prev => [...prev, { text: userMsg, images: currentImages }])
       setInput('')
       setPendingImages([])
+      setShowSlashMenu(false)
+      setShowSuggestions(false)
       return
     }
+
 
     if (!overrideText) {
       setInput('')
       setPendingImages([])
+      setShowSlashMenu(false)
+      setShowSuggestions(false)
       setHistory(prev => prev[0] === userMsg ? prev : [userMsg, ...prev])
       setHistoryIndex(-1)
     }
+
 
     if (userMsg.startsWith('/')) {
       const parts = userMsg.toLowerCase().split(' ')
@@ -529,10 +545,14 @@ const App: React.FC = () => {
           handleSend={handleSend}
           handlePathClick={handlePathClick}
           handleInputChange={handleInputChange}
+          handleRollback={handleRollback}
           inputRef={inputRef}
+
           virtuosoRef={virtuosoRef}
           theme={theme}
+          kodaSettings={kodaSettings}
           onSettingsClick={() => setShowSettings(true)}
+
           onMcpClick={() => setShowMcpSettings(true)}
           onBrowserClick={() => setShowBrowser(p => !p)}
           showBrowser={showBrowser}

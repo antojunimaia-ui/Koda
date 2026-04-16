@@ -4,7 +4,8 @@ import {
   Paperclip, 
   ArrowUpIcon,
 } from "lucide-react"
-import { MessageEntry, AttachedImage, AgentInfo, Mode, KodaTheme } from '../../types/index.js'
+import { MessageEntry, AttachedImage, AgentInfo, Mode, KodaTheme, KodaSettings } from '../../types/index.js'
+
 import TitleBar from '../TitleBar.js'
 import { BrailleSpinner } from '../BrailleSpinner.js'
 import MessageRow from '../messages/MessageRow.js'
@@ -24,10 +25,14 @@ interface ModernUIProps {
   handleSend: (overrideText?: string, overrideImages?: AttachedImage[]) => void
   handlePathClick: () => void
   handleInputChange: (val: string) => void
+  handleRollback: (id: number) => void
   inputRef: React.RefObject<HTMLTextAreaElement | null>
+
   virtuosoRef: React.RefObject<VirtuosoHandle | null>
   theme: KodaTheme
+  kodaSettings: KodaSettings
   onSettingsClick: () => void
+
   onMcpClick: () => void
   onBrowserClick: () => void
   showBrowser: boolean
@@ -106,8 +111,10 @@ function useAutoResizeTextarea({
 
 const ModernUI: React.FC<ModernUIProps> = ({
   messages, input, setInput, isProcessing, agentInfo, mode, setMode,
-  pendingImages, setPendingImages, handleSend, handlePathClick, handleInputChange,
-  inputRef: externalInputRef, virtuosoRef, onSettingsClick, onMcpClick, onBrowserClick,
+  pendingImages, setPendingImages, handleSend, handlePathClick, handleInputChange, handleRollback,
+
+  inputRef: externalInputRef, virtuosoRef, theme, kodaSettings, onSettingsClick, onMcpClick, onBrowserClick,
+
   showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel,
   slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
   suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
@@ -238,8 +245,11 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 <MessageRow 
                   msg={msg} 
                   agentInfo={agentInfo}
-                  kodaSettings={{ showTerminal: true } as any} 
+                  kodaSettings={kodaSettings} 
+                  onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined}
                 />
+
+
               </div>
             )}
             components={{
