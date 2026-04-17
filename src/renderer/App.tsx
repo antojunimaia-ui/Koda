@@ -123,10 +123,12 @@ const App: React.FC = () => {
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Debounced scroll ────────────────────────────────────────────────────────
+  // Only used for discrete events (new tool message, error, etc.)
+  // Text streaming scroll is handled by Virtuoso's followOutput prop.
   const scheduleScroll = useCallback(() => {
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
     scrollTimerRef.current = setTimeout(() => {
-      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'smooth' })
+      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'auto' })
     }, 80)
   }, [messages.length])
 
@@ -468,6 +470,14 @@ const App: React.FC = () => {
   const handlePinFile = (path: string) => setPinnedFiles(prev => prev.includes(path) ? prev : [...prev, path])
   const handleUnpinFile = (path: string) => setPinnedFiles(prev => prev.filter(p => p !== path))
 
+  // ── handleStop ───────────────────────────────────────────────────────────────
+  const handleStop = useCallback(async () => {
+    if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+    chunkBufferRef.current = ''
+    setIsProcessing(false)
+    await window.koda.softReset()
+  }, [chunkBufferRef, rafRef])
+
   // ── handlePaste ─────────────────────────────────────────────────────────────
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData.items
@@ -592,16 +602,15 @@ const App: React.FC = () => {
           pendingImages={pendingImages}
           setPendingImages={setPendingImages}
           handleSend={handleSend}
+          handleStop={handleStop}
           handlePathClick={handlePathClick}
           handleInputChange={handleInputChange}
           handleRollback={handleRollback}
           inputRef={inputRef}
-
           virtuosoRef={virtuosoRef}
           theme={theme}
           kodaSettings={kodaSettings}
           onSettingsClick={() => setShowSettings(true)}
-
           onMcpClick={() => setShowMcpSettings(true)}
           onBrowserClick={() => setShowBrowser(p => !p)}
           showBrowser={showBrowser}

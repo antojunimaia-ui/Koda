@@ -64,7 +64,6 @@ export function useAgentStream({
       if (update.type === 'text') {
         chunkBufferRef.current += update.content
         scheduleFlush()
-        scheduleScroll()
 
       } else if (update.type === 'tool_start') {
         const chunk = chunkBufferRef.current
@@ -105,14 +104,20 @@ export function useAgentStream({
         }
 
       } else if (update.type === 'tool_end') {
-        setMessages(prev =>
+        const applyEnd = () => setMessages(prev =>
           prev.map(m =>
             m.type === 'tool' && m.tool && m.tool.name === update.name && (m.tool.status === 'running' || m.tool.status === 'writing' || m.tool.status === 'awaiting_approval')
               ? { ...m, tool: { ...m.tool, status: 'done' as const, success: update.success, output: update.result, args: update.args || m.tool.args } }
               : m
           )
         )
-        scheduleScroll()
+        // Double rAF: guarantees the 'running'/'writing' state is painted for at least one frame
+        // before transitioning to 'done'. Needed because file_edit/file_write are synchronous and
+        // their tool_start + tool_end IPC messages arrive in the same JS task.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          applyEnd()
+          scheduleScroll()
+        }))
 
       } else if (update.type === 'error') {
         chunkBufferRef.current = ''

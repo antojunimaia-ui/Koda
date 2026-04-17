@@ -171,6 +171,7 @@ ipcMain.handle('agent:reset', async () => {
 
 ipcMain.handle('agent:soft_reset', async () => {
   if (!agent) return { error: 'Agent not initialized' }
+  agent.abort()
   agent.resetConversation()
   clearTrackedFiles()
   return { success: true }
@@ -192,6 +193,9 @@ ipcMain.handle('agent:cd', async (event, targetPath: string) => {
     process.chdir(targetPath)
     agent.resetConversation()
     await agent.initialize()
+    agent.setProgressEmitter((event, toolName, data) => {
+      mainWindow?.webContents.send('agent:update', { type: 'tool_progress', event, toolName, ...data })
+    })
     return { success: true, info: agent.getInfo() }
   } catch (error) {
     return { success: false, error: (error as Error).message }

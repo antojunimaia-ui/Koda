@@ -18,11 +18,12 @@ export const BrailleSpinner: React.FC<BrailleSpinnerProps> = ({ label, color = '
   }, [])
 
   const colorMap: Record<string, string> = {
-    cyan: 'text-cyan',
-    yellow: 'text-yellow',
-    green: 'text-green',
-    red: 'text-red',
-    magenta: 'text-magenta'
+    cyan:    'text-[var(--koda-accent)]',
+    indigo:  'text-indigo-400',
+    yellow:  'text-[var(--koda-status-busy)]',
+    green:   'text-[var(--koda-status-ok)]',
+    red:     'text-[var(--koda-status-error)]',
+    magenta: 'text-[var(--koda-accent-alt)]',
   }
 
   const textColorClass = colorMap[color] || 'text-cyan'

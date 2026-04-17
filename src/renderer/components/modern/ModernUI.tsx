@@ -23,6 +23,7 @@ interface ModernUIProps {
   pendingImages: AttachedImage[]
   setPendingImages: React.Dispatch<React.SetStateAction<AttachedImage[]>>
   handleSend: (overrideText?: string, overrideImages?: AttachedImage[]) => void
+  handleStop: () => void
   handlePathClick: () => void
   handleInputChange: (val: string) => void
   handleRollback: (id: number) => void
@@ -114,7 +115,7 @@ function useAutoResizeTextarea({
 
 const ModernUI: React.FC<ModernUIProps> = ({
   messages, input, setInput, isProcessing, agentInfo, mode, setMode,
-  pendingImages, setPendingImages, handleSend, handlePathClick, handleInputChange, handleRollback,
+  pendingImages, setPendingImages, handleSend, handleStop, handlePathClick, handleInputChange, handleRollback,
 
   inputRef: externalInputRef, virtuosoRef, theme, kodaSettings, onSettingsClick, onMcpClick, onBrowserClick,
 
@@ -138,7 +139,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
   const scheduleScroll = () => {
     setTimeout(() => {
-      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'smooth' })
+      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'auto' })
     }, 100)
   }
 
@@ -352,7 +353,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 <Virtuoso
                   ref={virtuosoRef}
                   data={messages}
-                  followOutput="smooth"
+                  followOutput="auto"
                   className="custom-scrollbar pr-2"
                   itemContent={(_index, msg) => (
                     <div className={`mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
@@ -466,11 +467,20 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">{agentInfo.provider}</span>
                       <button
                         type="button"
-                        onClick={() => handleSend()}
-                        disabled={!input.trim() || isProcessing}
-                        className={`flex items-center justify-center p-1 rounded-lg transition-all ${input.trim() && !isProcessing ? "bg-white text-black hover:bg-zinc-200" : "bg-neutral-800 text-zinc-600 cursor-not-allowed"}`}
+                        onClick={() => isProcessing ? handleStop() : handleSend()}
+                        disabled={!isProcessing && !input.trim()}
+                        className={`flex items-center justify-center p-1 rounded-lg transition-all ${
+                          isProcessing
+                            ? 'border border-zinc-400 text-zinc-400 hover:border-white hover:text-white bg-transparent cursor-pointer'
+                            : input.trim()
+                              ? 'bg-white text-black hover:bg-zinc-200'
+                              : 'bg-neutral-800 text-zinc-600 cursor-not-allowed'
+                        }`}
                       >
-                        <ArrowUpIcon className="w-4 h-4" />
+                        {isProcessing
+                          ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5"/></svg>
+                          : <ArrowUpIcon className="w-4 h-4" />
+                        }
                       </button>
                     </div>
                   </div>

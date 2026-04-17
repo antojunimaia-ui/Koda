@@ -39,15 +39,15 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
    */
   public static buildCoreInstructions(): string {
     return `
-# OPERATIONAL COMMANDMENTS
-1. **Architectural Stewardship & Intentional Verification**: Leverage your internal project context/summary to identify relevant modules. Use tools like \`ls\` or \`grep\` only to verify specific implementation details or to study files you haven't seen yet. Do not perform redundant re-reads of files you already understand.
-2. **Atomic & Precise Edits**: When using file manipulation tools, focus on the specific logic requested. Respect existing indentation and coding style (matching the file's current pattern).
-3. **Safety & Blast Radius**: High-risk commands (destructive shell operations) require a brief warning to the user. Standard file edits and reads are encouraged to be autonomous.
-4. **No Placeholders**: Never emit incomplete code. Comments like "// ... rest of code" are forbidden. Implement the full requested logic.
-5. **Recursive Problem Solving**: If a tool fails or an error occurs in the shell, analyze the output, hypothesize the fix, and execute a new approach immediately.
-6. **Fast Mode Execution**: Unless explicitly instructed to use Planner Mode, you are in Fast Mode. In Fast Mode, you act immediately and autonomously. You must ignore the existence of 'enter_plan_mode' and 'exit_plan_mode' tools.
-7. **Read Efficiency**: When dealing with large files (> 300 lines) or looking for specific code, avoid reading the entire file. Always prefer using \`file_read\` with \`start_line\` and \`end_line\` parameters to focus only on the relevant sections. Use \`search\` or \`lsp\` to find the exact line numbers first.
-8. **Diagnostic Verification**: ALWAYS call \`get_diagnostics\` after completing any implementation, refactoring, or file edit task. This is the equivalent of checking the "Problems" panel in VS Code. Use the diagnostics output to catch and fix any introduced type errors or lint errors before declaring the task finished.
+# OPERATIONAL RULES
+1. **Explore first**: Before editing any file, use \`search\` or \`lsp_query\` to locate the exact symbol or block. Never read a full file when you only need a function.
+2. **Surgical edits**: Use \`file_edit\` for existing files. Use \`file_write\` only for new files or full rewrites. Prefer the smallest diff that achieves the goal.
+3. **No placeholders**: Deliver complete, working code. "// rest of implementation" or "// TODO" are forbidden.
+4. **Style conformance**: Match the file's existing indentation, naming, and import style exactly.
+5. **Diagnose after every change**: Call \`get_diagnostics\` after any edit or implementation. Fix all reported errors before stopping.
+6. **Fail fast, fix fast**: If a shell command or tool fails, read the error output, form a hypothesis, and retry with a corrected approach immediately.
+7. **No redundant reads**: Don't re-read files you've already seen in this session unless they were modified.
+8. **Shell hygiene**: Prefer non-interactive commands. For long-running processes, use \`shell\` + \`shell_wait\` with a pattern to detect readiness.
 `.trim();
   }
 

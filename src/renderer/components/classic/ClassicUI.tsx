@@ -221,7 +221,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
               <Virtuoso
                 ref={virtuosoRef}
                 data={messages}
-                followOutput="smooth"
+                followOutput="auto"
                 className="terminal-scroll-area h-full custom-scrollbar"
                 itemContent={(_index, msg) => (
                   <MessageRow
