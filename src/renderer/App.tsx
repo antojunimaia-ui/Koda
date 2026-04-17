@@ -86,13 +86,25 @@ const App: React.FC = () => {
   const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
     try {
       const saved = localStorage.getItem('koda_settings')
-      if (saved) return JSON.parse(saved)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        // Set defaults for new settings if missing
+        return {
+          browserPosition: 'left',
+          terminalPosition: 'left',
+          showIconBar: true,
+          ...parsed
+        }
+      }
     } catch { }
     return {
       showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,
       showFileWrite: true, showListDir: true, showFileFind: true, showSearch: true,
       showLspQuery: true, showBrowserAgent: true, showPlanMode: true, showColab: true,
-      uiMode: 'classic'
+      uiMode: 'classic',
+      browserPosition: 'left',
+      terminalPosition: 'left',
+      showIconBar: true
     }
   })
 
@@ -118,7 +130,17 @@ const App: React.FC = () => {
   }, [messages.length])
 
   // ── Custom hooks ────────────────────────────────────────────────────────────
-  const { leftPanelWidth, browserHeight, isResizing, isResizingHeight, startResizing, startResizingHeight } = useResizable()
+  const { 
+    leftPanelWidth, 
+    rightPanelWidth, 
+    browserHeight, 
+    isResizing, 
+    isResizingRight, 
+    isResizingHeight, 
+    startResizing, 
+    startResizingRight, 
+    startResizingHeight 
+  } = useResizable()
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } = useDragDrop({ setInput, setPendingImages })
   const { loadSession, lastSavedCwd } = useSession({ setMessages, setPinnedFiles })
   const { chunkBufferRef, rafRef, taskStartRef } = useAgentStream({
@@ -154,16 +176,42 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('koda_theme', JSON.stringify(theme))
     const root = document.documentElement
-    const { colors } = theme
-    root.style.setProperty('--koda-bg', colors.bg)
-    root.style.setProperty('--koda-bg-alt', colors.bgAlt)
-    root.style.setProperty('--koda-sidebar', colors.sidebar)
-    root.style.setProperty('--koda-accent', colors.accent)
-    root.style.setProperty('--koda-accent-alt', colors.accentAlt)
-    root.style.setProperty('--koda-text', colors.text)
-    root.style.setProperty('--koda-text-dim', colors.textDim)
-    root.style.setProperty('--koda-border', colors.border)
-    root.style.setProperty('--koda-user-msg', colors.userMsg)
+    const { colors: c } = theme
+
+    // Base surfaces
+    root.style.setProperty('--koda-bg',           c.bg)
+    root.style.setProperty('--koda-bg-alt',       c.bgAlt)
+    root.style.setProperty('--koda-sidebar',      c.sidebar)
+
+    // Typography
+    root.style.setProperty('--koda-text',         c.text)
+    root.style.setProperty('--koda-text-dim',     c.textDim)
+    root.style.setProperty('--koda-text-faint',   c.textFaint)
+
+    // Borders
+    root.style.setProperty('--koda-border',       c.border)
+    root.style.setProperty('--koda-border-faint', c.borderFaint)
+
+    // Accents
+    root.style.setProperty('--koda-accent',       c.accent)
+    root.style.setProperty('--koda-accent-alt',   c.accentAlt)
+    root.style.setProperty('--koda-accent-glow',  c.accentGlow)
+
+    // Status
+    root.style.setProperty('--koda-status-ok',    c.statusOk)
+    root.style.setProperty('--koda-status-busy',  c.statusBusy)
+    root.style.setProperty('--koda-status-error', c.statusError)
+    root.style.setProperty('--koda-status-info',  c.statusInfo)
+
+    // Code / terminal
+    root.style.setProperty('--koda-code-bg',      c.codeBg)
+    root.style.setProperty('--koda-code-text',    c.codeText)
+    root.style.setProperty('--koda-code-syntax',  c.codeSyntax)
+    root.style.setProperty('--koda-inline-code',  c.inlineCode)
+
+    // Message bubbles
+    root.style.setProperty('--koda-user-msg',     c.userMsg)
+    root.style.setProperty('--koda-tool-msg',     c.toolMsg)
   }, [theme])
 
   // ── Agent initialization ────────────────────────────────────────────────────
@@ -563,8 +611,11 @@ const App: React.FC = () => {
           
           // Layout state
           leftPanelWidth={leftPanelWidth}
+          rightPanelWidth={rightPanelWidth}
           startResizing={startResizing}
           isResizing={isResizing}
+          startResizingRight={startResizingRight}
+          isResizingRight={isResizingRight}
           browserHeight={browserHeight}
           isResizingHeight={isResizingHeight}
           startResizingHeight={startResizingHeight}
@@ -620,8 +671,11 @@ const App: React.FC = () => {
           
           // Layout state
           leftPanelWidth={leftPanelWidth}
+          rightPanelWidth={rightPanelWidth}
           startResizing={startResizing}
           isResizing={isResizing}
+          startResizingRight={startResizingRight}
+          isResizingRight={isResizingRight}
           browserHeight={browserHeight}
           isResizingHeight={isResizingHeight}
           startResizingHeight={startResizingHeight}
@@ -654,7 +708,10 @@ const App: React.FC = () => {
 
       {/* Universal Context Panel Overlay */}
       {showPanel && (
-        <div className="absolute top-12 bottom-0 right-0 w-80 bg-slate-900 border-l border-white/10 z-50 animate-in slide-in-from-right duration-200 shadow-2xl">
+        <div 
+          className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex"
+          style={{ backgroundColor: 'var(--koda-sidebar)' }}
+        >
            <ContextPanel 
              files={trackedFiles} 
              pinnedFiles={pinnedFiles} 

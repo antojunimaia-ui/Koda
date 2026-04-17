@@ -42,7 +42,7 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, cwd }
   }
 
   return (
-    <div className="flex flex-col w-64 flex-shrink-0 border-l border-white/5 bg-slate-900/80 overflow-hidden">
+    <div className="flex flex-col w-64 h-full flex-shrink-0 border-l border-black/20 overflow-hidden" style={{ backgroundColor: 'var(--koda-sidebar)' }}>
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-white/5 flex items-center gap-2">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400 flex-shrink-0">

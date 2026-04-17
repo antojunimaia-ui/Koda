@@ -5,9 +5,10 @@ import SettingToggle from './SettingToggle.js'
 interface KodaSettingsTabProps {
   kodaSettings: KodaSettings
   setKodaSettings: React.Dispatch<React.SetStateAction<KodaSettings>>
+  uiMode: 'classic' | 'modern'
 }
 
-const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings }: KodaSettingsTabProps) => {
+const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings, uiMode }: KodaSettingsTabProps) => {
   const [approved, setApproved] = useState<{ base: string[]; full: string[] }>({ base: [], full: [] })
   const [newCmd, setNewCmd] = useState('')
   const [type, setType] = useState<'base' | 'full'>('base')
@@ -36,6 +37,58 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings }: KodaSettingsTab
 
   return (
     <div className="flex flex-col gap-8 animate-in slide-in-from-left-2 duration-300">
+      {/* Workspace Layout Section */}
+      <section>
+        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
+          <span className="w-1.5 h-4 bg-cyan-400 rounded-full"></span>
+          Workspace Layout
+        </h3>
+        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">Customize where your tools appear. If both are on the same side, they will stack vertically.</p>
+        
+        <div className="flex flex-col gap-5 bg-slate-800/20 p-5 rounded-xl border border-slate-700/50">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-500 font-black text-[9px] uppercase tracking-[0.2em]">Browser Engine</label>
+              <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+                <button 
+                  onClick={() => setKodaSettings(prev => ({ ...prev, browserPosition: 'left' }))}
+                  className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${kodaSettings.browserPosition === 'left' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                >Left Side</button>
+                <button 
+                  onClick={() => setKodaSettings(prev => ({ ...prev, browserPosition: 'right' }))}
+                  className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${kodaSettings.browserPosition === 'right' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                >Right Side</button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-500 font-black text-[9px] uppercase tracking-[0.2em]">Terminal Panel</label>
+              <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+                <button 
+                  onClick={() => setKodaSettings(prev => ({ ...prev, terminalPosition: 'left' }))}
+                  className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${kodaSettings.terminalPosition === 'left' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                >Left Side</button>
+                <button 
+                  onClick={() => setKodaSettings(prev => ({ ...prev, terminalPosition: 'right' }))}
+                  className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${kodaSettings.terminalPosition === 'right' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                >Right Side</button>
+              </div>
+            </div>
+          </div>
+
+          {uiMode === 'modern' && (
+            <div className="pt-2 border-t border-slate-800/50">
+              <SettingToggle 
+                label="Icon Bar" 
+                description="Show a vertical navigation toolbar on the left side" 
+                enabled={kodaSettings.showIconBar} 
+                onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showIconBar: v }))} 
+              />
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* UI Mode Section */}
       <section>
         <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">

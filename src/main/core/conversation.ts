@@ -46,11 +46,12 @@ export class Conversation {
     });
   }
 
-  addToolResult(toolCallId: string, content: string): void {
+  addToolResult(toolCallId: string, content: string, toolName?: string): void {
     this.messages.push({
       role: "tool",
       content,
       toolCallId,
+      toolName,
     });
   }
 

@@ -51,8 +51,11 @@ interface ModernUIProps {
   selectSuggestion: (f: string) => void
   setSuggestionIndex: React.Dispatch<React.SetStateAction<number>>
   leftPanelWidth: number
+  rightPanelWidth: number
   startResizing: (e: React.MouseEvent) => void
   isResizing: boolean
+  startResizingRight: (e: React.MouseEvent) => void
+  isResizingRight: boolean
   browserHeight: number
   isResizingHeight: boolean
   startResizingHeight: (e: React.MouseEvent) => void
@@ -118,7 +121,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
   showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel,
   slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
   suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
-  leftPanelWidth, startResizing, isResizing, browserHeight, isResizingHeight, startResizingHeight
+  leftPanelWidth, rightPanelWidth, startResizing, isResizing, startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight
 }) => {
   
   const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
@@ -154,7 +157,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
   }
 
   const onFileAttach = () => {
-    // Placeholder for file attachment logic
     const inputChild = document.createElement('input')
     inputChild.type = 'file'
     inputChild.multiple = true
@@ -176,8 +178,51 @@ const ModernUI: React.FC<ModernUIProps> = ({
     inputChild.click()
   }
 
+  // Layout Logic
+  const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
+  const showRight = (showBrowser && kodaSettings.browserPosition === 'right') || (showTerminal && kodaSettings.terminalPosition === 'right');
+
+  const renderPanelStack = (pos: 'left' | 'right') => {
+    const hasBrowser = showBrowser && kodaSettings.browserPosition === pos;
+    const hasTerminal = showTerminal && kodaSettings.terminalPosition === pos;
+    if (!hasBrowser && !hasTerminal) return null;
+
+    return (
+      <div 
+        style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }} 
+        className={`flex flex-col flex-shrink-0 min-w-[200px] relative h-full bg-[#0d1117] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
+      >
+        {hasBrowser && (
+          <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
+            <BrowserPreview onClose={() => onBrowserClick()} />
+            {(isResizingHeight || isResizing || isResizingRight) && (
+                <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+            )}
+          </div>
+        )}
+        {hasBrowser && hasTerminal && (
+          <div
+            onMouseDown={startResizingHeight}
+            className={`h-1 w-full cursor-row-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+          >
+            <div className={`w-8 h-[1px] bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingHeight ? 'bg-white' : ''}`} />
+          </div>
+        )}
+        {hasTerminal && (
+          <div className="flex-1 min-h-[100px] relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
+            <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} />
+            {(isResizingHeight || isResizing || isResizingRight) && (
+                <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0b] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
+      
       <TitleBar 
         mode={mode} 
         onModeChange={setMode} 
@@ -189,208 +234,229 @@ const ModernUI: React.FC<ModernUIProps> = ({
         showTerminal={showTerminal}
         showPanel={showPanel}
         onTogglePanel={onTogglePanel}
+        uiMode="modern"
+        showIconBar={kodaSettings.showIconBar}
       />
 
-      <div className="flex-1 relative flex flex-col min-h-0">
-        <div className="flex flex-1 min-h-0 overflow-hidden relative">
+      <div className="flex flex-1 min-h-0 relative flex-row">
+        {/* ── Iconbar (Modern Only) ── */}
+        {kodaSettings.showIconBar && (
+          <div className="w-12 bg-[#0a0a0b] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]">
+            
+            <div className="flex flex-col gap-2 flex-1 pt-2">
+            <button 
+              onClick={() => onTerminalClick()}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showTerminal ? 'bg-amber-500/10 text-amber-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+              title="Toggle Terminal"
+            >
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            </button>
 
-          {/* Classic Terminal Look Panels */}
-          {(showBrowser || showTerminal) && (
-            <>
-              <div style={{ width: `${leftPanelWidth}%` }} className="flex flex-col flex-shrink-0 min-w-[250px] relative h-full bg-[#0d1117] border-r border-white/5">
-                {showBrowser && (
-                  <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: showTerminal ? `${browserHeight}%` : '100%' }}>
-                    <BrowserPreview onClose={() => onBrowserClick()} />
-                    {(isResizingHeight || isResizing) && <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />}
-                  </div>
-                )}
-                {showBrowser && showTerminal && (
-                  <div
-                    onMouseDown={startResizingHeight}
-                    className={`h-1 w-full cursor-row-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
-                  >
-                    <div className={`w-8 h-[1px] bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingHeight ? 'bg-white' : ''}`} />
-                  </div>
-                )}
-                {showTerminal && (
-                  <div className="flex-1 min-h-[100px] relative" style={{ height: showBrowser ? `${100 - browserHeight}%` : '100%' }}>
-                    <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} />
-                    {(isResizingHeight || isResizing) && <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />}
-                  </div>
-                )}
-              </div>
-              <div
-                onMouseDown={startResizing}
-                className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
-              >
-                <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizing ? 'bg-white' : ''}`} />
-              </div>
-            </>
+            <button 
+              onClick={() => onBrowserClick()}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showBrowser ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+              title="Toggle Browser"
+            >
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </button>
+
+            <button 
+              onClick={() => onTogglePanel()}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showPanel ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+              title="Toggle Context Panel"
+            >
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h12M3 18h8"/></svg>
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-2 mb-2">
+            <button 
+              onClick={onMcpClick}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-400 hover:bg-white/5 transition-all"
+              title="MCP Systems"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </button>
+            <button 
+              onClick={onSettingsClick}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-zinc-200 hover:bg-white/5 transition-all"
+              title="Settings"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 relative flex flex-row min-h-0">
+            {/* ── Left Panel Area ── */}
+          {showLeft && renderPanelStack('left')}
+          
+          {showLeft && (
+            <div
+              onMouseDown={startResizing}
+              className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+            >
+              <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizing ? 'bg-white' : ''}`} />
+            </div>
           )}
 
-          <div
-            className="flex flex-col flex-1 relative min-h-0"
-            style={{ width: `${100 - (showBrowser || showTerminal ? leftPanelWidth : 0)}%` }}
-          >
+          {/* ── Chat Central Area ── */}
+          <div className="flex flex-col flex-1 relative min-h-0">
             <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full relative pt-4">
-        {/* Message List */}
-        <div className="flex-1 min-h-0 px-4">
-          <Virtuoso
-            ref={virtuosoRef}
-            data={messages}
-            followOutput="smooth"
-            className="custom-scrollbar pr-2"
-            itemContent={(_index, msg) => (
-              <div className={`mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                <MessageRow 
-                  msg={msg} 
-                  agentInfo={agentInfo}
-                  kodaSettings={kodaSettings} 
-                  onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined}
-                />
-
-
-              </div>
-            )}
-            components={{
-              Footer: () => (
-                <div className="pb-8">
-                  {isProcessing && (
-                    <div className="flex ml-4 items-center gap-3">
-                      <BrailleSpinner label="Koda is composing..." color="indigo" />
+              {/* Message List */}
+              <div className="flex-1 min-h-0 px-4">
+                <Virtuoso
+                  ref={virtuosoRef}
+                  data={messages}
+                  followOutput="smooth"
+                  className="custom-scrollbar pr-2"
+                  itemContent={(_index, msg) => (
+                    <div className={`mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                      <MessageRow 
+                        msg={msg} 
+                        agentInfo={agentInfo}
+                        kodaSettings={kodaSettings} 
+                        onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined}
+                      />
                     </div>
                   )}
-                </div>
-              )
-            }}
-          />
-        </div>
-
-        {/* Vercel v0 Style Input Area */}
-        <div className="px-6 pb-6 pt-2">
-          <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
-            
-            {/* Pending images strip */}
-            {pendingImages.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
-                {pendingImages.map((img, i) => (
-                  <div key={i} className="relative group">
-                    <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
-                    <button 
-                      onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
-                      className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-neutral-900"
-                    >✕</button>
-                  </div>
-                ))}
+                  components={{
+                    Footer: () => (
+                      <div className="pb-8">
+                        {isProcessing && (
+                          <div className="flex ml-4 items-center gap-3">
+                            <BrailleSpinner label="Koda is composing..." color="indigo" />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }}
+                />
               </div>
-            )}
 
-            {/* Slash Menu */}
-            {showSlashMenu && slashItems.length > 0 && (
-              <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                {slashItems.map((item, idx) => (
-                  <button
-                    key={item.name}
-                    className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${idx === slashIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                    onClick={() => selectSlashItem(item)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs">{item.icon}</span>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${idx === slashIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                          {item.name}
-                        </span>
+              {/* Input Area */}
+              <div className="px-6 pb-6 pt-2">
+                <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
+                  
+                  {pendingImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
+                      {pendingImages.map((img, i) => (
+                        <div key={i} className="relative group">
+                          <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
+                          <button 
+                            onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
+                            className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-neutral-900"
+                          >✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {showSlashMenu && slashItems.length > 0 && (
+                    <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                      {slashItems.map((item, idx) => (
+                        <button
+                          key={item.name}
+                          className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${idx === slashIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                          onClick={() => selectSlashItem(item)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs">{item.icon}</span>
+                              <span className={`text-[10px] font-black uppercase tracking-widest ${idx === slashIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                {item.name}
+                              </span>
+                            </div>
+                          </div>
+                          {item.description && (
+                            <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">
+                              {item.description}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                      {suggestions.map((file, idx) => (
+                        <button
+                          key={file}
+                          className={`w-full flex flex-col px-3 py-2 rounded-md transition-all text-left group ${idx === suggestionIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                          onClick={() => selectSuggestion(file)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs">📄</span>
+                            <span className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                              {file}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
+                    <textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={(e) => {
+                        handleInputChange(e.target.value)
+                        adjustHeight()
+                      }}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Ask Koda anything..."
+                      className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
+                      style={{ overflow: "hidden" }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-2xl">
+                    <div className="flex items-center gap-1.5">
+                      <button type="button" onClick={onFileAttach} className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1">
+                        <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
+                        <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">Attach</span>
+                      </button>
+                      
+                      <div onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
+                        <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
+                        <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd}</span>
                       </div>
                     </div>
-                    {item.description && (
-                      <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">
-                        {item.description}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
 
-            {/* Suggestions Menu */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                {suggestions.map((file, idx) => (
-                  <button
-                    key={file}
-                    className={`w-full flex flex-col px-3 py-2 rounded-md transition-all text-left group ${idx === suggestionIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                    onClick={() => selectSuggestion(file)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs">📄</span>
-                      <span className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                        {file}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">{agentInfo.provider}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSend()}
+                        disabled={!input.trim() || isProcessing}
+                        className={`flex items-center justify-center p-1 rounded-lg transition-all ${input.trim() && !isProcessing ? "bg-white text-black hover:bg-zinc-200" : "bg-neutral-800 text-zinc-600 cursor-not-allowed"}`}
+                      >
+                        <ArrowUpIcon className="w-4 h-4" />
+                      </button>
                     </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => {
-                  handleInputChange(e.target.value)
-                  adjustHeight()
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask Koda anything..."
-                className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
-                style={{ overflow: "hidden" }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-2xl">
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={onFileAttach}
-                  className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1"
-                >
-                  <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
-                  <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">
-                    Attach
-                  </span>
-                </button>
-                
-                <div 
-                  onClick={handlePathClick}
-                  className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group"
-                >
-                  <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-                  <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd}</span>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">{agentInfo.provider}</span>
-                
-                <button
-                  type="button"
-                  onClick={() => handleSend()}
-                  disabled={!input.trim() || isProcessing}
-                  className={`
-                    flex items-center justify-center p-1 rounded-lg transition-all
-                    ${input.trim() && !isProcessing 
-                      ? "bg-white text-black hover:bg-zinc-200" 
-                      : "bg-neutral-800 text-zinc-600 cursor-not-allowed"}
-                  `}
-                >
-                  <ArrowUpIcon className="w-4 h-4" />
-                  <span className="sr-only">Send</span>
-                </button>
               </div>
             </div>
           </div>
-              </div>
+
+          {/* ── Right Panel Area ── */}
+          {showRight && (
+            <div
+              onMouseDown={startResizingRight}
+              className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingRight ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+            >
+              <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingRight ? 'bg-white' : ''}`} />
             </div>
+          )}
+          {showRight && renderPanelStack('right')}
+
+            {/* Space for ContextPanel overlay */}
+            {showPanel && <div className="w-64 flex-shrink-0" />}
           </div>
         </div>
       </div>

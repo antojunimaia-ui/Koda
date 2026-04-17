@@ -314,9 +314,8 @@ export class Agent {
             // Add tool result to conversation
             this.conversation.addToolResult(
               toolCall.id,
-              success
-                ? output
-                : `Error: ${output}`
+              success ? output : `Error: ${output}`,
+              toolCall.name
             );
           }
 

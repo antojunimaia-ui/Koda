@@ -2,31 +2,36 @@ import { useState, useCallback, useEffect } from 'react'
 
 interface UseResizableReturn {
   leftPanelWidth: number
+  rightPanelWidth: number
   browserHeight: number
   isResizing: boolean
+  isResizingRight: boolean
   isResizingHeight: boolean
   startResizing: () => void
+  startResizingRight: () => void
   startResizingHeight: () => void
 }
 
 /**
- * Manages the horizontal (chat/tools split) and vertical
+ * Manages the horizontal (left/right panels) and vertical
  * (browser/terminal split) resize handles.
  */
 export function useResizable(): UseResizableReturn {
-  const [leftPanelWidth, setLeftPanelWidth] = useState(50)
+  const [leftPanelWidth, setLeftPanelWidth] = useState(30)
+  const [rightPanelWidth, setRightPanelWidth] = useState(30)
   const [browserHeight, setBrowserHeight] = useState(60)
   const [isResizing, setIsResizing] = useState(false)
+  const [isResizingRight, setIsResizingRight] = useState(false)
   const [isResizingHeight, setIsResizingHeight] = useState(false)
 
-  // ── Horizontal resize ────────────────────────────────────────────────────
+  // ── Left Horizontal resize ────────────────────────────────────────────────────
   const startResizing = useCallback(() => setIsResizing(true), [])
   const stopResizing = useCallback(() => setIsResizing(false), [])
 
   const resize = useCallback((e: MouseEvent) => {
     if (!isResizing) return
     const newWidth = (e.clientX / window.innerWidth) * 100
-    if (newWidth > 15 && newWidth < 80) setLeftPanelWidth(newWidth)
+    if (newWidth > 10 && newWidth < 80) setLeftPanelWidth(newWidth)
   }, [isResizing])
 
   useEffect(() => {
@@ -43,6 +48,30 @@ export function useResizable(): UseResizableReturn {
     }
   }, [isResizing, resize, stopResizing])
 
+  // ── Right Horizontal resize ───────────────────────────────────────────────────
+  const startResizingRight = useCallback(() => setIsResizingRight(true), [])
+  const stopResizingRight = useCallback(() => setIsResizingRight(false), [])
+
+  const resizeRight = useCallback((e: MouseEvent) => {
+    if (!isResizingRight) return
+    const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100
+    if (newWidth > 10 && newWidth < 80) setRightPanelWidth(newWidth)
+  }, [isResizingRight])
+
+  useEffect(() => {
+    if (isResizingRight) {
+      window.addEventListener('mousemove', resizeRight)
+      window.addEventListener('mouseup', stopResizingRight)
+    } else {
+      window.removeEventListener('mousemove', resizeRight)
+      window.removeEventListener('mouseup', stopResizingRight)
+    }
+    return () => {
+      window.removeEventListener('mousemove', resizeRight)
+      window.removeEventListener('mouseup', stopResizingRight)
+    }
+  }, [isResizingRight, resizeRight, stopResizingRight])
+
   // ── Vertical resize ──────────────────────────────────────────────────────
   const startResizingHeight = useCallback(() => setIsResizingHeight(true), [])
   const stopResizingHeight = useCallback(() => setIsResizingHeight(false), [])
@@ -51,7 +80,7 @@ export function useResizable(): UseResizableReturn {
     if (!isResizingHeight) return
     const containerHeight = window.innerHeight - 40 // TitleBar ~40px
     const newHeight = ((e.clientY - 40) / containerHeight) * 100
-    if (newHeight > 15 && newHeight < 85) setBrowserHeight(newHeight)
+    if (newHeight > 10 && newHeight < 90) setBrowserHeight(newHeight)
   }, [isResizingHeight])
 
   useEffect(() => {
@@ -70,10 +99,13 @@ export function useResizable(): UseResizableReturn {
 
   return {
     leftPanelWidth,
+    rightPanelWidth,
     browserHeight,
     isResizing,
+    isResizingRight,
     isResizingHeight,
     startResizing,
+    startResizingRight,
     startResizingHeight,
   }
 }

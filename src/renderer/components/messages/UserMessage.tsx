@@ -13,7 +13,7 @@ interface UserMessageProps {
 }
 
 const UserMessage = memo(({ text, images, onRollback, remote }: UserMessageProps) => (
-  <div className="flex flex-col gap-2 mb-1 mt-2 bg-slate-800/20 p-2 rounded-md group relative">
+  <div className="flex flex-col gap-2 mb-1 mt-2 p-2 rounded-md group relative" style={{ backgroundColor: 'var(--koda-user-msg)' }}>
     {/* Image thumbnails */}
     {images && images.length > 0 && (
       <div className="flex flex-wrap gap-2">
@@ -29,7 +29,7 @@ const UserMessage = memo(({ text, images, onRollback, remote }: UserMessageProps
       </div>
     )}
     <div className="flex gap-3 items-start">
-      <span className="text-cyan-400 font-bold mt-0.5 select-none">{symbols.arrow}</span>
+      <span className="font-bold mt-0.5 select-none" style={{ color: 'var(--koda-accent)' }}>{symbols.arrow}</span>
       <span className="text-slate-100 font-medium leading-relaxed flex-1">
         {remote && (
           <span className="inline-flex items-center gap-1 mr-2 text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-900/30 border border-emerald-500/30 px-1.5 py-0.5 rounded align-middle">

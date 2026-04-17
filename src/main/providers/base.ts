@@ -19,6 +19,7 @@ export interface Message {
   content: string | ContentPart[];
   thought?: any;
   toolCallId?: string;
+  toolName?: string; // nome da função — necessário para providers Gemini (functionResponse.name)
   toolCalls?: ToolCall[];
 }
 

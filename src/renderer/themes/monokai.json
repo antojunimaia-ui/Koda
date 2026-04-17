@@ -1,15 +1,33 @@
 {
   "id": "monokai",
-  "name": "Classic Monokai",
+  "name": "Monokai Pro",
   "colors": {
-    "bg": "#272822",
-    "bgAlt": "#1e1e1e",
-    "sidebar": "#191919",
-    "accent": "#f92672",
-    "accentAlt": "#a6e22e",
-    "text": "#f8f8f2",
-    "textDim": "#75715e",
-    "border": "#49483e",
-    "userMsg": "rgba(255, 255, 255, 0.05)"
+    "bg":           "#272822",
+    "bgAlt":        "#1e1f1c",
+    "sidebar":      "#1a1b18",
+
+    "text":         "#f8f8f2",
+    "textDim":      "#75715e",
+    "textFaint":    "#49483e",
+
+    "border":       "#3e3d32",
+    "borderFaint":  "#2d2c24",
+
+    "accent":       "#a6e22e",
+    "accentAlt":    "#f92672",
+    "accentGlow":   "rgba(166, 226, 46, 0.15)",
+
+    "statusOk":     "#a6e22e",
+    "statusBusy":   "#e6db74",
+    "statusError":  "#f92672",
+    "statusInfo":   "#66d9e8",
+
+    "codeBg":       "#1a1b18",
+    "codeText":     "#f8f8f2",
+    "codeSyntax":   "#fd971f",
+    "inlineCode":   "#a6e22e",
+
+    "userMsg":      "rgba(62, 61, 50, 0.4)",
+    "toolMsg":      "rgba(30, 31, 28, 0.7)"
   }
 }

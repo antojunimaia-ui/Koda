@@ -239,7 +239,7 @@ const SettingsUI = memo(({
               </div>
             )}
 
-            {activeTab === 'koda' && <KodaSettingsTab kodaSettings={kodaSettings} setKodaSettings={setKodaSettings} />}
+            {activeTab === 'koda' && <KodaSettingsTab kodaSettings={kodaSettings} setKodaSettings={setKodaSettings} uiMode={kodaSettings.uiMode ?? 'classic'} />}
             {activeTab === 'remote' && <RemoteControlTab />}
           </div>
 

@@ -23,7 +23,7 @@ const AssistantMessage = memo(({ text, done }: AssistantMessageProps) => {
       {!done && !text && <BrailleSpinner label="Thinking..." color="cyan" />}
       {text && (
         <div className="flex flex-col max-w-full overflow-hidden">
-          <span className="text-cyan font-bold opacity-60 mb-1">Koda:</span>
+          <span className="font-bold opacity-60 mb-1" style={{ color: 'var(--koda-accent)' }}>Koda:</span>
           <div
             className="markdown-body text-slate-300 leading-relaxed overflow-x-auto w-full"
             dangerouslySetInnerHTML={{ __html: html }}
