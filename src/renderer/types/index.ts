@@ -18,6 +18,7 @@ export interface MessageEntry {
   tool?: {
     name: string
     status: 'running' | 'writing' | 'done' | 'awaiting_approval'
+    isNew?: boolean
     output?: string
     success: boolean
     pid?: number

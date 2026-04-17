@@ -98,7 +98,7 @@ export function useAgentStream({
           setMessages(prev =>
             prev.map(m =>
               m.type === 'tool' && m.tool && m.tool.name === update.toolName && m.tool.status === 'running'
-                ? { ...m, tool: { ...m.tool, args: { ...m.tool.args, path: update.path ?? m.tool.args?.path }, status: 'writing' as const } }
+                ? { ...m, tool: { ...m.tool, args: { ...m.tool.args, path: update.path ?? m.tool.args?.path }, isNew: update.isNew ?? false, status: 'writing' as const } }
                 : m
             )
           )

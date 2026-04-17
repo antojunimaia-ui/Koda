@@ -92,13 +92,18 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
   })() : null
 
   const resolveLabel = () => {
-    const isDone = tool?.status === 'done'    const isModern = uiMode === 'modern'
+    const isDone = tool?.status === 'done'
+    const isModern = uiMode === 'modern'
     
     // Determine prefix (Only for Modern UI)
     let prefix = ''
     if (isModern) {
       if (tool?.name === 'file_edit' || tool?.name === 'file_write') {
-        prefix = isDone ? 'Edited: ' : 'Editing: '
+        if (tool?.name === 'file_write' && tool?.isNew) {
+          prefix = isDone ? 'Created: ' : 'Creating: '
+        } else {
+          prefix = isDone ? 'Edited: ' : 'Editing: '
+        }
       } else if (tool?.name === 'file_read' || tool?.name === 'list_dir') {
         prefix = isDone ? 'Analyzed: ' : 'Analyzing: '
       } else if (tool?.name === 'shell' || tool?.name === 'shell_wait') {
