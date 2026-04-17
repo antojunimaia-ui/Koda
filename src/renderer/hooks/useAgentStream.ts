@@ -91,10 +91,23 @@ export function useAgentStream({
         })
         scheduleScroll()
 
+      } else if (update.type === 'tool_progress') {
+        // Real-time signal from inside the tool (e.g. right before writeFile)
+        // Update the running tool message so the shimmer shows the correct action label
+        if (update.event === 'writing') {
+          setMessages(prev =>
+            prev.map(m =>
+              m.type === 'tool' && m.tool && m.tool.name === update.toolName && m.tool.status === 'running'
+                ? { ...m, tool: { ...m.tool, args: { ...m.tool.args, path: update.path ?? m.tool.args?.path }, status: 'writing' as const } }
+                : m
+            )
+          )
+        }
+
       } else if (update.type === 'tool_end') {
         setMessages(prev =>
           prev.map(m =>
-            m.type === 'tool' && m.tool && m.tool.name === update.name && (m.tool.status === 'running' || m.tool.status === 'awaiting_approval')
+            m.type === 'tool' && m.tool && m.tool.name === update.name && (m.tool.status === 'running' || m.tool.status === 'writing' || m.tool.status === 'awaiting_approval')
               ? { ...m, tool: { ...m.tool, status: 'done' as const, success: update.success, output: update.result, args: update.args || m.tool.args } }
               : m
           )

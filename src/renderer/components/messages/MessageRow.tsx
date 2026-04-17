@@ -13,9 +13,10 @@ interface MessageRowProps {
   kodaSettings: KodaSettings
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   agentInfo: AgentInfo | any
+  uiMode?: 'classic' | 'modern'
 }
 
-const MessageRow = memo(({ msg, onRollback, kodaSettings, agentInfo }: MessageRowProps) => (
+const MessageRow = memo(({ msg, onRollback, kodaSettings, agentInfo, uiMode = 'classic' }: MessageRowProps) => (
   <div className="flex flex-col text-sm">
     {msg.type === 'user' && (
       <UserMessage text={msg.text!} images={msg.images} onRollback={onRollback} remote={msg.remote} />
@@ -24,11 +25,11 @@ const MessageRow = memo(({ msg, onRollback, kodaSettings, agentInfo }: MessageRo
       <AssistantMessage text={msg.text} done={msg.done} />
     )}
     {msg.type === 'tool' && (
-      <ToolMessage tool={msg.tool} settings={kodaSettings} agentInfo={agentInfo} />
+      <ToolMessage tool={msg.tool} settings={kodaSettings} agentInfo={agentInfo} uiMode={uiMode} />
     )}
     {msg.type === 'error' && <ErrorMessage text={msg.text!} />}
     {msg.type === 'system' && <SystemMessage text={msg.text!} />}
-    {msg.type === 'pty' && <PtyMessage pty={msg.pty} />}
+    {msg.type === 'pty' && <PtyMessage pty={msg.pty} settings={kodaSettings} />}
   </div>
 ))
 

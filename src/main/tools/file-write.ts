@@ -33,6 +33,8 @@ export class FileWriteTool extends BaseTool {
     try {
       // Ensure parent directories exist
       await mkdir(dirname(filePath), { recursive: true });
+      // Notify renderer that the actual disk write is about to happen
+      this.onProgress?.('writing', { path: args.path as string })
       await writeFile(filePath, content, "utf-8");
 
       const lineCount = content.split("\n").length;

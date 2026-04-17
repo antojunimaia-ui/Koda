@@ -17,7 +17,7 @@ export interface MessageEntry {
   remote?: boolean
   tool?: {
     name: string
-    status: 'running' | 'done' | 'awaiting_approval'
+    status: 'running' | 'writing' | 'done' | 'awaiting_approval'
     output?: string
     success: boolean
     pid?: number
@@ -46,6 +46,7 @@ export interface KodaSettings {
   showBrowserAgent: boolean
   showPlanMode: boolean
   showColab: boolean
+  showPty: boolean
   uiMode: 'classic' | 'modern'
   browserPosition: 'left' | 'right'
   terminalPosition: 'left' | 'right'

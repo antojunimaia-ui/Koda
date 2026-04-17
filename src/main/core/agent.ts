@@ -410,6 +410,10 @@ export class Agent {
     return this.conversation.getFormattedTokenCount();
   }
 
+  setProgressEmitter(fn: (event: string, toolName: string, data?: Record<string, unknown>) => void): void {
+    this.tools.setProgressEmitter(fn);
+  }
+
   public async reloadMcpTools(): Promise<void> {
     try {
       const configPath = path.join(app.getPath('userData'), 'mcp-configs.json');

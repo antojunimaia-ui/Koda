@@ -230,6 +230,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined}
                     kodaSettings={kodaSettings}
                     agentInfo={agentInfo}
+                    uiMode="classic"
                   />
                 )}
                 components={{

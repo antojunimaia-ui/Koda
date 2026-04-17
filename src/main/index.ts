@@ -111,6 +111,10 @@ ipcMain.handle('agent:init', async () => {
     if (!agent) {
       agent = new Agent()
       await agent.initialize()
+      // Wire up real-time tool progress events to the renderer
+      agent.setProgressEmitter((event, toolName, data) => {
+        mainWindow?.webContents.send('agent:update', { type: 'tool_progress', event, toolName, ...data })
+      })
     }
     return { success: true, info: agent.getInfo() }
   } catch (error) {

@@ -23,6 +23,9 @@ export abstract class BaseTool {
   abstract description: string;
   abstract parameters: ToolParameter[];
 
+  /** Injected by ToolRegistry before execute() — tools call this right before performing I/O */
+  onProgress?: (event: string, data?: Record<string, unknown>) => void;
+
   getDefinition(): ToolDefinition {
     return {
       name: this.name,

@@ -142,9 +142,51 @@ const ModernUI: React.FC<ModernUIProps> = ({
     }, 100)
   }
 
-  useEffect(() => {
-    scheduleScroll()
-  }, [messages.length])
+  const thinkingLabel = React.useMemo(() => {
+    if (!isProcessing) return "";
+    const lastMsg = messages[messages.length - 1];
+    let label = "Koda is composing...";
+
+    if (lastMsg?.type === 'assistant' && !lastMsg.done) {
+      const text = (lastMsg.text || "").toLowerCase();
+      
+      if (text.includes('edit') || text.includes('write') || text.includes('replace')) {
+        const fileMatch = text.match(/path\s*[=:]\s*["']([^"']+)["']/) || text.match(/["'](?:targetfile|path)["']\s*:\s*["']([^"']+)["']/i);
+        label = fileMatch ? `Editing: ${fileMatch[1].split(/[/\\]/).pop()}...` : "Editing...";
+      } else if (text.includes('shell') || text.includes('run') || text.includes('command')) {
+        label = "Running...";
+      } else if (text.includes('list') || text.includes('read') || text.includes('view') || text.includes('dir')) {
+        label = "Analyzing...";
+      } else if (text.includes('browser') || text.includes('http') || text.includes('url')) {
+        label = "Browsing...";
+      } else if (text.includes('<') || text.includes('{')) {
+        label = "Processing tool...";
+      }
+    } else if (lastMsg?.type === 'tool' && (lastMsg.tool?.status === 'running' || lastMsg.tool?.status === 'writing')) {
+      const t = lastMsg.tool;
+      const tName = (t.name || '').toLowerCase();
+      if (tName.includes('edit') || tName.includes('write')) {
+        label = `Editing: ${t.args?.path?.split(/[/\\]/).pop() || 'file'}...`;
+      } else if (tName.includes('shell') || tName.includes('command')) {
+        label = "Running command...";
+      } else if (tName.includes('read') || tName.includes('list')) {
+        label = "Analyzing...";
+      } else {
+        return ""; // Let ToolMessage handle it
+      }
+    }
+    return label;
+  }, [messages, isProcessing]);
+
+  const VirtuosoFooter = useCallback(() => (
+    <div className="pb-8">
+      {isProcessing && thinkingLabel && (
+        <div className="flex ml-4 items-center gap-3">
+          <BrailleSpinner label={thinkingLabel} color="indigo" />
+        </div>
+      )}
+    </div>
+  ), [isProcessing, thinkingLabel]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -318,20 +360,13 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         msg={msg} 
                         agentInfo={agentInfo}
                         kodaSettings={kodaSettings} 
+                        uiMode="modern"
                         onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined}
                       />
                     </div>
                   )}
                   components={{
-                    Footer: () => (
-                      <div className="pb-8">
-                        {isProcessing && (
-                          <div className="flex ml-4 items-center gap-3">
-                            <BrailleSpinner label="Koda is composing..." color="indigo" />
-                          </div>
-                        )}
-                      </div>
-                    )
+                    Footer: VirtuosoFooter
                   }}
                 />
               </div>

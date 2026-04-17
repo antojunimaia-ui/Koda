@@ -58,6 +58,9 @@ export class FileEditTool extends BaseTool {
 
       await writeFile(filePath, result, "utf-8");
 
+      // Notify renderer that the actual disk write just happened
+      this.onProgress?.('writing', { path: args.path as string })
+
       const diff = generateDiff(filePath, oldContent, result);
       let message = `✅ Edited ${filePath}`;
       if (matchCount > 1) {

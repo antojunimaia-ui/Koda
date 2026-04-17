@@ -132,6 +132,7 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings, uiMode }: KodaSet
 
         <div className="flex flex-col gap-4 bg-slate-800/20 p-4 rounded-xl border border-slate-700/50">
           <SettingToggle label="Show Terminal Output" description="Live output from running terminal processes (npm, etc)" enabled={kodaSettings.showTerminal} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showTerminal: v }))} />
+          <SettingToggle label="Show Terminal Stream" description="Enable or disable the display of PTY (Terminal) shell messages in chat" enabled={kodaSettings.showPty} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showPty: v }))} />
           <SettingToggle label="Show Shell Wait Output" description="Output from synchronous shell commands (ls, mkdir, etc)" enabled={kodaSettings.showShellWait} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showShellWait: v }))} />
           <SettingToggle label="Show File Read Output" description="The content of files read by the agent" enabled={kodaSettings.showFileRead} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileRead: v }))} />
           <SettingToggle label="Show File Edit Output" description="Diffs and changes made to files" enabled={kodaSettings.showFileEdit} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileEdit: v }))} />

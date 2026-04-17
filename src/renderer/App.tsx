@@ -101,6 +101,7 @@ const App: React.FC = () => {
       showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,
       showFileWrite: true, showListDir: true, showFileFind: true, showSearch: true,
       showLspQuery: true, showBrowserAgent: true, showPlanMode: true, showColab: true,
+      showPty: true,
       uiMode: 'classic',
       browserPosition: 'left',
       terminalPosition: 'left',

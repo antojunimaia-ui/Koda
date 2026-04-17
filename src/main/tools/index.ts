@@ -18,6 +18,11 @@ import { resolve } from "path";
 
 export class ToolRegistry {
   private tools: Map<string, BaseTool> = new Map();
+  private progressEmitter?: (event: string, toolName: string, data?: Record<string, unknown>) => void;
+
+  setProgressEmitter(fn: (event: string, toolName: string, data?: Record<string, unknown>) => void): void {
+    this.progressEmitter = fn;
+  }
 
   constructor(settings: AppSettings) {
     this.register(new FileReadTool());
@@ -124,6 +129,11 @@ export class ToolRegistry {
         };
       }
     }
+
+    // Inject progress emitter so tools can signal real-time I/O events
+    tool.onProgress = this.progressEmitter
+      ? (event, data) => this.progressEmitter!(event, name, data)
+      : undefined;
 
     const result = await tool.execute(args);
     this.afterExecute(name, args, result.success);
