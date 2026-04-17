@@ -230,7 +230,6 @@ const App: React.FC = () => {
         window.koda.listSkills().then((r: any) => { 
           if (r.success && r.skills) setAvailableSkills(r.skills)
         })
-
         if (Notification.permission === 'default') Notification.requestPermission()
 
         const savedKey = localStorage.getItem('koda_api_key')
@@ -267,6 +266,17 @@ const App: React.FC = () => {
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
     }
   }, [loadSession])
+
+  // ── Refresh skills when marketplace installs/uninstalls ──────────────────────
+  useEffect(() => {
+    const refresh = () => {
+      window.koda.listSkills().then((r: any) => {
+        if (r.success && r.skills) setAvailableSkills(r.skills)
+      })
+    }
+    window.addEventListener('koda:skills-changed', refresh)
+    return () => window.removeEventListener('koda:skills-changed', refresh)
+  }, [])
 
   // ── Global koda-open:// link handler ────────────────────────────────────────
   useEffect(() => {

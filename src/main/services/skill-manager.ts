@@ -6,6 +6,7 @@ export interface SkillMeta {
   name: string;
   description: string;
   triggers: string[];
+  version?: string;
 }
 
 export interface Skill extends SkillMeta {
@@ -32,6 +33,10 @@ function parseFrontMatter(raw: string): { meta: Partial<SkillMeta>; body: string
   // description
   const descMatch = fmBlock.match(/^description:\s*(.+)$/m);
   if (descMatch) meta.description = descMatch[1].trim();
+
+  // version
+  const versionMatch = fmBlock.match(/^version:\s*(.+)$/m);
+  if (versionMatch) meta.version = versionMatch[1].trim();
 
   // triggers — supports both inline `[a, b]` and block list `- a`
   const triggersInline = fmBlock.match(/^triggers:\s*\[(.+)\]$/m);
@@ -66,6 +71,7 @@ async function loadSkillsFromDir(dir: string): Promise<Skill[]> {
           name,
           description: meta.description || '',
           triggers: meta.triggers || [],
+          version: meta.version,
           content: body,
           filePath,
         });

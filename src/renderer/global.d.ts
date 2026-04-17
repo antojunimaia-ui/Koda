@@ -34,7 +34,10 @@ declare global {
       saveMcpConfigs: (configs: any[]) => Promise<{ success: boolean; error?: string }>
       getProjectSession: (projectPath: string) => Promise<any>
       saveProjectSession: (projectPath: string, data: any) => Promise<void>
-      listSkills: () => Promise<{ success: boolean; skills?: Array<{ name: string; description: string; triggers: string[] }>; error?: string }>
+      listSkills: () => Promise<{ success: boolean; skills?: Array<{ name: string; description: string; triggers: string[]; filePath: string }>; error?: string }>
+      marketplaceFetch: () => Promise<{ success: boolean; skills: any[]; error?: string }>
+      marketplaceInstall: (skillName: string, version?: string) => Promise<{ success: boolean; error?: string }>
+      marketplaceUninstall: (skillName: string) => Promise<{ success: boolean; error?: string }>
       webhookStart: (config: { port: number; token: string }) => Promise<{ success: boolean; error?: string }>
       webhookStop: () => Promise<{ success: boolean }>
       webhookStatus: () => Promise<{ running: boolean; port: number | null }>

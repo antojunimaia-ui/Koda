@@ -2,6 +2,7 @@ import React, { useState, useEffect, memo } from 'react'
 import { KodaTheme, KodaSettings } from '../../types/index.js'
 import KodaSettingsTab from './KodaSettingsTab.js'
 import RemoteControlTab from './RemoteControlTab.js'
+import SkillMarketplace from './SkillMarketplace.js'
 
 import tokyoNight from '../../themes/tokyo-night.json'
 import monokai from '../../themes/monokai.json'
@@ -33,7 +34,7 @@ const SettingsUI = memo(({
   onClose, onSave, defaultProvider, defaultModel, defaultAdvisorModel,
   theme, setTheme, kodaSettings, setKodaSettings
 }: SettingsUIProps) => {
-  const [activeTab, setActiveTab] = useState<'api' | 'themes' | 'koda' | 'remote'>('api')
+  const [activeTab, setActiveTab] = useState<'api' | 'themes' | 'koda' | 'remote' | 'skills'>('api')
   const [provider, setProvider] = useState(defaultProvider || 'openai')
   const [model, setModel] = useState(defaultModel || 'gpt-4o')
   const [advisorModel, setAdvisorModel] = useState(defaultAdvisorModel || 'gpt-4o')
@@ -82,7 +83,7 @@ const SettingsUI = memo(({
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="flex w-[800px] h-[550px] bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
+      <div className="flex w-[960px] h-[640px] bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
 
         {/* Sidebar */}
         <div className="w-1/4 bg-slate-800/30 border-r border-slate-700/50 flex flex-col p-4 gap-2">
@@ -101,6 +102,9 @@ const SettingsUI = memo(({
           </button>
           <button onClick={() => setActiveTab('remote')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'remote' ? 'bg-emerald-400/10 text-emerald-400 border-r-2 border-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
             <span>🌐</span> Remote Control
+          </button>
+          <button onClick={() => setActiveTab('skills')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'skills' ? 'bg-indigo-400/10 text-indigo-400 border-r-2 border-indigo-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+            <span>🎯</span> Skills
           </button>
 
           <div className="mt-auto">
@@ -241,6 +245,7 @@ const SettingsUI = memo(({
 
             {activeTab === 'koda' && <KodaSettingsTab kodaSettings={kodaSettings} setKodaSettings={setKodaSettings} uiMode={kodaSettings.uiMode ?? 'classic'} />}
             {activeTab === 'remote' && <RemoteControlTab />}
+            {activeTab === 'skills' && <SkillMarketplace />}
           </div>
 
           {/* Footer */}
