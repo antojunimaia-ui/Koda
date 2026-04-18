@@ -15,6 +15,7 @@ import { DeepSeekProvider } from "../providers/deepseek.js";
 import { MistralProvider } from "../providers/mistral.js";
 import { TogetherProvider } from "../providers/together.js";
 import { XAIProvider } from "../providers/xai.js";
+import { FireworksProvider } from "../providers/fireworks.js";
 import { ZhipuProvider } from "../providers/zhipu.js";
 import { MaritacaProvider } from "../providers/maritaca.js";
 import { KodaCloudProvider } from "../providers/koda-cloud.js";
@@ -73,6 +74,8 @@ export class Agent {
         return new TogetherProvider(model, apiKey, maxTokens, temperature);
       case "xai":
         return new XAIProvider(model, apiKey, maxTokens, temperature);
+      case "fireworks":
+        return new FireworksProvider(model, apiKey, maxTokens, temperature);
       case "zhipu":
         return new ZhipuProvider(model, apiKey, maxTokens, temperature);
       case "maritaca":
@@ -360,7 +363,9 @@ export class Agent {
     this.settings.model = model;
 
     // Detect provider from model name
-    if (model.includes("/")) {
+    if (model.includes("accounts/fireworks/")) {
+      this.settings.provider = "fireworks";
+    } else if (model.includes("/")) {
       this.settings.provider = "openrouter";
     } else if (model.includes("claude")) {
       this.settings.provider = "anthropic";

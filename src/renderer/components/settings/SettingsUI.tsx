@@ -145,6 +145,7 @@ const SettingsUI = memo(({
                       <option value="zhipu">Zhipu AI</option>
                       <option value="maritaca">Maritaca AI</option>
                       <option value="koda-cloud">Koda Cloud</option>
+                      <option value="fireworks">Fireworks AI</option>
                     </select>
                   </div>
 

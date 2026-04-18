@@ -461,6 +461,16 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
       }
     }
 
+    if (provider === 'fireworks') {
+      const res = await fetch('https://api.fireworks.ai/inference/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      })
+      if (!res.ok) throw new Error('Fireworks AI: Invalid API key or API error')
+      const data = await res.json()
+      // Filter for chat-capable models if possible, or just return all
+      return { success: true, models: data.data.map((m: any) => m.id) }
+    }
+
     return { success: false, error: 'Unknown provider' }
   } catch (err: any) {
     return { success: false, error: err.message }

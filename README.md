@@ -138,6 +138,7 @@ Models are fetched dynamically via each provider's API. Just enter your key and 
 | **Mistral AI** | All Mistral models including Codestral |
 | **Together AI** | All models from the Together platform |
 | **xAI** | Grok family |
+| **Fireworks AI** | Fireworks models via API |
 | **Zhipu AI** | GLM family; falls back to a curated list |
 | **Koda Cloud** | Premium models (Claude 3.7, Gemini 2.0) via secure proxy—no local keys needed |
 | **Ollama** | Local models via `/v1/models` or legacy `/api/tags` |
@@ -333,5 +334,5 @@ Distributed under the **[BSD 3-Clause License](./LICENSE)**.
 ---
 
 <div align="center">
-  Built by <strong>antojunimaia-ui</strong>.
+  Built by <strong>antojunimaia-ui and pedrodev2026</strong>.
 </div>
