@@ -8,7 +8,7 @@ Este documento é a **Única Fonte de Verdade** para qualquer Agente de IA que a
 
 O Koda é um agente de engenharia autônomo construído com **Electron 33 + React 19 + TypeScript 5.7 + Vite 6**. Diferente de extensões de IDE, ele é uma aplicação **standalone** focada em autonomia total do sistema de arquivos e integração nativa com terminal.
 
-- **Versão atual**: `26.8.4` (veja `package.json`)
+- **Versão atual**: `26.18.4` (veja `package.json`)
 - **Licença**: BSD-3-Clause
 - **Repositório**: `antojunimaia-ui/Koda`
 - **Entrypoint Main**: `src/main/index.ts` → compilado para `dist-electron/index.js`

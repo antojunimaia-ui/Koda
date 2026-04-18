@@ -101,7 +101,7 @@ export class MCPManager extends EventEmitter {
           params: {
             protocolVersion: '2024-11-05',
             capabilities: {},
-            clientInfo: { name: 'Koda', version: '26.8.4' }
+            clientInfo: { name: 'Koda', version: '26.18.4' }
           }
         }) + '\n');
 

@@ -252,7 +252,7 @@ const SettingsUI = memo(({
           {/* Footer */}
           <div className="px-6 py-4 flex justify-between items-center bg-slate-800/10 border-t border-slate-700/50">
             <div className="text-[10px] text-slate-500 font-mono">
-              v26.8.4 — Build 2026.04.08
+              v26.18.4 — Build 2026.04.18
             </div>
             <div className="flex gap-3">
               <button onClick={onClose} className="px-4 py-2 rounded-lg font-bold border border-slate-700 text-slate-400 hover:bg-slate-800 transition-colors text-xs">
