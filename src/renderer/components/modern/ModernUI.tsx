@@ -355,8 +355,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
                   data={messages}
                   followOutput="auto"
                   className="custom-scrollbar pr-2"
-                  itemContent={(_index, msg) => (
-                    <div className={`mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                  itemContent={(index, msg) => (
+                    <div className={index === messages.length - 1 ? `mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300` : 'mb-6'}>
                       <MessageRow 
                         msg={msg} 
                         agentInfo={agentInfo}

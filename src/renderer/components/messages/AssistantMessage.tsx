@@ -20,7 +20,7 @@ const AssistantMessage = memo(({ text, done }: AssistantMessageProps) => {
 
   return (
     <div className="flex flex-col ml-4">
-      {!done && !text && <BrailleSpinner label="Thinking..." color="cyan" />}
+      {!done && !text && <BrailleSpinner rotateLabel color="cyan" />}
       {text && (
         <div className="flex flex-col max-w-full overflow-hidden">
           <span className="font-bold opacity-60 mb-1" style={{ color: 'var(--koda-accent)' }}>Koda:</span>

@@ -148,14 +148,14 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
         <span 
           className={`text-white font-mono text-[13px] bg-slate-800/80 px-2 py-0.5 rounded shadow-sm border border-slate-700/50 flex items-center ${isRunning && uiMode === 'modern' ? 'shimmer-text !bg-transparent !border-none !shadow-none' : ''}`}
         >
+          {prefix && <span className="opacity-60 mr-1">{prefix}</span>}
+          <span className="font-bold">{value}</span>
           {stats && !settings.showFileEdit && (
-            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-700/50 mr-2">
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-700/50 ml-2">
               <span className="text-cyan-400">+{stats.plus}</span>
               <span className="text-rose-400">-{stats.minus}</span>
             </div>
           )}
-          {prefix && <span className="opacity-60 mr-1">{prefix}</span>}
-          <span className="font-bold">{value}</span>
         </span>
 
         {isRunning && (

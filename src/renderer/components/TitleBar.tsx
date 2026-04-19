@@ -21,7 +21,7 @@ const MODES: { id: Mode; label: string; icon: string; desc: string; color: strin
   { id: 'fast', label: 'Fast Mode', icon: '⚡', desc: 'Direct execution, high speed', color: 'text-cyan-400' },
   { id: 'planner', label: 'Planner', icon: '📋', desc: 'Strategy first, safe edits', color: 'text-amber-400' },
   { id: 'colab', label: 'Collaborative', icon: '👥', desc: 'Multi-agent architectural design', color: 'text-indigo-400' },
-  { id: 'teach', label: 'Teach & Code', icon: '🎓', desc: 'Step-by-step technical mentoring', color: 'text-emerald-400' },
+  { id: 'teach', label: 'Teach & Code', icon: '🎓', desc: 'Live coding with step-by-step lessons', color: 'text-emerald-400' },
 ]
 
 const TitleBar: React.FC<TitleBarProps> = ({ 

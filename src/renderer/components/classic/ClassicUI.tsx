@@ -238,7 +238,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     <div className="pb-4">
                       {showThinkingSpinner && (
                         <div className="flex flex-col ml-4 mt-3">
-                          <BrailleSpinner label="Thinking..." color="cyan" />
+                          <BrailleSpinner rotateLabel color="cyan" />
                         </div>
                       )}
                     </div>
