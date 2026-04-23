@@ -4,7 +4,7 @@ import 'highlight.js/styles/tokyo-night-dark.css'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-import { MessageEntry, KodaSettings, KodaTheme, TrackedFile, AttachedImage, AgentInfo, Mode, SlashItem } from './types/index.js'
+import { MessageEntry, KodaSettings, KodaTheme, TrackedFile, AttachedImage, AgentInfo, Mode, SlashItem, Workspace } from './types/index.js'
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 import { useResizable } from './hooks/useResizable.js'
@@ -27,7 +27,7 @@ import SettingsUI, { DEFAULT_THEME } from './components/settings/SettingsUI.js'
 import ClassicUI from './components/classic/ClassicUI.js'
 import ModernUI from './components/modern/ModernUI.js'
 
-const symbols = {
+const SYMBOLS = {
   brain: '🧠',
   bullet: '●',
   circle: '○',
@@ -45,32 +45,32 @@ const STATIC_COMMANDS: { name: string; description: string; icon: string }[] = [
 ]
 
 const App: React.FC = () => {
-  // ── Core state ──────────────────────────────────────────────────────────────
-  const [messages, setMessages] = useState<MessageEntry[]>([])
+  // ── Multi-Workspace state ───────────────────────────────────────────────────
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [isSplitEnabled, setIsSplitEnabled] = useState(false)
+
+  // Derived active workspace
+  const activeWorkspace = workspaces.find(w => w.id === activeId) || null
+
+  const updateWorkspace = useCallback((id: string, updates: Partial<Workspace> | ((prev: Workspace) => Workspace)) => {
+    setWorkspaces(prev => prev.map(w => {
+      if (w.id !== id) return w
+      if (typeof updates === 'function') return updates(w)
+      return { ...w, ...updates }
+    }))
+  }, [])
+
+  // ── Shared UI state (non-workspace specific) ────────────────────────────────
   const [input, setInput] = useState('')
   const [initializing, setInitializing] = useState(true)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [agentInfo, setAgentInfo] = useState<AgentInfo>({ providerId: '...', provider: '...', model: '...', advisorModel: '...', project: '...', cwd: '...' })
-  const [mode, setMode] = useState<Mode>('fast')
-
-  // ── Panel visibility ────────────────────────────────────────────────────────
   const [showSettings, setShowSettings] = useState(false)
   const [showMcpSettings, setShowMcpSettings] = useState(false)
   const [showBrowser, setShowBrowser] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
-
-  // ── Agent state ─────────────────────────────────────────────────────────────
-  const [pendingPlan, setPendingPlan] = useState<string | null>(null)
-  const [inPlanMode, setInPlanMode] = useState(false)
-  const [trackedFiles, setTrackedFiles] = useState<TrackedFile[]>([])
-  const [pinnedFiles, setPinnedFiles] = useState<string[]>([])
-  const [pendingImages, setPendingImages] = useState<AttachedImage[]>([])
-  const [taskQueue, setTaskQueue] = useState<{ text: string; images: AttachedImage[] }[]>([])
-
-  // ── Input state ─────────────────────────────────────────────────────────────
-  const [history, setHistory] = useState<string[]>([])
-  const [historyIndex, setHistoryIndex] = useState(-1)
+  
+  // ── Suggestions state (shared) ──────────────────────────────────────────────
   const [allFiles, setAllFiles] = useState<string[]>([])
   const [isFetchingFiles, setIsFetchingFiles] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -81,31 +81,20 @@ const App: React.FC = () => {
   const [showSlashMenu, setShowSlashMenu] = useState(false)
   const [slashIndex, setSlashIndex] = useState(0)
   const [availableSkills, setAvailableSkills] = useState<Array<{ name: string; description: string }>>([])
+  const [history, setHistory] = useState<string[]>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
 
   // ── Persisted settings & theme ──────────────────────────────────────────────
   const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
     try {
       const saved = localStorage.getItem('koda_settings')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        // Set defaults for new settings if missing
-        return {
-          browserPosition: 'left',
-          terminalPosition: 'left',
-          showIconBar: true,
-          ...parsed
-        }
-      }
+      if (saved) return { browserPosition: 'left', terminalPosition: 'left', showIconBar: true, ...JSON.parse(saved) }
     } catch { }
     return {
       showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,
       showFileWrite: true, showListDir: true, showFileFind: true, showSearch: true,
       showLspQuery: true, showBrowserAgent: true, showPlanMode: true, showColab: true,
-      showPty: true,
-      uiMode: 'classic',
-      browserPosition: 'left',
-      terminalPosition: 'left',
-      showIconBar: true
+      showPty: true, uiMode: 'classic', browserPosition: 'left', terminalPosition: 'left', showIconBar: true
     }
   })
 
@@ -117,20 +106,51 @@ const App: React.FC = () => {
     return DEFAULT_THEME
   })
 
+  // ── Workspace Actions ───────────────────────────────────────────────────────
+  const createNewWorkspace = useCallback(async (cwd?: string) => {
+    const id = Math.random().toString(36).substring(7)
+    const newWorkspace: Workspace = {
+      id,
+      name: `Workspace ${workspaces.length + 1}`,
+      cwd: cwd || '...',
+      messages: [],
+      isProcessing: false,
+      agentInfo: { providerId: '...', provider: '...', model: '...', advisorModel: '...', project: '...', cwd: cwd || '...' },
+      mode: 'fast',
+      trackedFiles: [],
+      pinnedFiles: [],
+      pendingImages: [],
+      taskQueue: [],
+      pendingPlan: null,
+      inPlanMode: false,
+      terminalOutput: ''
+    }
+    
+    setWorkspaces(prev => [...prev, newWorkspace])
+    setActiveId(id)
+    
+    // Initialize backend agent
+    await window.koda.init(id)
+    if (cwd) {
+      await window.koda.cd(id, cwd)
+    }
+    const info = await window.koda.getInfo(id)
+    updateWorkspace(id, { agentInfo: info, cwd: info.cwd })
+  }, [workspaces.length, updateWorkspace])
+
   // ── Refs ────────────────────────────────────────────────────────────────────
   const virtuosoRef = useRef<VirtuosoHandle | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Debounced scroll ────────────────────────────────────────────────────────
-  // Only used for discrete events (new tool message, error, etc.)
-  // Text streaming scroll is handled by Virtuoso's followOutput prop.
-  const scheduleScroll = useCallback(() => {
+  const scheduleScroll = useCallback((workspaceId: string) => {
+    if (workspaceId !== activeId) return // Only scroll if it's the active one
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
     scrollTimerRef.current = setTimeout(() => {
-      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'auto' })
+      virtuosoRef.current?.scrollToIndex({ index: (activeWorkspace?.messages.length || 0) - 1, behavior: 'auto' })
     }, 80)
-  }, [messages.length])
+  }, [activeId, activeWorkspace?.messages.length])
 
   // ── Custom hooks ────────────────────────────────────────────────────────────
   const { 
@@ -144,32 +164,72 @@ const App: React.FC = () => {
     startResizingRight, 
     startResizingHeight 
   } = useResizable()
-  const { isDragging, handleDragOver, handleDragLeave, handleDrop } = useDragDrop({ setInput, setPendingImages })
-  const { loadSession, lastSavedCwd } = useSession({ setMessages, setPinnedFiles })
-  const { chunkBufferRef, rafRef, taskStartRef } = useAgentStream({
-    setMessages, setAgentInfo, setIsProcessing,
-    setTrackedFiles, setPendingPlan, setInPlanMode, scheduleScroll
+  const { isDragging, handleDragOver, handleDragLeave, handleDrop } = useDragDrop({ 
+    setInput, 
+    setPendingImages: (imgs: AttachedImage[] | ((p: AttachedImage[]) => AttachedImage[])) => {
+      if (!activeId) return
+      updateWorkspace(activeId, (prev: Workspace) => ({
+        ...prev,
+        pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs
+      }))
+    }
   })
 
-  // ── Session context switch ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (agentInfo.cwd && agentInfo.cwd !== '...' && agentInfo.cwd !== lastSavedCwd.current) {
-      loadSession(agentInfo.cwd)
+  // Each workspace keeps its own last-loaded CWD to prevent cross-workspace contamination
+  const lastLoadedCwdPerWs = useRef<Map<string, string>>(new Map())
+
+  const { loadSession } = useSession({ 
+    setMessages: (msgs: MessageEntry[] | ((p: MessageEntry[]) => MessageEntry[]), wsId?: string) => {
+      const targetId = wsId || activeId
+      if (!targetId) return
+      updateWorkspace(targetId, (prev: Workspace) => ({
+        ...prev,
+        messages: typeof msgs === 'function' ? msgs(prev.messages) : msgs
+      }))
+    }, 
+    setPinnedFiles: (files: string[] | ((p: string[]) => string[]), wsId?: string) => {
+      const targetId = wsId || activeId
+      if (!targetId) return
+      updateWorkspace(targetId, (prev: Workspace) => ({
+        ...prev,
+        pinnedFiles: typeof files === 'function' ? files(prev.pinnedFiles) : files
+      }))
     }
-  }, [agentInfo.cwd, loadSession, lastSavedCwd])
+  })
+
+  const { chunkBuffersRef, rafRefs, taskStartsRef, scheduleFlush } = useAgentStream({
+    onUpdate: (id, update) => updateWorkspace(id, (prev: Workspace) => ({ ...prev, messages: update(prev.messages) })),
+    onAgentInfo: (id, info) => updateWorkspace(id, { agentInfo: info, cwd: info.cwd }),
+    onProcessing: (id, processing) => updateWorkspace(id, { isProcessing: processing }),
+    onTrackedFiles: (id, files) => updateWorkspace(id, { trackedFiles: files }),
+    onPendingPlan: (id, plan) => updateWorkspace(id, { pendingPlan: plan }),
+    onPlanMode: (id, inPlanMode) => updateWorkspace(id, { inPlanMode }),
+    scheduleScroll
+  })
+
+  // ── Session context switch — per-workspace, won't fire on tab switch ─────────
+  useEffect(() => {
+    if (!activeWorkspace) return
+    const cwd = activeWorkspace.agentInfo.cwd
+    if (!cwd || cwd === '...') return
+    const lastCwd = lastLoadedCwdPerWs.current.get(activeWorkspace.id)
+    if (cwd === lastCwd) return   // same CWD — tab switch or re-render, skip
+    lastLoadedCwdPerWs.current.set(activeWorkspace.id, cwd)
+    loadSession(cwd, activeWorkspace.id)
+  }, [activeWorkspace?.id, activeWorkspace?.agentInfo.cwd])
 
   // ── Auto-save (debounced 1s) ────────────────────────────────────────────────
   useEffect(() => {
-    if (initializing || !agentInfo.cwd || agentInfo.cwd === '...') return
+    if (initializing || !activeWorkspace || !activeWorkspace.agentInfo.cwd || activeWorkspace.agentInfo.cwd === '...') return
     const timer = setTimeout(async () => {
-      await window.koda.saveProjectSession(agentInfo.cwd, {
-        rendererMessages: messages,
+      await window.koda.saveProjectSession(activeWorkspace.id, activeWorkspace.agentInfo.cwd, {
+        rendererMessages: activeWorkspace.messages,
         backendMessages: null,
-        pinnedFiles,
+        pinnedFiles: activeWorkspace.pinnedFiles,
       })
     }, 1000)
     return () => clearTimeout(timer)
-  }, [messages, pinnedFiles, agentInfo.cwd, initializing])
+  }, [activeWorkspace?.messages, activeWorkspace?.pinnedFiles, activeWorkspace?.agentInfo.cwd, initializing])
 
   // ── Theme & settings persistence ────────────────────────────────────────────
   useEffect(() => {
@@ -221,51 +281,81 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!window.koda) return
 
-    window.koda.init().then(async (res: any) => { 
-      if (res.success) {
-        const base = JSON.parse(localStorage.getItem('koda_approved_base') || '[]')
-        const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
-        window.koda.updateApprovedCommands({ base, full })
+    // Initialize with a default workspace if none exist
+    if (workspaces.length === 0) {
+      const savedKey = localStorage.getItem('koda_api_key')
+      const savedProvider = localStorage.getItem('koda_provider')
+      const savedModel = localStorage.getItem('koda_model')
+      const savedAdvisor = localStorage.getItem('koda_advisor_model')
 
-        window.koda.listSkills().then((r: any) => { 
-          if (r.success && r.skills) setAvailableSkills(r.skills)
-        })
-        if (Notification.permission === 'default') Notification.requestPermission()
+      const initialId = Math.random().toString(36).substring(7)
+      window.koda.init(initialId).then(async (res: any) => {
+        if (res.success) {
+          const base = JSON.parse(localStorage.getItem('koda_approved_base') || '[]')
+          const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
+          window.koda.updateApprovedCommands({ base, full })
 
-        const savedKey = localStorage.getItem('koda_api_key')
-        const savedProvider = localStorage.getItem('koda_provider')
-        const savedModel = localStorage.getItem('koda_model')
-        const savedAdvisor = localStorage.getItem('koda_advisor_model')
-
-        if (savedKey || savedProvider || savedModel) {
-          try {
-            const setupRes = await window.koda.setup({ 
-              apiKey: savedKey || undefined,
-              provider: savedProvider || undefined,
-              model: savedModel || undefined,
-              advisorModel: savedAdvisor || undefined
-            })
-            if (setupRes.success) {
-              setAgentInfo(setupRes.info)
-              loadSession(setupRes.info.cwd)
-            }
-          } catch { }
-        } else {
-          setAgentInfo(res.info)
-          loadSession(res.info.cwd)
+          if (savedKey || savedProvider || savedModel) {
+            try {
+              const setupRes = await window.koda.setup(initialId, { 
+                apiKey: savedKey || undefined,
+                provider: savedProvider || undefined,
+                model: savedModel || undefined,
+                advisorModel: savedAdvisor || undefined
+              })
+              if (setupRes.success) {
+                const initialWs: Workspace = {
+                  id: initialId,
+                  name: 'Main Workspace',
+                  cwd: setupRes.info.cwd,
+                  messages: [],
+                  isProcessing: false,
+                  agentInfo: setupRes.info,
+                  mode: 'fast',
+                  trackedFiles: [],
+                  pinnedFiles: [],
+                  pendingImages: [],
+                  taskQueue: [],
+                  pendingPlan: null,
+                  inPlanMode: false,
+                  terminalOutput: ''
+                }
+                setWorkspaces([initialWs])
+                setActiveId(initialId)
+                loadSession(setupRes.info.cwd)
+              }
+            } catch { }
+          } else {
+             const initialWs: Workspace = {
+                id: initialId,
+                name: 'Main Workspace',
+                cwd: res.info.cwd,
+                messages: [],
+                isProcessing: false,
+                agentInfo: res.info,
+                mode: 'fast',
+                trackedFiles: [],
+                pinnedFiles: [],
+                pendingImages: [],
+                taskQueue: [],
+                pendingPlan: null,
+                inPlanMode: false,
+                terminalOutput: ''
+              }
+              setWorkspaces([initialWs])
+              setActiveId(initialId)
+              loadSession(res.info.cwd)
+          }
         }
-
-      } else {
-        console.error('Failed to initialize agent:', res.error)
-        setMessages([{ id: nextId(), type: 'error', text: `System initialization failed: ${res.error}` }])
-      }
-      setInitializing(false)
-    })
-
-    return () => {
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+        setInitializing(false)
+      })
     }
-  }, [loadSession])
+
+    window.koda.listSkills().then((r: any) => { 
+      if (r.success && r.skills) setAvailableSkills(r.skills)
+    })
+    if (Notification.permission === 'default') Notification.requestPermission()
+  }, [])
 
   // ── Refresh skills when marketplace installs/uninstalls ──────────────────────
   useEffect(() => {
@@ -289,40 +379,43 @@ const App: React.FC = () => {
         const decoded = decodeURIComponent(raw)
         const lastColon = decoded.lastIndexOf(':')
         if (lastColon !== -1 && !isNaN(parseInt(decoded.substring(lastColon + 1)))) {
-          window.koda.openFile(decoded.substring(0, lastColon), parseInt(decoded.substring(lastColon + 1), 10))
+          if (activeWorkspace) window.koda.openFile(activeWorkspace.id, decoded.substring(0, lastColon), parseInt(decoded.substring(lastColon + 1), 10))
         } else {
-          window.koda.openFile(decoded)
+          if (activeWorkspace) window.koda.openFile(activeWorkspace.id, decoded)
         }
       }
     }
     window.addEventListener('click', handleGlobalClick)
     return () => window.removeEventListener('click', handleGlobalClick)
-  }, [])
+  }, [activeWorkspace])
 
   // ── Focus when idle ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isProcessing && !initializing) inputRef.current?.focus()
-  }, [isProcessing, initializing])
+    if (!activeWorkspace?.isProcessing && !initializing) inputRef.current?.focus()
+  }, [activeWorkspace?.isProcessing, initializing])
 
   // ── Auto-dequeue ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isProcessing && taskQueue.length > 0) {
-      const [next, ...rest] = taskQueue
-      setTaskQueue(rest)
+    if (activeWorkspace && !activeWorkspace.isProcessing && activeWorkspace.taskQueue.length > 0) {
+      const [next, ...rest] = activeWorkspace.taskQueue
+      updateWorkspace(activeWorkspace.id, { taskQueue: rest })
       setTimeout(() => handleSend(next.text, next.images), 200)
     }
-  }, [isProcessing])
+  }, [activeWorkspace?.isProcessing])
 
   // ── handleSend ───────────────────────────────────────────────────────────────
   const handleSend = useCallback(async (overrideText?: string, overrideImages?: AttachedImage[]) => {
+    if (!activeWorkspace) return
     const userMsg = overrideText ?? input
-    const currentImages = overrideImages ?? pendingImages
+    const currentImages = overrideImages ?? activeWorkspace.pendingImages
     if (!userMsg.trim()) return
 
-    if (isProcessing && !overrideText) {
-      setTaskQueue(prev => [...prev, { text: userMsg, images: currentImages }])
+    if (activeWorkspace.isProcessing && !overrideText) {
+      updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+        ...prev,
+        taskQueue: [...prev.taskQueue, { text: userMsg, images: currentImages }]
+      }))
       setInput('')
-      setPendingImages([])
       setShowSlashMenu(false)
       setShowSuggestions(false)
       return
@@ -331,10 +424,10 @@ const App: React.FC = () => {
 
     if (!overrideText) {
       setInput('')
-      setPendingImages([])
+      updateWorkspace(activeWorkspace.id, { pendingImages: [] })
       setShowSlashMenu(false)
       setShowSuggestions(false)
-      setHistory(prev => prev[0] === userMsg ? prev : [userMsg, ...prev])
+      setHistory((prev: string[]) => prev[0] === userMsg ? prev : [userMsg, ...prev])
       setHistoryIndex(-1)
     }
 
@@ -343,41 +436,68 @@ const App: React.FC = () => {
       const parts = userMsg.toLowerCase().split(' ')
       const cmd = parts[0]
 
-      if (cmd === '/clear') { setMessages([]); return }
+      if (cmd === '/clear') { updateWorkspace(activeWorkspace.id, { messages: [] }); return }
       if (cmd === '/help') {
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: 'Available commands:\n/help - Show this help\n/clear - Clear messages\n/reset - Reset conversation\n/model [--name] - View or switch model' }])
+        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          ...prev,
+          messages: [...prev.messages, { id: nextId(), type: 'system', text: 'Available commands:\n/help - Show this help\n/clear - Clear messages\n/reset - Reset conversation\n/model [--name] - View or switch model' }]
+        }))
         return
       }
       if (cmd === '/reset') {
-        await window.koda.reset()
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: 'Conversation reset!' }])
+        await window.koda.reset(activeWorkspace.id)
+        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          ...prev,
+          messages: [...prev.messages, { id: nextId(), type: 'system', text: 'Conversation reset!' }]
+        }))
         return
       }
       if (cmd === '/model') {
         const modelArg = parts[1]
         if (modelArg?.startsWith('--')) {
-          const res = await window.koda.setModel(modelArg.slice(2))
+          const res = await window.koda.setModel(activeWorkspace.id, modelArg.slice(2))
           if (res.success) {
-            setAgentInfo(res.info)
-            setMessages(prev => [...prev, { id: nextId(), type: 'system', text: `🤖 Model updated to: ${res.info.model} (${res.info.provider})` }])
+            updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
+            updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+              ...prev,
+              messages: [...prev.messages, { id: nextId(), type: 'system', text: `🤖 Model updated to: ${res.info.model} (${res.info.provider})` }]
+            }))
           } else {
-            setMessages(prev => [...prev, { id: nextId(), type: 'error', text: res.error }])
+            updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+              ...prev,
+              messages: [...prev.messages, { id: nextId(), type: 'error', text: res.error }]
+            }))
           }
           return
         }
-        const info = await window.koda.getInfo()
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: `Provider: ${info.provider} | Model: ${info.model}` }])
+        const info = await window.koda.getInfo(activeWorkspace.id)
+        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          ...prev,
+          messages: [...prev.messages, { id: nextId(), type: 'system', text: `Provider: ${info.provider} | Model: ${info.model}` }]
+        }))
         return
       }
       if (cmd === '/apikey') {
         const key = parts[1]
-        if (!key) { setMessages(prev => [...prev, { id: nextId(), type: 'error', text: 'Usage: /apikey <key>' }]); return }
-        const res = await window.koda.setApiKey(key)
+        if (!key) { 
+          updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+            ...prev,
+            messages: [...prev.messages, { id: nextId(), type: 'error', text: 'Usage: /apikey <key>' }]
+          }))
+          return 
+        }
+        const res = await window.koda.setApiKey(activeWorkspace.id, key)
         if (res.success) {
-          setAgentInfo(res.info)
-          setMessages(prev => [...prev, { id: nextId(), type: 'system', text: '🔑 API Key updated successfully!' }])
+          updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
+          updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+            ...prev,
+            messages: [...prev.messages, { id: nextId(), type: 'system', text: '🔑 API Key updated successfully!' }]
+          }))
         } else {
-          setMessages(prev => [...prev, { id: nextId(), type: 'error', text: res.error }])
+          updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+            ...prev,
+            messages: [...prev.messages, { id: nextId(), type: 'error', text: res.error }]
+          }))
         }
         return
       }
@@ -385,24 +505,32 @@ const App: React.FC = () => {
       const knownCmds = ['/clear', '/help', '/reset', '/model', '/apikey', '/tokens', '/cost', '/debug']
       const skillName = cmd.slice(1)
       if (!knownCmds.includes(cmd)) {
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: `🎯 Activating skill: ${skillName}...` }])
+        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          ...prev,
+          messages: [...prev.messages, { id: nextId(), type: 'system', text: `🎯 Activating skill: ${skillName}...` }]
+        }))
       }
     }
 
     let finalMsg = userMsg
-    if (mode === 'planner') {
+    if (activeWorkspace.mode === 'planner') {
       finalMsg = `[PLANNER MODE PROTOCOL - MANDATORY]\n1. Use 'enter_plan_mode' IMMEDIATELY.\n2. Explore the codebase using read-only tools ONLY.\n3. DESIGN a complete implementation strategy.\n4. Call 'exit_plan_mode' with your Markdown plan to get my approval.\n5. DO NOT ATTEMPT TO EDIT ANY FILES OR RUN EVOLUTIVE SHELL COMMANDS UNTIL I APPROVE THE PLAN.\n\nYour current task is: ${userMsg}`
-    } else if (mode === 'colab') {
+    } else if (activeWorkspace.mode === 'colab') {
       finalMsg = `[COLLABORATIVE MODE PROTOCOL - ACTIVE]\n1. You are working in COLLABORATIVE MODE.\n2. You have access to a suite of collaboration tools: 'start_collaboration', 'send_to_advisor', and 'end_collaboration'.\n3. Use 'start_collaboration' to initialize a discussion with an Elite Technical Advisor.\n4. Use 'send_to_advisor' to exchange ideas, ask follow-up questions, and refine your plan.\n5. Once you have a solid strategy approved by the advisor, use 'end_collaboration' and proceed to implementation.\n6. This mode is for COMPLEX architectural discussions. Use it to deliver superior engineering.\n\nYour current task is: ${userMsg}`
-    } else if (mode === 'teach') {
+    } else if (activeWorkspace.mode === 'teach') {
       finalMsg = `[TEACH & CODE MODE — ACTIVE]\nYou are now a hands-on programming instructor. You will BUILD the solution live, as if teaching a class. Follow this structure for every meaningful step:\n\n📖 CONCEPT FIRST — Before writing code, briefly introduce the concept or technique you are about to use. One or two sentences max. Why does it exist? What problem does it solve?\n\n💻 CODE — Write the code. Keep it clean and intentional.\n\n🔍 BREAKDOWN — After each block, explain what each key part does. Point out non-obvious decisions. If you chose approach A over B, say why (performance, readability, correctness, convention).\n\n⚠️ WATCH OUT — Flag common mistakes, gotchas, or edge cases a student might miss.\n\n🎯 LESSON — End each major step with one clear takeaway sentence. What should the student remember from this?\n\nRules:\n- Write as if the student is watching your screen and learning in real time.\n- Never just dump code without explanation.\n- Use analogies when a concept is abstract.\n- Keep a natural teaching rhythm — not every line needs a lecture, only the meaningful ones.\n- Respond in the same language the student used.\n\nYour current task is: ${userMsg}`
     }
 
     const msgId = nextId()
-    setMessages(prev => [...prev, { id: msgId, type: 'user', text: userMsg, images: currentImages.length > 0 ? currentImages : undefined }])
-    setIsProcessing(true)
-    taskStartRef.current = Date.now()
-    scheduleScroll()
+    updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+      ...prev,
+      messages: [...prev.messages, { id: msgId, type: 'user', text: userMsg, images: currentImages.length > 0 ? currentImages : undefined }],
+      isProcessing: true
+    }))
+    
+    // Set task start in the hook
+    taskStartsRef.current.set(activeWorkspace.id, Date.now())
+    scheduleScroll(activeWorkspace.id)
 
     const imageParts = currentImages.map(img => ({
       type: 'image' as const,
@@ -410,19 +538,20 @@ const App: React.FC = () => {
     }))
 
     try {
-      await window.koda.sendMessage(msgId, finalMsg, imageParts.length > 0 ? imageParts : undefined)
+      await window.koda.sendMessage(activeWorkspace.id, msgId, finalMsg, imageParts.length > 0 ? imageParts : undefined)
 
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current)
-        rafRef.current = null
+      const raf = rafRefs.current.get(activeWorkspace.id)
+      if (raf !== null && raf !== undefined) {
+        cancelAnimationFrame(raf)
+        rafRefs.current.set(activeWorkspace.id, null)
       }
-      const chunk = chunkBufferRef.current
-      chunkBufferRef.current = ''
+      const chunk = chunkBuffersRef.current.get(activeWorkspace.id)
+      chunkBuffersRef.current.set(activeWorkspace.id, '')
 
-      setMessages(prev => {
-        const updated = [...prev]
+      updateWorkspace(activeWorkspace.id, (prev: Workspace) => {
+        const updated = [...prev.messages]
         const last = updated[updated.length - 1]
-        if (!last) return updated
+        if (!last) return prev
         if (chunk) {
           if (last.type === 'assistant' && !last.done) {
             updated[updated.length - 1] = { ...last, text: (last.text || '') + chunk, done: true }
@@ -432,28 +561,38 @@ const App: React.FC = () => {
         } else if (last.type === 'assistant') {
           updated[updated.length - 1] = { ...last, done: true }
         }
-        return updated
+        return { ...prev, messages: updated }
       })
     } catch (err: any) {
-      chunkBufferRef.current = ''
+      chunkBuffersRef.current.set(activeWorkspace.id, '')
       const message = err.message || String(err)
-      setMessages(prev => [...prev, { id: nextId(), type: 'error', text: message }])
+      updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+        ...prev,
+        messages: [...prev.messages, { id: nextId(), type: 'error', text: message }]
+      }))
     } finally {
-      setIsProcessing(false)
+      updateWorkspace(activeWorkspace.id, { isProcessing: false })
     }
-  }, [input, isProcessing, pendingImages, scheduleScroll, mode, chunkBufferRef, rafRef, taskStartRef])
+  }, [activeWorkspace, input, updateWorkspace, scheduleScroll, chunkBuffersRef, rafRefs, taskStartsRef])
 
   // ── handlePathClick ──────────────────────────────────────────────────────────
   const handlePathClick = async () => {
+    if (!activeWorkspace) return
     const newPath = await window.koda.selectDirectory()
     if (newPath) {
       setInitializing(true)
-      const res = await window.koda.cd(newPath)
+      const res = await window.koda.cd(activeWorkspace.id, newPath)
       if (res.success) {
-        setAgentInfo(res.info)
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: `📂 Working directory changed to: ${newPath}. Context reset.` }])
+        updateWorkspace(activeWorkspace.id, { agentInfo: res.info, cwd: res.info.cwd })
+        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          ...prev,
+          messages: [...prev.messages, { id: nextId(), type: 'system', text: `📂 Working directory changed to: ${newPath}. Context reset.` }]
+        }))
       } else {
-        setMessages(prev => [...prev, { id: nextId(), type: 'error', text: `❌ Failed to change directory: ${res.error}` }])
+        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          ...prev,
+          messages: [...prev.messages, { id: nextId(), type: 'error', text: `❌ Failed to change directory: ${res.error}` }]
+        }))
       }
       setInitializing(false)
     }
@@ -461,47 +600,74 @@ const App: React.FC = () => {
 
   // ── handleRollback ───────────────────────────────────────────────────────────
   const handleRollback = useCallback(async (msgId: number) => {
-    if (isProcessing) return
+    if (!activeWorkspace || activeWorkspace.isProcessing) return
     const confirmed = window.confirm('Rollback to this message?\n\nThis will restore all files to the state they were in BEFORE this message was sent, and erase all subsequent conversation history.')
     if (!confirmed) return
 
-    const res = await window.koda.snapshotRestore(msgId)
+    const res = await window.koda.snapshotRestore(activeWorkspace.id, msgId)
     if (!res.success) {
-      setMessages(prev => [...prev, { id: nextId(), type: 'error', text: `Rollback failed: ${res.error}` }])
+      updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+        ...prev,
+        messages: [...prev.messages, { id: nextId(), type: 'error', text: `Rollback failed: ${res.error}` }]
+      }))
       return
     }
-    setMessages(prev => {
-      const idx = prev.findIndex(m => m.id === msgId)
-      return idx === -1 ? prev : prev.slice(0, idx)
+    updateWorkspace(activeWorkspace.id, (prev: Workspace) => {
+      const idx = prev.messages.findIndex(m => m.id === msgId)
+      return {
+        ...prev,
+        messages: idx === -1 ? prev.messages : prev.messages.slice(0, idx)
+      }
     })
-  }, [isProcessing])
+  }, [activeWorkspace, updateWorkspace])
 
-  const handleInjectFile = (path: string) => setInput(prev => prev + ` @[${path}] `)
-  const handlePinFile = (path: string) => setPinnedFiles(prev => prev.includes(path) ? prev : [...prev, path])
-  const handleUnpinFile = (path: string) => setPinnedFiles(prev => prev.filter(p => p !== path))
+  const handleInjectFile = (path: string) => setInput((prev: string) => prev + ` @[${path}] `)
+  const handlePinFile = (path: string) => {
+    if (!activeId) return
+    updateWorkspace(activeId, (prev: Workspace) => ({
+      ...prev,
+      pinnedFiles: prev.pinnedFiles.includes(path) ? prev.pinnedFiles : [...prev.pinnedFiles, path]
+    }))
+  }
+  const handleUnpinFile = (path: string) => {
+    if (!activeId) return
+    updateWorkspace(activeId, (prev: Workspace) => ({
+      ...prev,
+      pinnedFiles: prev.pinnedFiles.filter(p => p !== path)
+    }))
+  }
 
   // ── handleStop ───────────────────────────────────────────────────────────────
   const handleStop = useCallback(async () => {
-    if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
-    chunkBufferRef.current = ''
-    setIsProcessing(false)
-    await window.koda.softReset()
-  }, [chunkBufferRef, rafRef])
+    if (!activeWorkspace) return
+    const raf = rafRefs.current.get(activeWorkspace.id)
+    if (raf !== null && raf !== undefined) { 
+      cancelAnimationFrame(raf)
+      rafRefs.current.set(activeWorkspace.id, null)
+    }
+    chunkBuffersRef.current.set(activeWorkspace.id, '')
+    updateWorkspace(activeWorkspace.id, { isProcessing: false })
+    await window.koda.softReset(activeWorkspace.id)
+  }, [activeWorkspace, updateWorkspace, chunkBuffersRef, rafRefs])
 
   // ── handlePaste ─────────────────────────────────────────────────────────────
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    if (!activeId) return
     const items = e.clipboardData.items
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         const file = items[i].getAsFile()
         if (file) {
           const reader = new FileReader()
-          reader.onload = () => setPendingImages(prev => [...prev, { dataUrl: reader.result as string, mimeType: file.type, name: file.name || 'pasted.png' }])
+          reader.onload = () => updateWorkspace(activeId, (prev: Workspace) => ({
+            ...prev,
+            pendingImages: [...prev.pendingImages, { dataUrl: reader.result as string, mimeType: file.type, name: file.name || 'pasted.png' }]
+          }))
           reader.readAsDataURL(file)
         }
       }
     }
-  }, [])
+  }, [activeId, updateWorkspace])
 
   // ── handleInputChange ────────────────────────────────────────────────────────
   const handleInputChange = async (val: string) => {
@@ -554,13 +720,24 @@ const App: React.FC = () => {
     setShowSlashMenu(false)
   }
 
+  const onCloseWorkspace = useCallback((id: string) => {
+    if (workspaces.length <= 1) return
+    setWorkspaces((prev: Workspace[]) => {
+      const remaining = prev.filter(w => w.id !== id)
+      if (activeId === id) setActiveId(remaining[0]?.id || null)
+      return remaining
+    })
+  }, [workspaces.length, activeId, setWorkspaces, setActiveId])
+
   // ── Derived state ────────────────────────────────────────────────────────────
-  const showThinkingSpinner = !!(isProcessing && (
-    messages.length === 0 ||
-    (messages[messages.length - 1].type !== 'assistant' &&
-      (!messages[messages.length - 1].tool || messages[messages.length - 1].tool?.status === 'done')) ||
-    (messages[messages.length - 1].type === 'assistant' && messages[messages.length - 1].done)
+  const showThinkingSpinner = !!(activeWorkspace && activeWorkspace.isProcessing && (
+    activeWorkspace.messages.length === 0 ||
+    (activeWorkspace.messages[activeWorkspace.messages.length - 1].type !== 'assistant' &&
+      (!activeWorkspace.messages[activeWorkspace.messages.length - 1].tool || activeWorkspace.messages[activeWorkspace.messages.length - 1].tool?.status === 'done')) ||
+    (activeWorkspace.messages[activeWorkspace.messages.length - 1].type === 'assistant' && activeWorkspace.messages[activeWorkspace.messages.length - 1].done)
   ))
+
+  if (!activeWorkspace) return <div className="h-screen bg-slate-900 flex items-center justify-center"><BrailleSpinner label="Initializing Workspace..." /></div>
 
   // ────────────────────────────────────────────────────────────────────────────
   return (
@@ -569,14 +746,14 @@ const App: React.FC = () => {
       {showSettings && (
         <SettingsUI
           onClose={() => setShowSettings(false)}
-          defaultProvider={agentInfo.providerId || agentInfo.provider}
-          defaultModel={agentInfo.model}
+          defaultProvider={activeWorkspace.agentInfo.providerId || activeWorkspace.agentInfo.provider}
+          defaultModel={activeWorkspace.agentInfo.model}
           onSave={async (config: any) => {
-            const res = await window.koda.setup(config)
-            if (res.success) setAgentInfo(res.info)
+            const res = await window.koda.setup(activeWorkspace.id, config)
+            if (res.success) updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
             setShowSettings(false)
           }}
-          defaultAdvisorModel={agentInfo.advisorModel}
+          defaultAdvisorModel={activeWorkspace.agentInfo.advisorModel}
           theme={theme}
           setTheme={setTheme}
           kodaSettings={kodaSettings}
@@ -591,9 +768,9 @@ const App: React.FC = () => {
         />
       )}
 
-      {pendingPlan && (
+      {activeWorkspace.pendingPlan && (
         <PlanApprovalModal
-          plan={pendingPlan}
+          plan={activeWorkspace.pendingPlan}
           onApprove={() => window.koda.planResponse(true)}
           onReject={() => window.koda.planResponse(false)}
         />
@@ -602,15 +779,15 @@ const App: React.FC = () => {
       {/* Main UI Switch */}
       {kodaSettings.uiMode === 'modern' ? (
         <ModernUI
-          messages={messages}
+          messages={activeWorkspace.messages}
           input={input}
           setInput={setInput}
-          isProcessing={isProcessing}
-          agentInfo={agentInfo}
-          mode={mode}
-          setMode={setMode}
-          pendingImages={pendingImages}
-          setPendingImages={setPendingImages}
+          isProcessing={activeWorkspace.isProcessing}
+          agentInfo={activeWorkspace.agentInfo}
+          mode={activeWorkspace.mode}
+          setMode={(m) => updateWorkspace(activeWorkspace.id, { mode: m })}
+          pendingImages={activeWorkspace.pendingImages}
+          setPendingImages={(imgs) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs }))}
           handleSend={handleSend}
           handleStop={handleStop}
           handlePathClick={handlePathClick}
@@ -628,8 +805,6 @@ const App: React.FC = () => {
           showTerminal={showTerminal}
           showPanel={showPanel}
           onTogglePanel={() => setShowPanel(p => !p)}
-          
-          // Layout state
           leftPanelWidth={leftPanelWidth}
           rightPanelWidth={rightPanelWidth}
           startResizing={startResizing}
@@ -639,7 +814,6 @@ const App: React.FC = () => {
           browserHeight={browserHeight}
           isResizingHeight={isResizingHeight}
           startResizingHeight={startResizingHeight}
-
           slashItems={slashItems}
           showSlashMenu={showSlashMenu}
           slashIndex={slashIndex}
@@ -650,22 +824,29 @@ const App: React.FC = () => {
           suggestionIndex={suggestionIndex}
           selectSuggestion={selectSuggestion}
           setSuggestionIndex={setSuggestionIndex}
+          isSplitEnabled={isSplitEnabled}
+          onToggleSplit={() => setIsSplitEnabled(!isSplitEnabled)}
+          workspaces={workspaces}
+          activeId={activeId}
+          setActiveId={setActiveId}
+          onAddWorkspace={() => createNewWorkspace()}
+          onCloseWorkspace={onCloseWorkspace}
         />
       ) : (
         <ClassicUI
           // State
-          messages={messages}
+          messages={activeWorkspace.messages}
           input={input}
           setInput={setInput}
           initializing={initializing}
-          isProcessing={isProcessing}
-          agentInfo={agentInfo}
-          mode={mode}
-          setMode={setMode}
-          pendingImages={pendingImages}
-          setPendingImages={setPendingImages}
-          taskQueue={taskQueue}
-          setTaskQueue={setTaskQueue}
+          isProcessing={activeWorkspace.isProcessing}
+          agentInfo={activeWorkspace.agentInfo}
+          mode={activeWorkspace.mode}
+          setMode={(m) => updateWorkspace(activeWorkspace.id, { mode: m })}
+          pendingImages={activeWorkspace.pendingImages}
+          setPendingImages={(imgs) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs }))}
+          taskQueue={activeWorkspace.taskQueue}
+          setTaskQueue={(queue) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, taskQueue: typeof queue === 'function' ? queue(prev.taskQueue) : queue }))}
           
           // Callbacks
           handleSend={handleSend}
@@ -707,9 +888,9 @@ const App: React.FC = () => {
           handleDrop={handleDrop}
           
           // Internal flags
-          inPlanMode={inPlanMode}
+          inPlanMode={activeWorkspace.inPlanMode}
           showThinkingSpinner={showThinkingSpinner}
-          symbols={symbols}
+          symbols={SYMBOLS}
           
           // Slash Menu & Suggestions
           slashItems={slashItems}
@@ -722,9 +903,17 @@ const App: React.FC = () => {
           suggestionIndex={suggestionIndex}
           selectSuggestion={selectSuggestion}
           setSuggestionIndex={setSuggestionIndex}
+
+          // Multi-Workspace
+          isSplitEnabled={isSplitEnabled}
+          onToggleSplit={() => setIsSplitEnabled(!isSplitEnabled)}
+          workspaces={workspaces}
+          activeId={activeId}
+          setActiveId={setActiveId}
+          onAddWorkspace={() => createNewWorkspace()}
+          onCloseWorkspace={onCloseWorkspace}
         />
       )}
-
 
       {/* Universal Context Panel Overlay */}
       {showPanel && (
@@ -733,12 +922,12 @@ const App: React.FC = () => {
           style={{ backgroundColor: 'var(--koda-sidebar)' }}
         >
            <ContextPanel 
-             files={trackedFiles} 
-             pinnedFiles={pinnedFiles} 
+             files={activeWorkspace.trackedFiles} 
+             pinnedFiles={activeWorkspace.pinnedFiles} 
              onPin={handlePinFile} 
              onUnpin={handleUnpinFile} 
              onInject={handleInjectFile}
-             cwd={agentInfo.cwd}
+             cwd={activeWorkspace.agentInfo.cwd}
            />
         </div>
       )}

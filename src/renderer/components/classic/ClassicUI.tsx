@@ -1,11 +1,12 @@
 import React from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
-import { MessageEntry, AttachedImage, AgentInfo, Mode, KodaTheme, KodaSettings, SlashItem } from '../../types/index.js'
+import { MessageEntry, AttachedImage, AgentInfo, Mode, KodaTheme, KodaSettings, SlashItem, Workspace } from '../../types/index.js'
 import TitleBar from '../TitleBar.js'
 import { BrailleSpinner } from '../BrailleSpinner.js'
 import MessageRow from '../messages/MessageRow.js'
 import BrowserPreview from '../BrowserPreview.js'
 import TerminalPanel from '../TerminalPanel.js'
+import WorkspaceTabs from '../WorkspaceTabs.js'
 
 interface ClassicUIProps {
   messages: MessageEntry[]
@@ -17,9 +18,9 @@ interface ClassicUIProps {
   mode: Mode
   setMode: (m: Mode) => void
   pendingImages: AttachedImage[]
-  setPendingImages: React.Dispatch<React.SetStateAction<AttachedImage[]>>
+  setPendingImages: (imgs: AttachedImage[] | ((p: AttachedImage[]) => AttachedImage[])) => void
   taskQueue: { text: string; images: AttachedImage[] }[]
-  setTaskQueue: React.Dispatch<React.SetStateAction<{ text: string; images: AttachedImage[] }[]>>
+  setTaskQueue: (queue: { text: string; images: AttachedImage[] }[] | ((p: { text: string; images: AttachedImage[] }[]) => { text: string; images: AttachedImage[] }[])) => void
   handleSend: (overrideText?: string, overrideImages?: AttachedImage[]) => void
   handlePathClick: () => void
   handleInputChange: (val: string) => void
@@ -62,6 +63,15 @@ interface ClassicUIProps {
   suggestionIndex: number
   selectSuggestion: (f: string) => void
   setSuggestionIndex: React.Dispatch<React.SetStateAction<number>>
+  
+  // Workspace Split
+  isSplitEnabled: boolean
+  onToggleSplit: () => void
+  workspaces: Workspace[]
+  activeId: string | null
+  setActiveId: (id: string) => void
+  onAddWorkspace: () => void
+  onCloseWorkspace: (id: string) => void
 }
 
 const ClassicUI: React.FC<ClassicUIProps> = ({
@@ -73,7 +83,8 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
   startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
   isDragging, handleDragOver, handleDragLeave, handleDrop, inPlanMode, showThinkingSpinner,
   symbols, slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
-  suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex
+  suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
+  isSplitEnabled, onToggleSplit, workspaces, activeId, setActiveId, onAddWorkspace, onCloseWorkspace
 }) => {
   
   const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
@@ -107,7 +118,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
         )}
         {hasTerminal && (
           <div className="flex-1 min-h-[100px] relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
-            <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} />
+            <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} workspaceId={activeId || undefined} />
             {(isResizingHeight || isResizing || isResizingRight) && (
               <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
@@ -147,7 +158,19 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
         showPanel={showPanel}
         onTogglePanel={onTogglePanel}
         uiMode="classic"
+        isSplitEnabled={isSplitEnabled}
+        onToggleSplit={onToggleSplit}
       />
+
+      {isSplitEnabled && (
+        <WorkspaceTabs 
+          workspaces={workspaces}
+          activeId={activeId}
+          onSwitch={setActiveId}
+          onAdd={onAddWorkspace}
+          onClose={onCloseWorkspace}
+        />
+      )}
 
       <div className="flex-1 relative flex flex-col min-h-0">
         <div className="flex flex-1 min-h-0 overflow-hidden relative">

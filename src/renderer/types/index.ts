@@ -116,3 +116,20 @@ export interface SlashItem {
   icon: string
   isSkill?: boolean
 }
+
+export interface Workspace {
+  id: string
+  name: string
+  cwd: string
+  messages: MessageEntry[]
+  isProcessing: boolean
+  agentInfo: AgentInfo
+  mode: Mode
+  trackedFiles: TrackedFile[]
+  pinnedFiles: string[]
+  pendingImages: AttachedImage[]
+  taskQueue: { text: string; images: AttachedImage[] }[]
+  pendingPlan: string | null
+  inPlanMode: boolean
+  terminalOutput: string
+}

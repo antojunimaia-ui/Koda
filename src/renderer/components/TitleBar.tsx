@@ -15,6 +15,8 @@ interface TitleBarProps {
   onTogglePanel: () => void
   uiMode?: 'classic' | 'modern'
   showIconBar?: boolean
+  isSplitEnabled: boolean
+  onToggleSplit: () => void
 }
 
 const MODES: { id: Mode; label: string; icon: string; desc: string; color: string }[] = [
@@ -27,7 +29,8 @@ const MODES: { id: Mode; label: string; icon: string; desc: string; color: strin
 const TitleBar: React.FC<TitleBarProps> = ({ 
   mode, onModeChange, onSettingsClick, onMcpClick, 
   onBrowserClick, showBrowser, onTerminalClick, showTerminal, 
-  showPanel, onTogglePanel, uiMode = 'classic', showIconBar = true
+  showPanel, onTogglePanel, uiMode = 'classic', showIconBar = true,
+  isSplitEnabled, onToggleSplit
 }) => {
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -108,6 +111,17 @@ const TitleBar: React.FC<TitleBarProps> = ({
           <div className="no-drag h-full flex items-center">
             {modeSelector}
           </div>
+
+        <button 
+          onClick={onToggleSplit}
+          className={`w-7 h-7 flex items-center justify-center rounded transition-all no-drag ml-1 ${isSplitEnabled ? 'text-cyan-400 bg-cyan-400/10' : 'text-slate-500 hover:text-cyan-400 hover:bg-white/5'}`}
+          title={isSplitEnabled ? 'Disable Workspace Split' : 'Enable Workspace Split'}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="12" y1="3" x2="12" y2="21"/>
+          </svg>
+        </button>
 
         {uiMode === 'classic' && (
           <button 

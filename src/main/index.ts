@@ -16,7 +16,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config()
 
 let mainWindow: BrowserWindow | null = null
-let agent: Agent | null = null
+const agents = new Map<string, Agent>()
+
+function getAgent(id: string): Agent | null {
+  return agents.get(id) || null
+}
 
 function createWindow() {
   // Determine the path to the preload script
@@ -104,26 +108,28 @@ ipcMain.handle('window:open_directory', async () => {
 })
 
 // IPC Handlers for the Agent
-ipcMain.handle('agent:init', async () => {
+ipcMain.handle('agent:init', async (_event, workspaceId: string) => {
   try {
-    // Only create a new agent if one doesn't exist
-    // This prevents conversation resets on UI re-renders or minor setup changes
+    let agent = agents.get(workspaceId)
     if (!agent) {
       agent = new Agent()
       await agent.initialize()
+      agents.set(workspaceId, agent)
+      
       // Wire up real-time tool progress events to the renderer
       agent.setProgressEmitter((event, toolName, data) => {
-        mainWindow?.webContents.send('agent:update', { type: 'tool_progress', event, toolName, ...data })
+        mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event, toolName, ...data })
       })
     }
     return { success: true, info: agent.getInfo() }
   } catch (error) {
-    console.error('[Agent] Initialization failed:', error)
+    console.error(`[Agent:${workspaceId}] Initialization failed:`, error)
     return { success: false, error: (error as Error).message }
   }
 })
 
-ipcMain.handle('agent:message', async (event, messageId: number, message: string, images?: any[]) => {
+ipcMain.handle('agent:message', async (_event, workspaceId: string, messageId: number, message: string, images?: any[]) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
 
   // Snapshot the workspace BEFORE the agent touches anything
@@ -133,20 +139,21 @@ ipcMain.handle('agent:message', async (event, messageId: number, message: string
   try {
     await agent.processMessage(
       message,
-      (text) => mainWindow?.webContents.send('agent:update', { type: 'text', content: text }),
-      (name, args) => mainWindow?.webContents.send('agent:update', { type: 'tool_start', name, args }),
-      (name, result, success, args) => mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result, success, args }),
-      (error) => mainWindow?.webContents.send('agent:update', { type: 'error', message: error }),
+      (text) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'text', content: text }),
+      (name, args) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_start', name, args }),
+      (name, result, success, args) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_end', name, result, success, args }),
+      (error) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'error', message: error }),
       images as any
     )
-    mainWindow?.webContents.send('agent:update', { type: 'done' })
+    mainWindow?.webContents.send('agent:update', { workspaceId, type: 'done' })
     return { success: true }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   }
 })
 
-ipcMain.handle('snapshot:restore', async (_event, messageId: number) => {
+ipcMain.handle('snapshot:restore', async (_event, workspaceId: string, messageId: number) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { success: false, error: 'Agent not initialized' }
   try {
     const result = await restoreSnapshot(messageId)
@@ -158,7 +165,8 @@ ipcMain.handle('snapshot:restore', async (_event, messageId: number) => {
   }
 })
 
-ipcMain.handle('agent:reset', async () => {
+ipcMain.handle('agent:reset', async (_event, workspaceId: string) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   const info = agent.getInfo()
   agent.resetConversation()
@@ -169,7 +177,8 @@ ipcMain.handle('agent:reset', async () => {
   return { success: true }
 })
 
-ipcMain.handle('agent:soft_reset', async () => {
+ipcMain.handle('agent:soft_reset', async (_event, workspaceId: string) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   agent.abort()
   agent.resetConversation()
@@ -177,24 +186,27 @@ ipcMain.handle('agent:soft_reset', async () => {
   return { success: true }
 })
 
-ipcMain.handle('agent:tokens', async () => {
+ipcMain.handle('agent:tokens', async (_event, workspaceId: string) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   return agent.getTokenEstimate()
 })
 
-ipcMain.handle('agent:info', async () => {
+ipcMain.handle('agent:info', async (_event, workspaceId: string) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   return agent.getInfo()
 })
 
-ipcMain.handle('agent:cd', async (event, targetPath: string) => {
+ipcMain.handle('agent:cd', async (_event, workspaceId: string, targetPath: string) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   try {
     process.chdir(targetPath)
     agent.resetConversation()
     await agent.initialize()
     agent.setProgressEmitter((event, toolName, data) => {
-      mainWindow?.webContents.send('agent:update', { type: 'tool_progress', event, toolName, ...data })
+      mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event, toolName, ...data })
     })
     return { success: true, info: agent.getInfo() }
   } catch (error) {
@@ -206,7 +218,8 @@ ipcMain.handle('agent:get_session', async (event, projectPath: string) => {
   return sessionManager.getSession(projectPath);
 })
 
-ipcMain.handle('agent:save_session', async (event, projectPath: string, data: any) => {
+ipcMain.handle('agent:save_session', async (event, workspaceId: string, projectPath: string, data: any) => {
+  const agent = agents.get(workspaceId)
   const { rendererMessages, backendMessages, pinnedFiles } = data;
   
   // Se backendMessages for null, pegamos o histórico atual do agente
@@ -225,13 +238,15 @@ ipcMain.handle('agent:save_session', async (event, projectPath: string, data: an
   } as any);
 })
 
-ipcMain.handle('agent:apikey', async (event, key: string) => {
+ipcMain.handle('agent:apikey', async (event, workspaceId: string, key: string) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   await agent.setApiKey(key)
   return { success: true, info: agent.getInfo() }
 })
 
-ipcMain.handle('agent:setup', async (event, config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string }) => {
+ipcMain.handle('agent:setup', async (event, workspaceId: string, config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string }) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   try {
     await agent.updateSettings(config)
@@ -244,23 +259,18 @@ ipcMain.handle('agent:setup', async (event, config: { provider?: string, model?:
 ipcMain.handle('agent:open_file', async (event, filePath: string, line?: number) => {
   try {
     const fullPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
-    // VS Code protocol: vscode://file/{fullPath}:{line}
-    // This is the most common way for developers. 
-    // If it fails or VS Code isn't there, we fallback to shell.openPath
     const vscodeUrl = `vscode://file/${fullPath}${line ? `:${line}` : ''}`;
-    
-    // We try to open via VS Code protocol first for line support
     shell.openExternal(vscodeUrl).catch(() => {
       shell.openPath(fullPath);
     });
-    
     return { success: true };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
 })
 
-ipcMain.handle('agent:model', async (event, model: string) => {
+ipcMain.handle('agent:model', async (event, workspaceId: string, model: string) => {
+  const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   await agent.setModel(model)
   return { success: true, info: agent.getInfo() }
@@ -487,8 +497,14 @@ ipcMain.handle('pty:kill', async (_event, pid: number) => {
   return { success: ok, error: ok ? undefined : `No active PTY with PID ${pid}` }
 })
 
-ipcMain.handle('pty:start', async (_event, cwd?: string) => {
-  const finalCwd = cwd || agent?.getInfo().cwd || process.cwd()
+ipcMain.handle('pty:start', async (_event, workspaceId?: string, cwd?: string) => {
+  let finalCwd = cwd
+  if (!finalCwd && workspaceId) {
+    const agent = getAgent(workspaceId)
+    finalCwd = agent?.getInfo().cwd
+  }
+  if (!finalCwd) finalCwd = process.cwd()
+  
   const pid = startInteractiveTerminal(finalCwd)
   return { success: true, pid }
 })
@@ -569,7 +585,9 @@ ipcMain.handle('marketplace:install', async (_event, skillName: string, version?
     // Invalidate skill manager cache
     const { skillManager } = await import('./services/skill-manager.js')
     skillManager.invalidate()
-    if (agent) await agent.reloadMcpTools()
+    for (const a of agents.values()) {
+      await a.reloadMcpTools()
+    }
 
     return { success: true }
   } catch (err: any) {
@@ -603,7 +621,7 @@ ipcMain.handle('marketplace:uninstall', async (_event, skillName: string) => {
 // Webhook / Remote Control
 ipcMain.handle('webhook:start', async (_event, config: { port: number; token: string }) => {
   try {
-    await startWebhookServer({ ...config, enabled: true }, () => agent, mainWindow)
+    await startWebhookServer({ ...config, enabled: true }, () => agents.values().next().value || null, mainWindow)
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -645,9 +663,9 @@ ipcMain.handle('mcp:save_configs', async (_event, configs) => {
     const configPath = path.join(app.getPath('userData'), 'mcp-configs.json')
     await fs.writeFile(configPath, JSON.stringify(mcpConfigs, null, 2))
     
-    // Reload mcp tools in existing agent if active
-    if (agent) {
-       await agent.reloadMcpTools();
+    // Reload mcp tools in all existing agents
+    for (const a of agents.values()) {
+       await a.reloadMcpTools();
     }
     
     return { success: true }

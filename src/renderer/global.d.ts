@@ -5,19 +5,19 @@ declare global {
     marked?: any;
     hljs?: any;
     koda: {
-      init: () => Promise<{ success: boolean; error?: string }>
-      sendMessage: (messageId: number, message: string, images?: any[]) => Promise<{ success: boolean; response: string; error?: string }>
-      snapshotRestore: (messageId: number) => Promise<{ success: boolean; error?: string }>
-      reset: () => Promise<{ success: boolean; error?: string }>
-      softReset: () => Promise<{ success: boolean; error?: string }>
-      getTokens: () => Promise<string>
-      getInfo: () => Promise<{ provider: string; model: string; project: string; cwd: string }>
-      cd: (path: string) => Promise<{ success: boolean; info?: any; error?: string }>
-      setApiKey: (key: string) => Promise<{ success: boolean; info?: any; error?: string }>
-      setModel: (model: string) => Promise<{ success: boolean; info?: any; error?: string }>
-      getModels: (provider: string, apiKey: string) => Promise<{ success: boolean; models?: string[]; error?: string }>
-      setup: (config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
-      openFile: (filePath: string, line?: number) => Promise<{ success: boolean; error?: string }>
+      init: (workspaceId: string) => Promise<{ success: boolean; info: { providerId?: string; provider: string; model: string; advisorModel: string; project: string; cwd: string }; error?: string }>
+      sendMessage: (workspaceId: string, messageId: number, message: string, images?: any[]) => Promise<{ success: boolean; response: string; error?: string }>
+      snapshotRestore: (workspaceId: string, messageId: number) => Promise<{ success: boolean; error?: string }>
+      reset: (workspaceId: string) => Promise<{ success: boolean; error?: string }>
+      softReset: (workspaceId: string) => Promise<{ success: boolean; error?: string }>
+      getTokens: (workspaceId: string) => Promise<string>
+      getInfo: (workspaceId: string) => Promise<{ providerId?: string; provider: string; model: string; advisorModel: string; project: string; cwd: string }>
+      cd: (workspaceId: string, path: string) => Promise<{ success: boolean; info?: any; error?: string }>
+      setApiKey: (workspaceId: string, key: string) => Promise<{ success: boolean; info?: any; error?: string }>
+      setModel: (workspaceId: string, model: string) => Promise<{ success: boolean; info?: any; error?: string }>
+      getModels: (workspaceId: string, provider: string, apiKey: string) => Promise<{ success: boolean; models?: string[]; error?: string }>
+      setup: (workspaceId: string, config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
+      openFile: (workspaceId: string, filePath: string, line?: number) => Promise<{ success: boolean; error?: string }>
       onUpdate: (callback: (update: any) => void) => (() => void)
       removeUpdateListener: () => void
       planResponse: (approved: boolean) => Promise<{ success: boolean }>
@@ -26,14 +26,14 @@ declare global {
       updateApprovedCommands: (lists: { base?: string[], full?: string[] }) => Promise<{ success: boolean }>
       ptySendCtrlC: (pid: number) => Promise<{ success: boolean; error?: string }>
       ptyKill: (pid: number) => Promise<{ success: boolean; error?: string }>
-      ptyStart: (cwd?: string) => Promise<{ success: boolean; pid: number }>
+      ptyStart: (workspaceId?: string, cwd?: string) => Promise<{ success: boolean; pid: number }>
       ptyWrite: (pid: number, data: string) => Promise<{ success: boolean }>
       ptyResize: (pid: number, cols: number, rows: number) => Promise<{ success: boolean }>
       getFiles: () => Promise<{ success: boolean; files: string[]; error?: string }>
       getMcpConfigs: () => Promise<any[]>
       saveMcpConfigs: (configs: any[]) => Promise<{ success: boolean; error?: string }>
       getProjectSession: (projectPath: string) => Promise<any>
-      saveProjectSession: (projectPath: string, data: any) => Promise<void>
+      saveProjectSession: (workspaceId: string, projectPath: string, data: any) => Promise<void>
       listSkills: () => Promise<{ success: boolean; skills?: Array<{ name: string; description: string; triggers: string[]; filePath: string }>; error?: string }>
       marketplaceFetch: () => Promise<{ success: boolean; skills: any[]; error?: string }>
       marketplaceInstall: (skillName: string, version?: string) => Promise<{ success: boolean; error?: string }>

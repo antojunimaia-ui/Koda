@@ -7,9 +7,10 @@ import 'xterm/css/xterm.css'
 interface TerminalPanelProps {
   onClose: () => void
   cwd?: string
+  workspaceId?: string
 }
 
-const TerminalPanel: React.FC<TerminalPanelProps> = memo(({ onClose, cwd }) => {
+const TerminalPanel: React.FC<TerminalPanelProps> = memo(({ onClose, cwd, workspaceId }) => {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -41,7 +42,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = memo(({ onClose, cwd }) => {
     fitAddonRef.current = fitAddon
 
     // Init PTY
-    window.koda.ptyStart(cwd).then(res => {
+    window.koda.ptyStart(workspaceId, cwd).then(res => {
       if (res.success) {
         pidRef.current = res.pid
         

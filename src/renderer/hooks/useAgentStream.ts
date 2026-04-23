@@ -9,13 +9,13 @@ let _nextId = 0
 export const nextId = () => ++_nextId
 
 interface UseAgentStreamOptions {
-  setMessages: React.Dispatch<React.SetStateAction<MessageEntry[]>>
-  setAgentInfo: React.Dispatch<React.SetStateAction<AgentInfo>>
-  setIsProcessing: React.Dispatch<React.SetStateAction<boolean>>
-  setTrackedFiles: React.Dispatch<React.SetStateAction<TrackedFile[]>>
-  setPendingPlan: React.Dispatch<React.SetStateAction<string | null>>
-  setInPlanMode: React.Dispatch<React.SetStateAction<boolean>>
-  scheduleScroll: () => void
+  onUpdate: (workspaceId: string, update: (prev: MessageEntry[]) => MessageEntry[]) => void
+  onAgentInfo: (workspaceId: string, info: AgentInfo) => void
+  onProcessing: (workspaceId: string, processing: boolean) => void
+  onTrackedFiles: (workspaceId: string, files: TrackedFile[]) => void
+  onPendingPlan: (workspaceId: string, plan: string | null) => void
+  onPlanMode: (workspaceId: string, inPlanMode: boolean) => void
+  scheduleScroll: (workspaceId: string) => void
 }
 
 /**
@@ -23,25 +23,25 @@ interface UseAgentStreamOptions {
  * to their respective state setters. Also manages the streaming rAF flush loop.
  */
 export function useAgentStream({
-  setMessages,
-  setAgentInfo,
-  setIsProcessing,
-  setTrackedFiles,
-  setPendingPlan,
-  setInPlanMode,
+  onUpdate,
+  onAgentInfo,
+  onProcessing,
+  onTrackedFiles,
+  onPendingPlan,
+  onPlanMode,
   scheduleScroll,
 }: UseAgentStreamOptions) {
-  const chunkBufferRef = useRef<string>('')
-  const rafRef = useRef<number | null>(null)
-  const taskStartRef = useRef<number | null>(null)
+  const chunkBuffersRef = useRef<Map<string, string>>(new Map())
+  const rafRefs = useRef<Map<string, number | null>>(new Map())
+  const taskStartsRef = useRef<Map<string, number | null>>(new Map())
 
-  const flushStreaming = useCallback(() => {
-    rafRef.current = null
-    const chunk = chunkBufferRef.current
+  const flushStreaming = useCallback((workspaceId: string) => {
+    rafRefs.current.set(workspaceId, null)
+    const chunk = chunkBuffersRef.current.get(workspaceId)
     if (!chunk) return
-    chunkBufferRef.current = ''
+    chunkBuffersRef.current.set(workspaceId, '')
 
-    setMessages(prev => {
+    onUpdate(workspaceId, (prev: MessageEntry[]) => {
       const updated = [...prev]
       const last = updated[updated.length - 1]
       if (last && last.type === 'assistant' && !last.done) {
@@ -50,27 +50,31 @@ export function useAgentStream({
       }
       return [...updated, { id: nextId(), type: 'assistant', text: chunk, done: false }]
     })
-  }, [setMessages])
+  }, [onUpdate])
 
-  const scheduleFlush = useCallback(() => {
-    if (rafRef.current !== null) return
-    rafRef.current = requestAnimationFrame(flushStreaming)
+  const scheduleFlush = useCallback((workspaceId: string) => {
+    if (rafRefs.current.get(workspaceId)) return
+    rafRefs.current.set(workspaceId, requestAnimationFrame(() => flushStreaming(workspaceId)))
   }, [flushStreaming])
 
   useEffect(() => {
     if (!window.koda) return
 
-    const unsubscribe = window.koda.onUpdate((update: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const unsubscribe = window.koda.onUpdate((payload: any) => {
+      const { workspaceId, ...update } = payload
+      
       if (update.type === 'text') {
-        chunkBufferRef.current += update.content
-        scheduleFlush()
+        const current = chunkBuffersRef.current.get(workspaceId) || ''
+        chunkBuffersRef.current.set(workspaceId, current + update.content)
+        scheduleFlush(workspaceId)
 
       } else if (update.type === 'tool_start') {
-        const chunk = chunkBufferRef.current
-        chunkBufferRef.current = ''
-        if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+        const chunk = chunkBuffersRef.current.get(workspaceId) || ''
+        chunkBuffersRef.current.set(workspaceId, '')
+        const raf = rafRefs.current.get(workspaceId)
+        if (raf) { cancelAnimationFrame(raf); rafRefs.current.set(workspaceId, null) }
 
-        setMessages(prev => {
+        onUpdate(workspaceId, prev => {
           const updated = [...prev]
           const last = updated[updated.length - 1]
           let finalized = updated
@@ -88,13 +92,11 @@ export function useAgentStream({
           }
           return [...finalized, { id: nextId(), type: 'tool', tool: { name: update.name, args: update.args, status: 'running' as const, success: false } }]
         })
-        scheduleScroll()
+        scheduleScroll(workspaceId)
 
       } else if (update.type === 'tool_progress') {
-        // Real-time signal from inside the tool (e.g. right before writeFile)
-        // Update the running tool message so the shimmer shows the correct action label
         if (update.event === 'writing') {
-          setMessages(prev =>
+          onUpdate(workspaceId, prev =>
             prev.map(m =>
               m.type === 'tool' && m.tool && m.tool.name === update.toolName && m.tool.status === 'running'
                 ? { ...m, tool: { ...m.tool, args: { ...m.tool.args, path: update.path ?? m.tool.args?.path }, isNew: update.isNew ?? false, status: 'writing' as const } }
@@ -104,28 +106,25 @@ export function useAgentStream({
         }
 
       } else if (update.type === 'tool_end') {
-        const applyEnd = () => setMessages(prev =>
+        const applyEnd = () => onUpdate(workspaceId, prev =>
           prev.map(m =>
             m.type === 'tool' && m.tool && m.tool.name === update.name && (m.tool.status === 'running' || m.tool.status === 'writing' || m.tool.status === 'awaiting_approval')
               ? { ...m, tool: { ...m.tool, status: 'done' as const, success: update.success, output: update.result, args: update.args || m.tool.args } }
               : m
           )
         )
-        // Double rAF: guarantees the 'running'/'writing' state is painted for at least one frame
-        // before transitioning to 'done'. Needed because file_edit/file_write are synchronous and
-        // their tool_start + tool_end IPC messages arrive in the same JS task.
         requestAnimationFrame(() => requestAnimationFrame(() => {
           applyEnd()
-          scheduleScroll()
+          scheduleScroll(workspaceId)
         }))
 
       } else if (update.type === 'error') {
-        chunkBufferRef.current = ''
-        setMessages(prev => [...prev, { id: nextId(), type: 'error', text: update.message }])
-        scheduleScroll()
+        chunkBuffersRef.current.set(workspaceId, '')
+        onUpdate(workspaceId, prev => [...prev, { id: nextId(), type: 'error', text: update.message }])
+        scheduleScroll(workspaceId)
 
       } else if (update.type === 'pty_output') {
-        setMessages(prev => {
+        onUpdate(workspaceId, prev => {
           const updated = [...prev]
           const ptyIndex = updated.map(m => m.type === 'pty' ? m.pty?.pid : null).lastIndexOf(update.pid)
           if (ptyIndex !== -1) {
@@ -137,29 +136,29 @@ export function useAgentStream({
           }
           return [...updated, { id: nextId(), type: 'pty', pty: { pid: update.pid, output: update.data } }]
         })
-        scheduleScroll()
+        scheduleScroll(workspaceId)
 
       } else if (update.type === 'pty_exit') {
-        setMessages(prev => prev.map(m =>
+        onUpdate(workspaceId, prev => prev.map(m =>
           m.type === 'pty' && m.pty?.pid === update.pid
             ? { ...m, pty: { ...m.pty!, exited: true } }
             : m
         ))
 
       } else if (update.type === 'plan_mode_entered') {
-        setInPlanMode(true)
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: '📋 Koda exited Plan Mode — all changes approved and history updated.' }])
-        scheduleScroll()
+        onPlanMode(workspaceId, true)
+        onUpdate(workspaceId, prev => [...prev, { id: nextId(), type: 'system', text: '📋 Koda exited Plan Mode — all changes approved and history updated.' }])
+        scheduleScroll(workspaceId)
 
       } else if (update.type === 'info_updated') {
-        setAgentInfo(update.info)
+        onAgentInfo(workspaceId, update.info)
 
       } else if (update.type === 'plan_approval_requested') {
-        setPendingPlan(update.plan)
-        scheduleScroll()
+        onPendingPlan(workspaceId, update.plan)
+        scheduleScroll(workspaceId)
 
       } else if (update.type === 'shell_awaiting_approval') {
-        setMessages(prev => {
+        onUpdate(workspaceId, prev => {
           const updated = [...prev]
           const lastToolIdx = updated.map(m => m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null).lastIndexOf('shell')
           if (lastToolIdx !== -1) {
@@ -175,22 +174,22 @@ export function useAgentStream({
           }
           return updated
         })
-        scheduleScroll()
+        scheduleScroll(workspaceId)
 
       } else if (update.type === 'plan_mode_exited') {
-        setInPlanMode(false)
-        setPendingPlan(null)
+        onPlanMode(workspaceId, false)
+        onPendingPlan(workspaceId, null)
         const msg = update.approved
           ? '✅ Plan approved! Koda will start implementation now.'
           : '❌ Plan rejected. Koda will refine the approach.'
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: msg }])
-        scheduleScroll()
+        onUpdate(workspaceId, prev => [...prev, { id: nextId(), type: 'system', text: msg }])
+        scheduleScroll(workspaceId)
 
       } else if (update.type === 'files_tracked') {
-        setTrackedFiles(update.files)
+        onTrackedFiles(workspaceId, update.files)
 
       } else if (update.type === 'pty_spawned') {
-        setMessages(prev => {
+        onUpdate(workspaceId, prev => {
           const updated = [...prev]
           const index = updated.map(m => m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null).lastIndexOf(update.name)
           if (index !== -1) {
@@ -200,33 +199,35 @@ export function useAgentStream({
         })
 
       } else if (update.type === 'done') {
-        const elapsed = taskStartRef.current ? Date.now() - taskStartRef.current : 0
-        taskStartRef.current = null
+        onProcessing(workspaceId, false)
+        const start = taskStartsRef.current.get(workspaceId)
+        const elapsed = start ? Date.now() - start : 0
+        taskStartsRef.current.set(workspaceId, null)
         if (elapsed > 3000 && !document.hasFocus() && Notification.permission === 'granted') {
           new Notification('Koda', { body: 'Task completed ✔', icon: '/icon.png', silent: true })
         }
 
       } else if (update.type === 'remote_task') {
-        setMessages(prev => [...prev, {
+        onUpdate(workspaceId, prev => [...prev, {
           id: update.messageId,
           type: 'user' as const,
           text: update.message,
           remote: true,
         }])
-        setIsProcessing(true)
-        taskStartRef.current = Date.now()
-        scheduleScroll()
+        onProcessing(workspaceId, true)
+        taskStartsRef.current.set(workspaceId, Date.now())
+        scheduleScroll(workspaceId)
 
       } else if (update.type === 'remote_reset') {
-        setMessages(prev => [...prev, { id: nextId(), type: 'system', text: '🌐 Remote: conversation reset.' }])
+        onUpdate(workspaceId, prev => [...prev, { id: nextId(), type: 'system', text: '🌐 Remote: conversation reset.' }])
       }
     })
 
     return () => {
       window.koda.removeUpdateListener()
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      rafRefs.current.forEach(raf => raf && cancelAnimationFrame(raf))
     }
-  }, [scheduleFlush, scheduleScroll, setAgentInfo, setInPlanMode, setIsProcessing, setMessages, setPendingPlan, setTrackedFiles])
+  }, [scheduleFlush, scheduleScroll, onAgentInfo, onPlanMode, onProcessing, onUpdate, onPendingPlan, onTrackedFiles])
 
-  return { chunkBufferRef, rafRef, taskStartRef, scheduleFlush }
+  return { chunkBuffersRef, rafRefs, taskStartsRef, scheduleFlush }
 }

@@ -11,6 +11,7 @@ import { BrailleSpinner } from '../BrailleSpinner.js'
 import MessageRow from '../messages/MessageRow.js'
 import BrowserPreview from '../BrowserPreview.js'
 import TerminalPanel from '../TerminalPanel.js'
+import WorkspaceTabs from '../WorkspaceTabs.js'
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -60,6 +61,13 @@ interface ModernUIProps {
   browserHeight: number
   isResizingHeight: boolean
   startResizingHeight: (e: React.MouseEvent) => void
+  isSplitEnabled?: boolean
+  onToggleSplit?: () => void
+  workspaces?: import('../../types/index.js').Workspace[]
+  activeId?: string | null
+  setActiveId?: (id: string) => void
+  onAddWorkspace?: () => void
+  onCloseWorkspace?: (id: string) => void
 }
 
 // ─── Auto Resize Hook ────────────────────────────────────────────────────────
@@ -122,7 +130,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
   showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel,
   slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
   suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
-  leftPanelWidth, rightPanelWidth, startResizing, isResizing, startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight
+  leftPanelWidth, rightPanelWidth, startResizing, isResizing, startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
+  isSplitEnabled = false, onToggleSplit,
+  workspaces = [], activeId, setActiveId, onAddWorkspace, onCloseWorkspace
 }) => {
   
   const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
@@ -279,7 +289,11 @@ const ModernUI: React.FC<ModernUIProps> = ({
         onTogglePanel={onTogglePanel}
         uiMode="modern"
         showIconBar={kodaSettings.showIconBar}
+        isSplitEnabled={isSplitEnabled}
+        onToggleSplit={onToggleSplit || (() => {})}
       />
+
+
 
       <div className="flex flex-1 min-h-0 relative flex-row">
         {/* ── Iconbar (Modern Only) ── */}
@@ -332,6 +346,17 @@ const ModernUI: React.FC<ModernUIProps> = ({
       )}
 
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Workspace tabs — inside the chat column, naturally right of the Iconbar */}
+          {isSplitEnabled && setActiveId && onAddWorkspace && onCloseWorkspace && (
+            <WorkspaceTabs
+              variant="modern"
+              workspaces={workspaces}
+              activeId={activeId || null}
+              onSwitch={setActiveId}
+              onAdd={onAddWorkspace}
+              onClose={onCloseWorkspace}
+            />
+          )}
           <div className="flex-1 relative flex flex-row min-h-0">
             {/* ── Left Panel Area ── */}
           {showLeft && renderPanelStack('left')}
