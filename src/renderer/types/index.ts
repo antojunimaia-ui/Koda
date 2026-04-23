@@ -49,6 +49,7 @@ export interface KodaSettings {
   showColab: boolean
   showPty: boolean
   uiMode: 'classic' | 'modern'
+  toolViewMode: 'standard' | 'compact'
   browserPosition: 'left' | 'right'
   terminalPosition: 'left' | 'right'
   showIconBar: boolean

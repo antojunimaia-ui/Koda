@@ -26,6 +26,7 @@ import SettingsUI, { DEFAULT_THEME } from './components/settings/SettingsUI.js'
 // ─── UI Modes ───────────────────────────────────────────────────────────────
 import ClassicUI from './components/classic/ClassicUI.js'
 import ModernUI from './components/modern/ModernUI.js'
+import SplitView from './components/SplitView.js'
 
 const SYMBOLS = {
   brain: '🧠',
@@ -49,6 +50,7 @@ const App: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isSplitEnabled, setIsSplitEnabled] = useState(false)
+  const [splitViewIds, setSplitViewIds] = useState<[string, string] | null>(null)
 
   // Derived active workspace
   const activeWorkspace = workspaces.find(w => w.id === activeId) || null
@@ -94,7 +96,7 @@ const App: React.FC = () => {
       showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,
       showFileWrite: true, showListDir: true, showFileFind: true, showSearch: true,
       showLspQuery: true, showBrowserAgent: true, showPlanMode: true, showColab: true,
-      showPty: true, uiMode: 'classic', browserPosition: 'left', terminalPosition: 'left', showIconBar: true
+      showPty: true, uiMode: 'classic', toolViewMode: 'standard', browserPosition: 'left', terminalPosition: 'left', showIconBar: true
     }
   })
 
@@ -403,50 +405,48 @@ const App: React.FC = () => {
     }
   }, [activeWorkspace?.isProcessing])
 
-  // ── handleSend ───────────────────────────────────────────────────────────────
-  const handleSend = useCallback(async (overrideText?: string, overrideImages?: AttachedImage[]) => {
-    if (!activeWorkspace) return
+  // ── handleSend (workspace-targeted) ─────────────────────────────────────────
+  const handleSendForWs = useCallback(async (overrideText?: string, overrideImages?: AttachedImage[], wsId?: string) => {
+    const targetId = wsId || activeId
+    const ws = workspaces.find(w => w.id === targetId)
+    if (!ws) return
     const userMsg = overrideText ?? input
-    const currentImages = overrideImages ?? activeWorkspace.pendingImages
+    const currentImages = overrideImages ?? ws.pendingImages
     if (!userMsg.trim()) return
 
-    if (activeWorkspace.isProcessing && !overrideText) {
-      updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+    if (ws.isProcessing && !overrideText) {
+      updateWorkspace(ws.id, (prev: Workspace) => ({
         ...prev,
         taskQueue: [...prev.taskQueue, { text: userMsg, images: currentImages }]
       }))
-      setInput('')
-      setShowSlashMenu(false)
-      setShowSuggestions(false)
+      if (!wsId) { setInput(''); setShowSlashMenu(false); setShowSuggestions(false) }
       return
     }
 
-
-    if (!overrideText) {
+    if (!overrideText && !wsId) {
       setInput('')
-      updateWorkspace(activeWorkspace.id, { pendingImages: [] })
+      updateWorkspace(ws.id, { pendingImages: [] })
       setShowSlashMenu(false)
       setShowSuggestions(false)
       setHistory((prev: string[]) => prev[0] === userMsg ? prev : [userMsg, ...prev])
       setHistoryIndex(-1)
     }
 
-
     if (userMsg.startsWith('/')) {
       const parts = userMsg.toLowerCase().split(' ')
       const cmd = parts[0]
 
-      if (cmd === '/clear') { updateWorkspace(activeWorkspace.id, { messages: [] }); return }
+      if (cmd === '/clear') { updateWorkspace(ws.id, { messages: [] }); return }
       if (cmd === '/help') {
-        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+        updateWorkspace(ws.id, (prev: Workspace) => ({
           ...prev,
           messages: [...prev.messages, { id: nextId(), type: 'system', text: 'Available commands:\n/help - Show this help\n/clear - Clear messages\n/reset - Reset conversation\n/model [--name] - View or switch model' }]
         }))
         return
       }
       if (cmd === '/reset') {
-        await window.koda.reset(activeWorkspace.id)
-        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+        await window.koda.reset(ws.id)
+        updateWorkspace(ws.id, (prev: Workspace) => ({
           ...prev,
           messages: [...prev.messages, { id: nextId(), type: 'system', text: 'Conversation reset!' }]
         }))
@@ -455,23 +455,23 @@ const App: React.FC = () => {
       if (cmd === '/model') {
         const modelArg = parts[1]
         if (modelArg?.startsWith('--')) {
-          const res = await window.koda.setModel(activeWorkspace.id, modelArg.slice(2))
+          const res = await window.koda.setModel(ws.id, modelArg.slice(2))
           if (res.success) {
-            updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
-            updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+            updateWorkspace(ws.id, { agentInfo: res.info })
+            updateWorkspace(ws.id, (prev: Workspace) => ({
               ...prev,
               messages: [...prev.messages, { id: nextId(), type: 'system', text: `🤖 Model updated to: ${res.info.model} (${res.info.provider})` }]
             }))
           } else {
-            updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+            updateWorkspace(ws.id, (prev: Workspace) => ({
               ...prev,
               messages: [...prev.messages, { id: nextId(), type: 'error', text: res.error }]
             }))
           }
           return
         }
-        const info = await window.koda.getInfo(activeWorkspace.id)
-        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+        const info = await window.koda.getInfo(ws.id)
+        updateWorkspace(ws.id, (prev: Workspace) => ({
           ...prev,
           messages: [...prev.messages, { id: nextId(), type: 'system', text: `Provider: ${info.provider} | Model: ${info.model}` }]
         }))
@@ -480,21 +480,21 @@ const App: React.FC = () => {
       if (cmd === '/apikey') {
         const key = parts[1]
         if (!key) { 
-          updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          updateWorkspace(ws.id, (prev: Workspace) => ({
             ...prev,
             messages: [...prev.messages, { id: nextId(), type: 'error', text: 'Usage: /apikey <key>' }]
           }))
           return 
         }
-        const res = await window.koda.setApiKey(activeWorkspace.id, key)
+        const res = await window.koda.setApiKey(ws.id, key)
         if (res.success) {
-          updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
-          updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          updateWorkspace(ws.id, { agentInfo: res.info })
+          updateWorkspace(ws.id, (prev: Workspace) => ({
             ...prev,
             messages: [...prev.messages, { id: nextId(), type: 'system', text: '🔑 API Key updated successfully!' }]
           }))
         } else {
-          updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+          updateWorkspace(ws.id, (prev: Workspace) => ({
             ...prev,
             messages: [...prev.messages, { id: nextId(), type: 'error', text: res.error }]
           }))
@@ -505,7 +505,7 @@ const App: React.FC = () => {
       const knownCmds = ['/clear', '/help', '/reset', '/model', '/apikey', '/tokens', '/cost', '/debug']
       const skillName = cmd.slice(1)
       if (!knownCmds.includes(cmd)) {
-        updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+        updateWorkspace(ws.id, (prev: Workspace) => ({
           ...prev,
           messages: [...prev.messages, { id: nextId(), type: 'system', text: `🎯 Activating skill: ${skillName}...` }]
         }))
@@ -513,24 +513,23 @@ const App: React.FC = () => {
     }
 
     let finalMsg = userMsg
-    if (activeWorkspace.mode === 'planner') {
+    if (ws.mode === 'planner') {
       finalMsg = `[PLANNER MODE PROTOCOL - MANDATORY]\n1. Use 'enter_plan_mode' IMMEDIATELY.\n2. Explore the codebase using read-only tools ONLY.\n3. DESIGN a complete implementation strategy.\n4. Call 'exit_plan_mode' with your Markdown plan to get my approval.\n5. DO NOT ATTEMPT TO EDIT ANY FILES OR RUN EVOLUTIVE SHELL COMMANDS UNTIL I APPROVE THE PLAN.\n\nYour current task is: ${userMsg}`
-    } else if (activeWorkspace.mode === 'colab') {
+    } else if (ws.mode === 'colab') {
       finalMsg = `[COLLABORATIVE MODE PROTOCOL - ACTIVE]\n1. You are working in COLLABORATIVE MODE.\n2. You have access to a suite of collaboration tools: 'start_collaboration', 'send_to_advisor', and 'end_collaboration'.\n3. Use 'start_collaboration' to initialize a discussion with an Elite Technical Advisor.\n4. Use 'send_to_advisor' to exchange ideas, ask follow-up questions, and refine your plan.\n5. Once you have a solid strategy approved by the advisor, use 'end_collaboration' and proceed to implementation.\n6. This mode is for COMPLEX architectural discussions. Use it to deliver superior engineering.\n\nYour current task is: ${userMsg}`
-    } else if (activeWorkspace.mode === 'teach') {
+    } else if (ws.mode === 'teach') {
       finalMsg = `[TEACH & CODE MODE — ACTIVE]\nYou are now a hands-on programming instructor. You will BUILD the solution live, as if teaching a class. Follow this structure for every meaningful step:\n\n📖 CONCEPT FIRST — Before writing code, briefly introduce the concept or technique you are about to use. One or two sentences max. Why does it exist? What problem does it solve?\n\n💻 CODE — Write the code. Keep it clean and intentional.\n\n🔍 BREAKDOWN — After each block, explain what each key part does. Point out non-obvious decisions. If you chose approach A over B, say why (performance, readability, correctness, convention).\n\n⚠️ WATCH OUT — Flag common mistakes, gotchas, or edge cases a student might miss.\n\n🎯 LESSON — End each major step with one clear takeaway sentence. What should the student remember from this?\n\nRules:\n- Write as if the student is watching your screen and learning in real time.\n- Never just dump code without explanation.\n- Use analogies when a concept is abstract.\n- Keep a natural teaching rhythm — not every line needs a lecture, only the meaningful ones.\n- Respond in the same language the student used.\n\nYour current task is: ${userMsg}`
     }
 
     const msgId = nextId()
-    updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+    updateWorkspace(ws.id, (prev: Workspace) => ({
       ...prev,
       messages: [...prev.messages, { id: msgId, type: 'user', text: userMsg, images: currentImages.length > 0 ? currentImages : undefined }],
       isProcessing: true
     }))
     
-    // Set task start in the hook
-    taskStartsRef.current.set(activeWorkspace.id, Date.now())
-    scheduleScroll(activeWorkspace.id)
+    taskStartsRef.current.set(ws.id, Date.now())
+    scheduleScroll(ws.id)
 
     const imageParts = currentImages.map(img => ({
       type: 'image' as const,
@@ -538,17 +537,17 @@ const App: React.FC = () => {
     }))
 
     try {
-      await window.koda.sendMessage(activeWorkspace.id, msgId, finalMsg, imageParts.length > 0 ? imageParts : undefined)
+      await window.koda.sendMessage(ws.id, msgId, finalMsg, imageParts.length > 0 ? imageParts : undefined)
 
-      const raf = rafRefs.current.get(activeWorkspace.id)
+      const raf = rafRefs.current.get(ws.id)
       if (raf !== null && raf !== undefined) {
         cancelAnimationFrame(raf)
-        rafRefs.current.set(activeWorkspace.id, null)
+        rafRefs.current.set(ws.id, null)
       }
-      const chunk = chunkBuffersRef.current.get(activeWorkspace.id)
-      chunkBuffersRef.current.set(activeWorkspace.id, '')
+      const chunk = chunkBuffersRef.current.get(ws.id)
+      chunkBuffersRef.current.set(ws.id, '')
 
-      updateWorkspace(activeWorkspace.id, (prev: Workspace) => {
+      updateWorkspace(ws.id, (prev: Workspace) => {
         const updated = [...prev.messages]
         const last = updated[updated.length - 1]
         if (!last) return prev
@@ -564,16 +563,22 @@ const App: React.FC = () => {
         return { ...prev, messages: updated }
       })
     } catch (err: any) {
-      chunkBuffersRef.current.set(activeWorkspace.id, '')
+      chunkBuffersRef.current.set(ws.id, '')
       const message = err.message || String(err)
-      updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+      updateWorkspace(ws.id, (prev: Workspace) => ({
         ...prev,
         messages: [...prev.messages, { id: nextId(), type: 'error', text: message }]
       }))
     } finally {
-      updateWorkspace(activeWorkspace.id, { isProcessing: false })
+      updateWorkspace(ws.id, { isProcessing: false })
     }
-  }, [activeWorkspace, input, updateWorkspace, scheduleScroll, chunkBuffersRef, rafRefs, taskStartsRef])
+  }, [activeId, workspaces, input, updateWorkspace, scheduleScroll, chunkBuffersRef, rafRefs, taskStartsRef])
+
+  // Legacy wrapper — used by ClassicUI/ModernUI which don't pass wsId
+  const handleSend = useCallback((overrideText?: string, overrideImages?: AttachedImage[]) => {
+    return handleSendForWs(overrideText, overrideImages, undefined)
+  }, [handleSendForWs])
+
 
   // ── handlePathClick ──────────────────────────────────────────────────────────
   const handlePathClick = async () => {
@@ -725,9 +730,31 @@ const App: React.FC = () => {
     setWorkspaces((prev: Workspace[]) => {
       const remaining = prev.filter(w => w.id !== id)
       if (activeId === id) setActiveId(remaining[0]?.id || null)
+      // If closing a split participant, clear split
+      if (splitViewIds?.includes(id)) setSplitViewIds(null)
       return remaining
     })
-  }, [workspaces.length, activeId, setWorkspaces, setActiveId])
+  }, [workspaces.length, activeId, setWorkspaces, setActiveId, splitViewIds])
+
+  // ── onSplitWith: toggle split view for a tab ─────────────────────────────────
+  const onSplitWith = useCallback((id: string) => {
+    if (!activeId) return
+    if (splitViewIds?.includes(id)) {
+      // Already in split — close it
+      setSplitViewIds(null)
+    } else if (id === activeId) {
+      // Splitting a workspace with itself is a no-op
+    } else {
+      setSplitViewIds([id, activeId])
+    }
+  }, [activeId, splitViewIds])
+
+  const handleSwitchWorkspace = (id: string) => {
+    setActiveId(id)
+    if (splitViewIds && !splitViewIds.includes(id)) {
+      setSplitViewIds(null)
+    }
+  }
 
   // ── Derived state ────────────────────────────────────────────────────────────
   const showThinkingSpinner = !!(activeWorkspace && activeWorkspace.isProcessing && (
@@ -776,6 +803,7 @@ const App: React.FC = () => {
         />
       )}
 
+
       {/* Main UI Switch */}
       {kodaSettings.uiMode === 'modern' ? (
         <ModernUI
@@ -793,6 +821,7 @@ const App: React.FC = () => {
           handlePathClick={handlePathClick}
           handleInputChange={handleInputChange}
           handleRollback={handleRollback}
+          handlePaste={handlePaste}
           inputRef={inputRef}
           virtuosoRef={virtuosoRef}
           theme={theme}
@@ -828,9 +857,13 @@ const App: React.FC = () => {
           onToggleSplit={() => setIsSplitEnabled(!isSplitEnabled)}
           workspaces={workspaces}
           activeId={activeId}
-          setActiveId={setActiveId}
+          setActiveId={handleSwitchWorkspace}
           onAddWorkspace={() => createNewWorkspace()}
           onCloseWorkspace={onCloseWorkspace}
+          splitViewIds={splitViewIds}
+          onSplitWith={onSplitWith}
+          handleSendForWs={handleSendForWs}
+          handleRollbackForWs={handleRollback}
         />
       ) : (
         <ClassicUI
@@ -842,17 +875,19 @@ const App: React.FC = () => {
           isProcessing={activeWorkspace.isProcessing}
           agentInfo={activeWorkspace.agentInfo}
           mode={activeWorkspace.mode}
-          setMode={(m) => updateWorkspace(activeWorkspace.id, { mode: m })}
+          setMode={(m: Mode) => updateWorkspace(activeWorkspace.id, { mode: m })}
           pendingImages={activeWorkspace.pendingImages}
-          setPendingImages={(imgs) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs }))}
+          setPendingImages={(imgs: any) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs }))}
           taskQueue={activeWorkspace.taskQueue}
-          setTaskQueue={(queue) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, taskQueue: typeof queue === 'function' ? queue(prev.taskQueue) : queue }))}
+          setTaskQueue={(queue: any) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, taskQueue: typeof queue === 'function' ? queue(prev.taskQueue) : queue }))}
           
           // Callbacks
           handleSend={handleSend}
           handlePathClick={handlePathClick}
           handleInputChange={handleInputChange}
           handleRollback={handleRollback}
+          handleStop={handleStop}
+          handlePaste={handlePaste}
           inputRef={inputRef}
           virtuosoRef={virtuosoRef}
           
@@ -909,9 +944,13 @@ const App: React.FC = () => {
           onToggleSplit={() => setIsSplitEnabled(!isSplitEnabled)}
           workspaces={workspaces}
           activeId={activeId}
-          setActiveId={setActiveId}
+          setActiveId={handleSwitchWorkspace}
           onAddWorkspace={() => createNewWorkspace()}
           onCloseWorkspace={onCloseWorkspace}
+          splitViewIds={splitViewIds}
+          onSplitWith={onSplitWith}
+          handleSendForWs={handleSendForWs}
+          handleRollbackForWs={handleRollback}
         />
       )}
 

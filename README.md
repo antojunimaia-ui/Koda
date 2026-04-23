@@ -20,7 +20,7 @@
 
 Koda is a fully autonomous software engineering agent that runs as a native desktop application. No IDE extensions, no cloud servers, no clipboard gymnastics — it reads your codebase, edits files, runs commands, and ships code directly in your local environment.
 
-[Features](#-features) • [Modes](#-operation-modes) • [Tools](#-tool-arsenal) • [Providers](#-supported-providers) • [Installation](#-installation) • [Build](#-build--distribution) • [Architecture](#-architecture)
+[Features](#-features) • [Modes](#-operation-modes) • [Workspaces](#-multi-workspace) • [Tools](#-tool-arsenal) • [Providers](#-supported-providers) • [Installation](#-installation) • [Build](#-build--distribution) • [Architecture](#-architecture)
 
 </div>
 
@@ -29,11 +29,12 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 ## Features
 
 - **Autonomous pair-programming** — Koda reads your project structure, understands the architecture, and edits files directly. No copy-paste required.
+- **Multi-Workspace Split Mode** — run multiple independent agent sessions side-by-side in the same window. Each workspace has its own conversation, project context, terminal, and file tracker — with zero cross-talk between instances.
 - **Snapshot & rollback** — before every message, Koda captures a full in-memory snapshot of all workspace files. Hover any user message and click `↺` to restore both files and agent memory to that exact point.
-- **Persistent project sessions** — conversation history and pinned files are saved to disk per working directory (MD5-hashed path in `userData/sessions/`) and restored automatically when you switch back to a project.
+- **Persistent project sessions** — conversation history and pinned files are saved to disk per working directory (MD5-hashed path in `userData/sessions/`) and restored automatically when you switch back to a project. Each workspace maintains its own session state.
 - **Task queue** — send the next task while the agent is still working. Koda queues it and fires it automatically when the current task finishes.
 - **Real PTY terminal** — native shell integration via `node-pty`. Koda spawns background processes, waits for output patterns, sends stdin (passwords, `y/n` prompts), and kills processes by PID — all autonomously.
-- **Interactive terminal panel** — a full `xterm.js` terminal for you to use directly, independent of the agent, with resize support and ANSI rendering.
+- **Interactive terminal panel** — a full `xterm.js` terminal for you to use directly, independent of the agent, with resize support and ANSI rendering. Each workspace gets its own terminal routed to its working directory.
 - **Split-view panels** — browser preview and terminal panel share the left side with a draggable vertical divider. The main horizontal divider is also resizable.
 - **Built-in browser preview** — a `<webview>`-based browser panel with navigation controls, defaulting to `localhost:5173`. Useful for inspecting running apps without leaving Koda.
 - **Web navigation agent** — via [`operantid.js`](https://www.npmjs.com/package/operantid.js), Koda can spawn a sub-agent that controls a real browser to navigate, interact with UI elements, and extract data from websites.
@@ -49,16 +50,15 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 - **Remote Control API** — built-in HTTP server (default port `3141`) exposes `POST /task`, `GET /status`, `POST /reset`, and `GET /messages`. Pair with Tailscale for secure remote access from any device on your network. Tasks appear in chat with a `🌐 Remote` badge.
 - **MCP support** — connect any Model Context Protocol server (local process or external SSE endpoint). Tools are discovered at runtime via JSON-RPC handshake and injected into the agent's arsenal dynamically.
 - **LSP integration** — semantic queries via `typescript-language-server`: hover types, go-to-definition, and symbol resolution without reading entire files.
-- **13 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
+- **15 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
 - **File tracker** — every file the agent reads or modifies is tracked in-session and surfaced in the context panel.
-- **At-mentions (`@`)** — type `@` to open a file selector. Koda now automatically expands these mentions in the backend, reading the file content and injecting it directly into the prompt (capped at 50KB to maintain speed).
+- **At-mentions (`@`)** — type `@` to open a file selector. Koda automatically expands these mentions in the backend, reading the file content and injecting it directly into the prompt (capped at 50KB to maintain speed).
 - **Drag & drop** — drop image files to attach them to the next message; drop code files to inject an `@[path]` mention automatically.
 - **Configurable verbosity** — toggle output visibility per tool type (shell, file_read, file_edit, search, LSP, browser, etc.) without affecting agent context.
 - **4 built-in themes** — Tokyo Night, GitHub Dark, Cyberpunk Neon, Monokai. Live preview, JSON-based, fully customizable.
 - **Dual-UI Architecture** — toggle instantly between a retro `Classic CLI` and a sleek `Modern Pro` workspace layout via Settings.
 - **Resizing Resilience** — integrated "Shield Overlays" that prevent WebViews (Browser/Terminal) from intercepting mouse events during layout resizing, ensuring smooth UI scaling.
-- **Provider & State Persistence** — Koda now remembers your chosen Provider, Model, and API Key even after restarts, restoring your specific environment automatically.
-- **Dual-UI Split-Panes** — The Modern UI now features the same robust split-pane architecture for Browser and Terminal as the Classic UI, with perfect layout synchronization.
+- **Provider & State Persistence** — Koda remembers your chosen Provider, Model, and API Key even after restarts, restoring your specific environment automatically.
 - **Context-aware system prompt** — the system prompt is rebuilt dynamically on every session, injecting the current working directory, OS, shell, project name, framework, and available tools.
 
 ---
@@ -82,6 +82,34 @@ Activates three additional tools: `start_collaboration`, `send_to_advisor`, and 
 ### 🎓 Teach & Code
 
 Koda acts as a technical mentor. For every non-obvious change, it explains why that approach was chosen over common alternatives, using code comparisons when helpful. Ideal for learning a codebase or understanding architectural decisions as they happen.
+
+---
+
+## Multi-Workspace
+
+Koda supports running multiple, fully isolated agent sessions inside a single window.
+
+### Activating Split Mode
+
+Click the **split panel icon** (⊞) in the TitleBar, to the left of the mode selector. A tab bar appears below the TitleBar. Each tab represents an independent workspace.
+
+### Creating & Managing Workspaces
+
+- **`+`** — creates a new workspace, initializes a fresh agent instance, and assigns it a unique `workspaceId`.
+- **Click a tab** — switches the active workspace. All UI state (chat, settings, file tracker, terminal) updates to reflect the selected workspace instantly.
+- **`✕` on a tab** — closes that workspace. The last workspace cannot be closed.
+
+### Isolation Guarantees
+
+Each workspace is fully isolated at every layer of the stack:
+
+| Layer | Isolation mechanism |
+| :--- | :--- |
+| **Backend** | `Map<workspaceId, Agent>` — each agent has its own LLM conversation, tool state, PTY processes, and MCP connections |
+| **IPC** | All Electron IPC handlers accept `workspaceId` as the first argument and route to the correct instance |
+| **Terminal** | `ptyStart` resolves the working directory from the workspace-specific agent, not a global default |
+| **Sessions** | `loadSession` tracks the last-loaded CWD **per workspace** — switching tabs never reloads or clears another workspace's chat |
+| **Streaming** | `useAgentStream` maintains separate chunk buffers and RAF loops per workspace — output from one agent cannot bleed into another's UI |
 
 ---
 
@@ -244,13 +272,13 @@ Output goes to `release-build/`. `node-pty` and `operantid.js` are unpacked from
 ```
 src/
 ├── main/                        # Electron Main Process (Node.js)
-│   ├── index.ts                 # App bootstrap + all IPC handlers
+│   ├── index.ts                 # App bootstrap + all IPC handlers (workspace-aware)
 │   ├── core/
 │   │   ├── agent.ts             # Agent class: provider lifecycle, message loop, tool orchestration
 │   │   ├── conversation.ts      # Message history, microCompact, trimIfNeeded, rollback
 │   │   ├── prompt-builder.ts    # Dynamic system prompt assembly (env + project + tools)
 │   │   └── context.ts           # Project detection (language, framework, package manager)
-│   ├── providers/               # 13 LLM provider implementations (all extend BaseProvider)
+│   ├── providers/               # 14 LLM provider implementations (all extend BaseProvider)
 │   │   └── base.ts              # BaseProvider, Message, StreamChunk, ToolCall interfaces
 │   ├── tools/                   # 18 agent tools (all extend BaseTool)
 │   │   ├── index.ts             # ToolRegistry: registration, mode filtering, plan-mode lock, format adapters
@@ -275,32 +303,55 @@ src/
 │       ├── syntax.ts            # Language detection from file extension
 │       └── logger.ts            # Logging utilities
 ├── preload/
-│   └── index.ts                 # contextBridge: exposes window.koda API to renderer
+│   └── index.ts                 # contextBridge: exposes window.koda API (all methods accept workspaceId)
 └── renderer/                    # React 19 + Tailwind CSS 4
-    ├── App.tsx                  # Main UI orchestrator: state management, dual-ui toggle
+    ├── App.tsx                  # Root orchestrator: multi-workspace state, session routing, IPC wiring
+    ├── types/
+    │   └── index.ts             # Workspace, AgentInfo, MessageEntry and all shared interfaces
+    ├── hooks/
+    │   ├── useAgentStream.ts    # IPC event subscriber — per-workspace chunk buffers + RAF flush loops
+    │   └── useSession.ts        # Project session load/save — workspace-isolated CWD tracking
     ├── components/
     │   ├── classic/ClassicUI.tsx# Cyberpunk terminal-inspired interface
-    │   ├── modern/ModernUI.tsx  # Sleek, minimal backdrop-blur interface
-    │   ├── TitleBar.tsx         # Mode switcher (Fast/Planner/Colab) + panel toggles + window controls
-    │   ├── TerminalPanel.tsx    # xterm.js terminal connected to a live PTY
+    │   ├── modern/ModernUI.tsx  # Sleek, minimal backdrop-blur interface with Iconbar
+    │   ├── WorkspaceTabs.tsx    # Tab bar for switching/creating/closing workspaces (classic & modern variants)
+    │   ├── TitleBar.tsx         # Mode switcher + Workspace Split toggle + panel toggles + window controls
+    │   ├── TerminalPanel.tsx    # xterm.js terminal connected to a live PTY (workspace-aware)
     │   ├── BrowserPreview.tsx   # Electron <webview> browser panel with navigation controls
     │   ├── MCPSettings.tsx      # MCP server configuration UI (add/edit/delete/enable)
     │   └── BrailleSpinner.tsx   # Animated thinking indicator
     └── themes/                  # JSON theme definitions (Tokyo Night, GitHub Dark, Cyberpunk, Monokai)
 ```
 
+### Multi-Workspace State Flow
+
+```
+App.tsx (workspaces: Workspace[])
+  ├── activeId: string | null          → determines which workspace is visible
+  ├── updateWorkspace(id, patch)       → single mutation entry point for all workspace state
+  └── lastLoadedCwdPerWs: Map<id,cwd> → prevents session reload on tab switch
+
+IPC Layer (workspaceId-routed)
+  ├── agents: Map<workspaceId, Agent>  → one Agent instance per workspace
+  └── all handlers: (event, workspaceId, ...args) → route to correct instance
+
+useAgentStream (per-workspace)
+  ├── chunkBuffersRef: Map<id, string> → streaming text buffers per workspace
+  └── rafRefs: Map<id, number>         → independent RAF flush loops
+```
+
 ### Message Processing Loop
 
 ```
 User sends message
-  → IPC: renderer → main
+  → IPC: renderer → main (workspaceId, messageId, message)
   → createSnapshot(messageId, conversationLength)   // full workspace captured in memory
-  → agent.processMessage()
+  → agents.get(workspaceId).processMessage()
       → conversation.addUser(message, images?)
       → loop:
           → conversation.trimIfNeeded()             // microCompact + token-limit trim
           → provider.chat(messages, tools)          // streaming
-              → StreamChunk: text → onText() → IPC → UI
+              → StreamChunk: text → onText() → IPC(workspaceId) → UI
               → StreamChunk: tool_call_start → onToolStart() → IPC → UI
               → StreamChunk: tool_call_end → pendingToolCalls[]
           → conversation.addAssistant(text, toolCalls)

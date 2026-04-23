@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react'
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { 
   Paperclip, 
@@ -12,6 +12,8 @@ import MessageRow from '../messages/MessageRow.js'
 import BrowserPreview from '../BrowserPreview.js'
 import TerminalPanel from '../TerminalPanel.js'
 import WorkspaceTabs from '../WorkspaceTabs.js'
+import SplitView from '../SplitView.js'
+import CompactToolView from '../messages/CompactToolView.js'
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -28,6 +30,7 @@ interface ModernUIProps {
   handlePathClick: () => void
   handleInputChange: (val: string) => void
   handleRollback: (id: number) => void
+  handlePaste: (e: React.ClipboardEvent) => void
   inputRef: React.RefObject<HTMLTextAreaElement | null>
 
   virtuosoRef: React.RefObject<VirtuosoHandle | null>
@@ -68,6 +71,10 @@ interface ModernUIProps {
   setActiveId?: (id: string) => void
   onAddWorkspace?: () => void
   onCloseWorkspace?: (id: string) => void
+  splitViewIds?: [string, string] | null
+  onSplitWith?: (id: string) => void
+  handleSendForWs?: (text: string, images: any[], wsId: string) => void
+  handleRollbackForWs?: (msgId: number, wsId: string) => void
 }
 
 // ─── Auto Resize Hook ────────────────────────────────────────────────────────
@@ -123,7 +130,7 @@ function useAutoResizeTextarea({
 
 const ModernUI: React.FC<ModernUIProps> = ({
   messages, input, setInput, isProcessing, agentInfo, mode, setMode,
-  pendingImages, setPendingImages, handleSend, handleStop, handlePathClick, handleInputChange, handleRollback,
+  pendingImages, setPendingImages, handleSend, handleStop, handlePathClick, handleInputChange, handleRollback, handlePaste,
 
   inputRef: externalInputRef, virtuosoRef, theme, kodaSettings, onSettingsClick, onMcpClick, onBrowserClick,
 
@@ -132,7 +139,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
   suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
   leftPanelWidth, rightPanelWidth, startResizing, isResizing, startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
   isSplitEnabled = false, onToggleSplit,
-  workspaces = [], activeId, setActiveId, onAddWorkspace, onCloseWorkspace
+  workspaces = [], activeId, setActiveId, onAddWorkspace, onCloseWorkspace,
+  splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs
 }) => {
   
   const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
@@ -153,10 +161,35 @@ const ModernUI: React.FC<ModernUIProps> = ({
     }, 100)
   }
 
+  const renderableMessages = useMemo(() => {
+    if (kodaSettings.toolViewMode !== 'compact') return messages;
+    
+    const groups: any[] = [];
+    let currentToolGroup: any[] = [];
+    
+    messages.forEach((msg, idx) => {
+      if (msg.type === 'tool') {
+        currentToolGroup.push(msg);
+      } else {
+        if (currentToolGroup.length > 0) {
+          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` });
+          currentToolGroup = [];
+        }
+        groups.push(msg);
+      }
+    });
+    
+    if (currentToolGroup.length > 0) {
+      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' });
+    }
+    
+    return groups;
+  }, [messages, kodaSettings.toolViewMode]);
+
   const thinkingLabel = React.useMemo(() => {
     if (!isProcessing) return "";
     const lastMsg = messages[messages.length - 1];
-    let label = "Koda is composing...";
+    let label = "Composing...";
 
     if (lastMsg?.type === 'assistant' && !lastMsg.done) {
       const text = (lastMsg.text || "").toLowerCase();
@@ -355,6 +388,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
               onSwitch={setActiveId}
               onAdd={onAddWorkspace}
               onClose={onCloseWorkspace}
+              splitIds={splitViewIds}
+              onSplitWith={onSplitWith}
             />
           )}
           <div className="flex-1 relative flex flex-row min-h-0">
@@ -370,149 +405,177 @@ const ModernUI: React.FC<ModernUIProps> = ({
             </div>
           )}
 
-          {/* ── Chat Central Area ── */}
-          <div className="flex flex-col flex-1 relative min-h-0">
-            <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full relative pt-4">
-              {/* Message List */}
-              <div className="flex-1 min-h-0 px-4">
-                <Virtuoso
-                  ref={virtuosoRef}
-                  data={messages}
-                  followOutput="auto"
-                  className="custom-scrollbar pr-2"
-                  itemContent={(index, msg) => (
-                    <div className={index === messages.length - 1 ? `mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300` : 'mb-6'}>
-                      <MessageRow 
-                        msg={msg} 
-                        agentInfo={agentInfo}
-                        kodaSettings={kodaSettings} 
-                        uiMode="modern"
-                        onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined}
-                      />
-                    </div>
-                  )}
-                  components={{
-                    Footer: VirtuosoFooter
-                  }}
-                />
-              </div>
+          {/* ── Chat Central Area (Normal or Split) ── */}
+          {splitViewIds && handleSendForWs && handleRollbackForWs ? (
+            <div className="flex-1 flex flex-col relative min-h-0">
+              <SplitView
+                workspaces={workspaces}
+                splitIds={splitViewIds}
+                focusedId={activeId || splitViewIds[1]}
+                onFocus={(id: string) => setActiveId && setActiveId(id)}
+                onCloseSplit={() => onSplitWith && onSplitWith(splitViewIds[0])}
+                onSend={handleSendForWs}
+                onRollback={handleRollbackForWs}
+                kodaSettings={kodaSettings}
+                theme={theme}
+                handleStop={handleStop}
+                uiMode="modern"
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col flex-1 relative min-h-0">
+              <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full relative pt-4">
+                {/* Message List */}
+                <div className="flex-1 min-h-0 px-4">
+                  <Virtuoso
+                    ref={virtuosoRef}
+                    data={renderableMessages}
+                    followOutput="auto"
+                    className="custom-scrollbar pr-2"
+                    itemContent={(index, item: any) => (
+                      <div className={index === renderableMessages.length - 1 ? `mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300` : 'mb-6'}>
+                        {item.type === 'tool_group' ? (
+                          <CompactToolView 
+                            tools={item.tools} 
+                            settings={kodaSettings} 
+                            agentInfo={agentInfo} 
+                            uiMode="modern" 
+                            isLastAndActive={isProcessing && index === renderableMessages.length - 1}
+                          />
+                        ) : (
+                          <MessageRow 
+                            msg={item} 
+                            agentInfo={agentInfo}
+                            kodaSettings={kodaSettings} 
+                            uiMode="modern"
+                            onRollback={item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined}
+                          />
+                        )}
+                      </div>
+                    )}
+                    components={{
+                      Footer: VirtuosoFooter
+                    }}
+                  />
+                </div>
 
-              {/* Input Area */}
-              <div className="px-6 pb-6 pt-2">
-                <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
-                  
-                  {pendingImages.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
-                      {pendingImages.map((img, i) => (
-                        <div key={i} className="relative group">
-                          <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
-                          <button 
-                            onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
-                            className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-neutral-900"
-                          >✕</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {/* Input Area */}
+                <div className="px-6 pb-6 pt-2">
+                  <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
+                    {pendingImages.length > 0 && (
+                      <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
+                        {pendingImages.map((img, i) => (
+                          <div key={i} className="relative group">
+                            <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
+                            <button 
+                              onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
+                              className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-neutral-900"
+                            >✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                  {showSlashMenu && slashItems.length > 0 && (
-                    <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                      {slashItems.map((item, idx) => (
-                        <button
-                          key={item.name}
-                          className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${idx === slashIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                          onClick={() => selectSlashItem(item)}
-                        >
-                          <div className="flex items-center justify-between">
+                    {showSlashMenu && slashItems.length > 0 && (
+                      <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                        {slashItems.map((item, idx) => (
+                          <button
+                            key={item.name}
+                            className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${idx === slashIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                            onClick={() => selectSlashItem(item)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs">{item.icon}</span>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${idx === slashIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                  {item.name}
+                                </span>
+                              </div>
+                            </div>
+                            {item.description && (
+                              <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">
+                                {item.description}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                        {suggestions.map((file, idx) => (
+                          <button
+                            key={file}
+                            className={`w-full flex flex-col px-3 py-2 rounded-md transition-all text-left group ${idx === suggestionIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                            onClick={() => selectSuggestion(file)}
+                          >
                             <div className="flex items-center gap-2">
-                              <span className="text-xs">{item.icon}</span>
-                              <span className={`text-[10px] font-black uppercase tracking-widest ${idx === slashIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                                {item.name}
+                              <span className="text-xs">📄</span>
+                              <span className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                {file}
                               </span>
                             </div>
-                          </div>
-                          {item.description && (
-                            <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">
-                              {item.description}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                      {suggestions.map((file, idx) => (
-                        <button
-                          key={file}
-                          className={`w-full flex flex-col px-3 py-2 rounded-md transition-all text-left group ${idx === suggestionIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                          onClick={() => selectSuggestion(file)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs">📄</span>
-                            <span className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                              {file}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
-                    <textarea
-                      ref={textareaRef}
-                      value={input}
-                      onChange={(e) => {
-                        handleInputChange(e.target.value)
-                        adjustHeight()
-                      }}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Ask Koda anything..."
-                      className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
-                      style={{ overflow: "hidden" }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-2xl">
-                    <div className="flex items-center gap-1.5">
-                      <button type="button" onClick={onFileAttach} className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1">
-                        <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
-                        <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">Attach</span>
-                      </button>
-                      
-                      <div onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
-                        <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-                        <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd}</span>
+                          </button>
+                        ))}
                       </div>
+                    )}
+
+                    <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
+                      <textarea
+                        ref={textareaRef}
+                        value={input}
+                        onChange={(e) => {
+                          setInput(e.target.value)
+                          adjustHeight()
+                        }}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        placeholder="Ask Koda anything..."
+                        className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
+                        style={{ overflow: "hidden" }}
+                      />
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">{agentInfo.provider}</span>
-                      <button
-                        type="button"
-                        onClick={() => isProcessing ? handleStop() : handleSend()}
-                        disabled={!isProcessing && !input.trim()}
-                        className={`flex items-center justify-center p-1 rounded-lg transition-all ${
-                          isProcessing
-                            ? 'border border-zinc-400 text-zinc-400 hover:border-white hover:text-white bg-transparent cursor-pointer'
-                            : input.trim()
-                              ? 'bg-white text-black hover:bg-zinc-200'
-                              : 'bg-neutral-800 text-zinc-600 cursor-not-allowed'
-                        }`}
-                      >
-                        {isProcessing
-                          ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5"/></svg>
-                          : <ArrowUpIcon className="w-4 h-4" />
-                        }
-                      </button>
+                    <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-2xl">
+                      <div className="flex items-center gap-1.5">
+                        <button type="button" onClick={onFileAttach} className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1">
+                          <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
+                          <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">Attach</span>
+                        </button>
+                        
+                        <div onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
+                          <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
+                          <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">{agentInfo.provider}</span>
+                        <button
+                          type="button"
+                          onClick={() => isProcessing ? handleStop() : handleSend()}
+                          disabled={!isProcessing && !input.trim()}
+                          className={`flex items-center justify-center p-1 rounded-lg transition-all ${
+                            isProcessing
+                              ? 'border border-zinc-400 text-zinc-400 hover:border-white hover:text-white bg-transparent cursor-pointer'
+                              : input.trim()
+                                ? 'bg-white text-black hover:bg-zinc-200'
+                                : 'bg-neutral-800 text-zinc-600 cursor-not-allowed'
+                          }`}
+                        >
+                          {isProcessing
+                            ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5"/></svg>
+                            : <ArrowUpIcon className="w-4 h-4" />
+                          }
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* ── Right Panel Area ── */}
           {showRight && (

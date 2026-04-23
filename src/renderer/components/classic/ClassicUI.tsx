@@ -7,6 +7,9 @@ import MessageRow from '../messages/MessageRow.js'
 import BrowserPreview from '../BrowserPreview.js'
 import TerminalPanel from '../TerminalPanel.js'
 import WorkspaceTabs from '../WorkspaceTabs.js'
+import SplitView from '../SplitView.js'
+import CompactToolView from '../messages/CompactToolView.js'
+import { ArrowUpIcon } from 'lucide-react'
 
 interface ClassicUIProps {
   messages: MessageEntry[]
@@ -25,6 +28,8 @@ interface ClassicUIProps {
   handlePathClick: () => void
   handleInputChange: (val: string) => void
   handleRollback: (msgId: number) => void
+  handleStop: () => void
+  handlePaste: (e: React.ClipboardEvent) => void
   inputRef: React.RefObject<HTMLTextAreaElement | null>
   virtuosoRef: React.RefObject<VirtuosoHandle | null>
   theme: KodaTheme
@@ -72,6 +77,10 @@ interface ClassicUIProps {
   setActiveId: (id: string) => void
   onAddWorkspace: () => void
   onCloseWorkspace: (id: string) => void
+  splitViewIds?: [string, string] | null
+  onSplitWith?: (id: string) => void
+  handleSendForWs?: (text: string, images: any[], wsId: string) => void
+  handleRollbackForWs?: (msgId: number, wsId: string) => void
 }
 
 const ClassicUI: React.FC<ClassicUIProps> = ({
@@ -84,7 +93,8 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
   isDragging, handleDragOver, handleDragLeave, handleDrop, inPlanMode, showThinkingSpinner,
   symbols, slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
   suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
-  isSplitEnabled, onToggleSplit, workspaces, activeId, setActiveId, onAddWorkspace, onCloseWorkspace
+  isSplitEnabled, onToggleSplit, workspaces, activeId, setActiveId, onAddWorkspace, onCloseWorkspace,
+  splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs, handleStop, handlePaste
 }) => {
   
   const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
@@ -128,6 +138,53 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
     );
   };
 
+  const renderableMessages = React.useMemo(() => {
+    if (kodaSettings.toolViewMode !== 'compact') return messages;
+    
+    const groups: any[] = [];
+    let currentToolGroup: any[] = [];
+    
+    messages.forEach((msg, idx) => {
+      if (msg.type === 'tool') {
+        currentToolGroup.push(msg);
+      } else {
+        if (currentToolGroup.length > 0) {
+          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` });
+          currentToolGroup = [];
+        }
+        groups.push(msg);
+      }
+    });
+    
+    if (currentToolGroup.length > 0) {
+      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' });
+    }
+    
+    return groups;
+  }, [messages, kodaSettings.toolViewMode]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showSlashMenu) {
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (slashItems[slashIndex]) selectSlashItem(slashItems[slashIndex]) }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setSlashIndex((prev: number) => (prev > 0 ? prev - 1 : slashItems.length - 1)) }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIndex((prev: number) => (prev < slashItems.length - 1 ? prev + 1 : 0)) }
+      else if (e.key === 'Escape') setSlashIndex(-1)
+      return
+    }
+    if (showSuggestions) {
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (suggestions[suggestionIndex]) selectSuggestion(suggestions[suggestionIndex]) }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestionIndex((prev: number) => (prev > 0 ? prev - 1 : suggestions.length - 1)) }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestionIndex((prev: number) => (prev < suggestions.length - 1 ? prev + 1 : 0)) }
+      else if (e.key === 'Escape') setSuggestionIndex(-1)
+      return
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+      if (inputRef.current) inputRef.current.style.height = 'auto'
+    }
+  }
+
   return (
     <div
       className="flex flex-col h-screen bg-slate-900 overflow-hidden text-slate-300 selection:bg-cyan-900 selection:text-white relative"
@@ -169,13 +226,14 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
           onSwitch={setActiveId}
           onAdd={onAddWorkspace}
           onClose={onCloseWorkspace}
+          splitIds={splitViewIds}
+          onSplitWith={onSplitWith}
         />
       )}
 
       <div className="flex-1 relative flex flex-col min-h-0">
         <div className="flex flex-1 min-h-0 overflow-hidden relative">
           
-          {/* Left Area */}
           {showLeft && renderPanelStack('left')}
           {showLeft && (
             <div
@@ -187,210 +245,214 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
             </div>
           )}
 
-          {/* Chat Panel */}
-          <div className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative min-w-0">
-            {/* Watermark */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-              <pre className="text-slate-500/10 text-[11px] md:text-sm lg:text-base leading-[1.1] select-none font-mono text-center filter blur-[0.2px] opacity-80">
-                {`:::    :::  ::::::::  :::::::::      :::
+          {/* Main Chat Area (Normal or Split) */}
+          {splitViewIds && handleSendForWs && handleRollbackForWs ? (
+            <div className="flex-1 flex flex-col relative min-h-0 px-2 py-4">
+              <SplitView
+                workspaces={workspaces}
+                splitIds={splitViewIds}
+                focusedId={activeId || splitViewIds[1]}
+                onFocus={(id: string) => setActiveId && setActiveId(id)}
+                onCloseSplit={() => onSplitWith && onSplitWith(splitViewIds[0])}
+                onSend={handleSendForWs}
+                onRollback={handleRollbackForWs}
+                kodaSettings={kodaSettings}
+                theme={theme}
+                handleStop={handleStop}
+                uiMode="classic"
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative min-w-0">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                <pre className="text-slate-500/10 text-[11px] md:text-sm lg:text-base leading-[1.1] select-none font-mono text-center filter blur-[0.2px] opacity-80">
+                  {`:::    :::  ::::::::  :::::::::      :::
 :+:   :+:  :+:    :+: :+:    :+:   :+: :+:
 +:+  +:+   +:+    +:+ +:+    +:+  +:+   +:+
 +#++:++    +#+    +:+ +#+    +:+ +#++:++#++:
 +#+  +#+   +#+    +#+ +#+    +#+ +#+     +#+
 #+#   #+#  #+#    #+# #+#    #+# #+#     #+#
 ###    ###  ########  #########  ###     ###`}
-              </pre>
-            </div>
-
-            {/* Header */}
-            <div className="terminal-header uppercase tracking-wider relative z-10">
-              <div className="terminal-box flex flex-col gap-1">
-                <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-bold">
-                  <span style={{ color: 'var(--koda-text-dim)' }}>Project: <span style={{ color: 'var(--koda-status-busy)' }}>{agentInfo.project}</span></span>
-                  <div className="flex items-center gap-3">
-                    <span className="opacity-80 text-[9px]" style={{ color: 'var(--koda-status-ok)' }}>{agentInfo.model}</span>
-                    <div 
-                      className="flex items-center gap-1.5 pl-2 border-l border-white/5"
-                      style={{ 
-                        color: initializing ? 'var(--koda-text-dim)' : isProcessing ? 'var(--koda-status-busy)' : 'var(--koda-status-ok)' 
-                      }}
-                    >
-                      {inPlanMode && (
-                        <span className="flex items-center gap-1 mr-1 font-bold uppercase text-[9px] tracking-widest" style={{ color: 'var(--koda-status-busy)' }}>
-                          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--koda-status-busy)' }}></span>
-                        </span>
-                      )}
-                      <span className="text-[10px]">{initializing || isProcessing ? symbols.circle : symbols.bullet}</span>
-                      <span className="text-[10px] font-black tracking-tighter">
-                        {initializing ? 'Loading...' : isProcessing ? 'Busy' : 'Ready'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                </pre>
               </div>
-              <div
-                onClick={handlePathClick}
-                className="flex items-center gap-2 text-[10px] font-mono cursor-pointer transition-all group mt-1"
-                style={{ color: 'var(--koda-text-dim)' }}
-                title="Click to select new working directory"
-              >
-                <span className="opacity-40 group-hover:opacity-100 transition-all" style={{ color: 'var(--koda-accent)' }}>{symbols.dir}</span>
-                <span className="truncate max-w-[300px] transition-all group-hover:text-white">{agentInfo.cwd}</span>
-              </div>
-            </div>
 
-            {/* Message list */}
-            <div className="flex-1 min-h-0 relative mt-2 pr-2">
-              <Virtuoso
-                ref={virtuosoRef}
-                data={messages}
-                followOutput="auto"
-                className="terminal-scroll-area h-full custom-scrollbar"
-                itemContent={(_index, msg) => (
-                  <MessageRow
-                    key={msg.id}
-                    msg={msg}
-                    onRollback={msg.type === 'user' ? () => handleRollback(msg.id) : undefined}
-                    kodaSettings={kodaSettings}
-                    agentInfo={agentInfo}
-                    uiMode="classic"
-                  />
-                )}
-                components={{
-                  Footer: () => (
-                    <div className="pb-4">
-                      {showThinkingSpinner && (
-                        <div className="flex flex-col ml-4 mt-3">
-                          <BrailleSpinner rotateLabel color="cyan" />
-                        </div>
-                      )}
-                    </div>
-                  )
-                }}
-              />
-            </div>
-
-            {/* Input area */}
-            <div className="mt-auto">
-              {pendingImages.length > 0 && (
-                <div className="flex flex-wrap gap-2 px-3 mb-1 pt-1">
-                  {pendingImages.map((img, i) => (
-                    <div key={i} className="relative group">
-                      <img src={img.dataUrl} alt={img.name} className="h-16 rounded border border-slate-700 object-cover" />
-                      <button
-                        onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {taskQueue.length > 0 && (
-                <div className="flex items-center gap-2 px-3 mb-1 py-1 border-t border-white/5">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-amber-400">⏳ Queue</span>
-                  <div className="flex gap-1.5 flex-1 overflow-hidden">
-                    {taskQueue.map((t, i) => (
-                      <span key={i} className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-[160px]">{t.text}</span>
-                    ))}
-                  </div>
-                  <button onClick={() => setTaskQueue([])} className="text-[9px] text-slate-600 hover:text-rose-400 transition-colors" title="Clear queue">✕ clear</button>
-                </div>
-              )}
-
-              <div className="relative w-full mt-2">
-                {/* Slash Menu */}
-                {showSlashMenu && slashItems.length > 0 && (
-                  <div className="absolute bottom-[100%] left-4 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar mb-2 p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                    {slashItems.map((item, idx) => (
-                      <button
-                        key={item.name}
-                        className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${idx === slashIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                        onClick={() => selectSlashItem(item)}
+              <div className="terminal-header uppercase tracking-wider relative z-10">
+                <div className="terminal-box flex flex-col gap-1">
+                  <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-bold">
+                    <span style={{ color: 'var(--koda-text-dim)' }}>Project: <span style={{ color: 'var(--koda-status-busy)' }}>{agentInfo.project}</span></span>
+                    <div className="flex items-center gap-3">
+                      <span className="opacity-80 text-[9px]" style={{ color: 'var(--koda-status-ok)' }}>{agentInfo.model}</span>
+                      <div 
+                        className="flex items-center gap-1.5 pl-2 border-l border-white/5"
+                        style={{ 
+                          color: initializing ? 'var(--koda-text-dim)' : isProcessing ? 'var(--koda-status-busy)' : 'var(--koda-status-ok)' 
+                        }}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs">{item.icon}</span>
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${idx === slashIndex ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                              {item.name}
-                            </span>
-                          </div>
-                        </div>
-                        {item.description && (
-                          <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">
-                            {item.description}
+                        {inPlanMode && (
+                          <span className="flex items-center gap-1 mr-1 font-bold uppercase text-[9px] tracking-widest" style={{ color: 'var(--koda-status-busy)' }}>
+                            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--koda-status-busy)' }}></span>
                           </span>
                         )}
-                      </button>
+                        <span className="text-[10px]">{initializing || isProcessing ? symbols.circle : symbols.bullet}</span>
+                        <span className="text-[10px] font-black tracking-tighter">
+                          {initializing ? 'Loading...' : isProcessing ? 'Busy' : 'Ready'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  onClick={handlePathClick}
+                  className="flex items-center gap-2 text-[10px] font-mono cursor-pointer transition-all group mt-1"
+                  style={{ color: 'var(--koda-text-dim)' }}
+                  title="Click to select new working directory"
+                >
+                  <span className="opacity-40 group-hover:opacity-100 transition-all" style={{ color: 'var(--koda-accent)' }}>{symbols.dir}</span>
+                  <span className="truncate max-w-[300px] transition-all group-hover:text-white">{agentInfo.cwd}</span>
+                </div>
+              </div>
+
+              <div className="flex-1 min-h-0 relative mt-2 pr-2">
+                <Virtuoso
+                  ref={virtuosoRef}
+                  data={renderableMessages}
+                  followOutput="auto"
+                  className="terminal-scroll-area h-full custom-scrollbar"
+                  itemContent={(_index, item: any) => (
+                    item.type === 'tool_group' ? (
+                      <div className="mb-4">
+                        <CompactToolView 
+                          tools={item.tools} 
+                          settings={kodaSettings} 
+                          agentInfo={agentInfo} 
+                          uiMode="classic" 
+                          isLastAndActive={isProcessing && _index === renderableMessages.length - 1}
+                        />
+                      </div>
+                    ) : (
+                      <MessageRow
+                        key={item.id}
+                        msg={item}
+                        onRollback={item.type === 'user' ? () => handleRollback(item.id) : undefined}
+                        kodaSettings={kodaSettings}
+                        agentInfo={agentInfo}
+                        uiMode="classic"
+                      />
+                    )
+                  )}
+                  components={{
+                    Footer: () => (
+                      <div className="pb-4">
+                        {showThinkingSpinner && (
+                          <div className="flex flex-col ml-4 mt-3">
+                            <BrailleSpinner rotateLabel color="cyan" />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }}
+                />
+              </div>
+
+              <div className="mt-auto">
+                {pendingImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 px-3 mb-1 pt-1">
+                    {pendingImages.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img src={img.dataUrl} alt={img.name} className="h-16 rounded border border-slate-700 object-cover" />
+                        <button
+                          onClick={() => setPendingImages((prev: any) => typeof prev === 'function' ? prev.filter((_: any, idx: number) => idx !== i) : prev.filter((_: any, idx: number) => idx !== i))}
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >✕</button>
+                      </div>
                     ))}
                   </div>
                 )}
 
-                {/* Suggestions Menu */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute bottom-[100%] left-4 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar mb-2 p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                    {suggestions.map((file, idx) => (
-                      <button
-                        key={file}
-                        className={`w-full flex flex-col px-3 py-2 rounded-md transition-all text-left group ${idx === suggestionIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                        onClick={() => selectSuggestion(file)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs">📄</span>
-                          <span className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                            {file}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
+                {taskQueue.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 mb-1 py-1 border-t border-white/5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400">⏳ Queue</span>
+                    <div className="flex gap-1.5 flex-1 overflow-hidden">
+                      {taskQueue.map((t, i) => (
+                        <span key={i} className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-[160px]">{t.text}</span>
+                      ))}
+                    </div>
+                    <button onClick={() => setTaskQueue([])} className="text-[9px] text-slate-600 hover:text-rose-400 transition-colors" title="Clear queue">✕ clear</button>
                   </div>
                 )}
 
-                {/* Input Container */}
-                <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-20 ${initializing ? 'terminal-input-disabled' : ''}`}>
-                  <span className={`font-bold mt-[6px] ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
-                  {initializing ? (
-                    <span className="text-slate-600 animate-pulse italic text-sm">Initializing...</span>
-                  ) : (
-                  <textarea
-                    ref={inputRef}
-                    autoFocus
-                    rows={1}
-                    value={input}
-                    onChange={e => {
-                      handleInputChange(e.target.value)
-                      e.target.style.height = 'auto'
-                      e.target.style.height = `${e.target.scrollHeight}px`
-                    }}
-                    onKeyDown={e => {
-                      if (showSlashMenu) {
-                        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (slashItems[slashIndex]) selectSlashItem(slashItems[slashIndex]) }
-                        else if (e.key === 'ArrowUp') { e.preventDefault(); setSlashIndex((prev: number) => (prev > 0 ? prev - 1 : slashItems.length - 1)) }
-                        else if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIndex((prev: number) => (prev < slashItems.length - 1 ? prev + 1 : 0)) }
-                        else if (e.key === 'Escape') setSlashIndex(-1)
-                        return
-                      }
-                      if (showSuggestions) {
-                        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (suggestions[suggestionIndex]) selectSuggestion(suggestions[suggestionIndex]) }
-                        else if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestionIndex((prev: number) => (prev > 0 ? prev - 1 : suggestions.length - 1)) }
-                        else if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestionIndex((prev: number) => (prev < suggestions.length - 1 ? prev + 1 : 0)) }
-                        else if (e.key === 'Escape') setSuggestionIndex(-1)
-                        return
-                      }
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSend()
-                        if (inputRef.current) inputRef.current.style.height = 'auto'
-                      }
-                    }}
-                    placeholder={isProcessing ? 'Add to queue — agent will run next...' : 'Type your message...'}
-                    className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-slate-600 font-bold resize-none py-1.5 leading-normal min-h-[20px] max-h-[200px] custom-scrollbar"
-                  />
-                )}
+                <div className="relative w-full mt-2">
+                  {showSlashMenu && slashItems.length > 0 && (
+                    <div className="absolute bottom-[100%] left-4 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar mb-2 p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                      {slashItems.map((item, idx) => (
+                        <button
+                          key={item.name}
+                          className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${idx === slashIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                          onClick={() => selectSlashItem(item)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs">{item.icon}</span>
+                              <span className={`text-[10px] font-black uppercase tracking-widest ${idx === slashIndex ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                                {item.name}
+                              </span>
+                            </div>
+                          </div>
+                          {item.description && (
+                            <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">
+                              {item.description}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute bottom-[100%] left-4 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar mb-2 p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                      {suggestions.map((file, idx) => (
+                        <button
+                          key={file}
+                          className={`w-full flex flex-col px-3 py-2 rounded-md transition-all text-left group ${idx === suggestionIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                          onClick={() => selectSuggestion(file)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs">📄</span>
+                            <span className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                              {file}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-20 ${initializing ? 'terminal-input-disabled' : ''}`}>
+                    <span className={`font-bold mt-[6px] ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
+                    {initializing ? (
+                      <span className="text-slate-600 animate-pulse italic text-sm">Initializing...</span>
+                    ) : (
+                      <textarea
+                        ref={inputRef}
+                        autoFocus
+                        rows={1}
+                        value={input}
+                        onChange={e => {
+                          handleInputChange(e.target.value)
+                          e.target.style.height = 'auto'
+                          e.target.style.height = `${e.target.scrollHeight}px`
+                        }}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        placeholder={isProcessing ? 'Add to queue — agent will run next...' : 'Type your message...'}
+                        className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-slate-600 font-bold resize-none py-1.5 leading-normal min-h-[20px] max-h-[200px] custom-scrollbar"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Right Area */}
           {showRight && (

@@ -95,15 +95,22 @@ export function useAgentStream({
         scheduleScroll(workspaceId)
 
       } else if (update.type === 'tool_progress') {
-        if (update.event === 'writing') {
-          onUpdate(workspaceId, prev =>
-            prev.map(m =>
-              m.type === 'tool' && m.tool && m.tool.name === update.toolName && m.tool.status === 'running'
-                ? { ...m, tool: { ...m.tool, args: { ...m.tool.args, path: update.path ?? m.tool.args?.path }, isNew: update.isNew ?? false, status: 'writing' as const } }
-                : m
-            )
+        onUpdate(workspaceId, prev =>
+          prev.map(m =>
+            m.type === 'tool' && m.tool && m.tool.name === update.toolName && (m.tool.status === 'running' || m.tool.status === 'writing')
+              ? { 
+                  ...m, 
+                  tool: { 
+                    ...m.tool, 
+                    status: 'writing' as const,
+                    args: { ...(m.tool.args || {}), ...(update.args || {}) },
+                    isNew: update.isNew ?? m.tool.isNew,
+                    output: (m.tool.output || '') + (update.content || '')
+                  } 
+                }
+              : m
           )
-        }
+        )
 
       } else if (update.type === 'tool_end') {
         const applyEnd = () => onUpdate(workspaceId, prev =>

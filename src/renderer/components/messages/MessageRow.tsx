@@ -22,7 +22,7 @@ const MessageRow = memo(({ msg, onRollback, kodaSettings, agentInfo, uiMode = 'c
       <UserMessage text={msg.text!} images={msg.images} onRollback={onRollback} remote={msg.remote} />
     )}
     {msg.type === 'assistant' && (
-      <AssistantMessage text={msg.text} done={msg.done} />
+      <AssistantMessage text={msg.text} done={msg.done} uiMode={uiMode} />
     )}
     {msg.type === 'tool' && (
       <ToolMessage tool={msg.tool} settings={kodaSettings} agentInfo={agentInfo} uiMode={uiMode} />

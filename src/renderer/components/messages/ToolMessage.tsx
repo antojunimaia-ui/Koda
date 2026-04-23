@@ -260,13 +260,13 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
       </div>
 
       {isOutputVisible && (
-        tool?.status === 'done' && tool.output && (
+        (tool?.status === 'done' || tool?.status === 'writing') && (tool.output || (tool.status === 'writing' && tool.args?.replacement)) && (
           tool?.name === 'file_edit'
-            ? <DiffViewer output={tool.output} />
+            ? <DiffViewer output={tool.output || `--- ${tool.args?.path || 'file'}\n+++ ${tool.args?.path || 'file'}\n@@ -1,1 +1,1 @@\n${(tool.args.replacement || '').split('\n').map((l: string) => '+' + l).join('\n')}`} />
             : (
               <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
-                {tool.output.split('\n').map((line: string, i: number) => {
-                  if (line.trim() === '' && i === 0) return null
+                {(tool.output || (tool.args?.command || tool.args?.text || '')).split('\n').map((line: string, i: number) => {
+                  if (line.trim() === '' && i === 0 && !tool.output) return null
                   let lineClass = 'text-slate-300 hover:bg-slate-800/20'
                   if (line.startsWith('+')) lineClass = 'text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2'
                   else if (line.startsWith('-')) lineClass = 'text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2'

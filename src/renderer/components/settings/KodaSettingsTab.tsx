@@ -122,6 +122,32 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings, uiMode }: KodaSet
         </div>
       </section>
 
+      {/* Tool View Section */}
+      <section>
+        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
+          <span className="w-1.5 h-4 bg-emerald-400 rounded-full"></span>
+          Tool View Mode
+        </h3>
+        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">Choose how agent actions are displayed. Compact mode groups consecutive tool calls into a summary.</p>
+        
+        <div className="flex bg-slate-800/20 p-1.5 rounded-xl border border-slate-700/50">
+          <button 
+            onClick={() => setKodaSettings(prev => ({ ...prev, toolViewMode: 'standard' }))}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-1 ${kodaSettings.toolViewMode === 'standard' || !kodaSettings.toolViewMode ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <span>Standard</span>
+            <span className="text-[9px] opacity-60 font-medium">Individual Blocks</span>
+          </button>
+          <button 
+            onClick={() => setKodaSettings(prev => ({ ...prev, toolViewMode: 'compact' }))}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-1 ${kodaSettings.toolViewMode === 'compact' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <span>Compact</span>
+            <span className="text-[9px] opacity-60 font-medium">Grouped Summaries</span>
+          </button>
+        </div>
+      </section>
+
       {/* Verbosity Section */}
       <section>
         <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
