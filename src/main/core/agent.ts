@@ -125,6 +125,7 @@ export class Agent {
     userMessage: string,
     onText: (text: string) => void,
     onToolStart: (name: string, args: any) => void,
+    onToolProgress: (name: string, chunk: string) => void,
     onToolEnd: (name: string, result: string, success: boolean, args: any) => void,
     onError: (error: string) => void,
     images?: import("../providers/base.js").ContentPart[]
@@ -172,7 +173,7 @@ export class Agent {
           // Skill + message: re-enter with enriched message (no longer a slash command)
           this.isProcessing = false;
           const enriched = `${skillContext}\n\n---\n\n${restOfMessage}`;
-          return this.processMessage(enriched, onText, onToolStart, onToolEnd, onError, images);
+          return this.processMessage(enriched, onText, onToolStart, onToolProgress, onToolEnd, onError, images);
         } else {
           // Skill only: acknowledge and inject into conversation context
           onText(`✅ Skill **${skill.name}** activated.${skill.description ? ` ${skill.description}` : ''}\n\nSend your task and I'll apply this skill's instructions.`);
@@ -286,6 +287,12 @@ export class Agent {
               hasToolCalls = true;
               if (chunk.toolCall?.name) {
                 onToolStart(chunk.toolCall.name, chunk.toolCall.arguments);
+              }
+              break;
+
+            case "tool_call_args":
+              if (chunk.toolCall?.name && chunk.content) {
+                onToolProgress(chunk.toolCall.name, chunk.content);
               }
               break;
 

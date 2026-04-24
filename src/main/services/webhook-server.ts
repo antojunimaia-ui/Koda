@@ -101,6 +101,7 @@ export function startWebhookServer(
           body.message,
           (text) => mainWindow?.webContents.send('agent:update', { type: 'text', content: text }),
           (name, args) => mainWindow?.webContents.send('agent:update', { type: 'tool_start', name, args }),
+          (name, chunk) => mainWindow?.webContents.send('agent:update', { type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
           (name, result, success, args) => mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result, success, args }),
           (error) => mainWindow?.webContents.send('agent:update', { type: 'error', message: error }),
         ).then(() => {

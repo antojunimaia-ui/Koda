@@ -261,12 +261,31 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
 
       {isOutputVisible && (
         (tool?.status === 'done' || tool?.status === 'writing') && (tool.output || (tool.status === 'writing' && tool.args?.replacement)) && (
-          tool?.name === 'file_edit'
-            ? <DiffViewer output={tool.output || `--- ${tool.args?.path || 'file'}\n+++ ${tool.args?.path || 'file'}\n@@ -1,1 +1,1 @@\n${(tool.args.replacement || '').split('\n').map((l: string) => '+' + l).join('\n')}`} />
-            : (
+          (() => {
+            let outputToRender = tool.output || '';
+            if (tool.status === 'writing' && outputToRender) {
+              const match = outputToRender.match(/"(?:replacement|content|CodeContent)"\s*:\s*"([\s\S]*)/);
+              if (match) {
+                outputToRender = match[1]
+                  .replace(/\\n/g, '\n')
+                  .replace(/\\"/g, '"')
+                  .replace(/\\\\/g, '\\')
+                  .replace(/\\t/g, '\t')
+                  .replace(/".*$/, '');
+              }
+            }
+
+            if (tool?.name === 'file_edit' || tool?.name === 'multi_replace_file_content') {
+              const diffStr = tool.status === 'done' 
+                ? outputToRender 
+                : `--- ${tool.args?.path || tool.args?.TargetFile || 'file'}\n+++ ${tool.args?.path || tool.args?.TargetFile || 'file'}\n@@ -1,1 +1,1 @@\n${outputToRender.split('\n').map((l: string) => '+' + l).join('\n')}`;
+              return <DiffViewer output={diffStr} />;
+            }
+            
+            return (
               <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
-                {(tool.output || (tool.args?.command || tool.args?.text || '')).split('\n').map((line: string, i: number) => {
-                  if (line.trim() === '' && i === 0 && !tool.output) return null
+                {(outputToRender || (tool.args?.command || tool.args?.text || '')).split('\n').map((line: string, i: number) => {
+                  if (line.trim() === '' && i === 0 && !outputToRender) return null
                   let lineClass = 'text-slate-300 hover:bg-slate-800/20'
                   if (line.startsWith('+')) lineClass = 'text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2'
                   else if (line.startsWith('-')) lineClass = 'text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2'
@@ -279,7 +298,8 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
                   )
                 })}
               </div>
-            )
+            );
+          })()
         )
       )}
     </div>

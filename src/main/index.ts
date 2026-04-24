@@ -141,6 +141,7 @@ ipcMain.handle('agent:message', async (_event, workspaceId: string, messageId: n
       message,
       (text) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'text', content: text }),
       (name, args) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_start', name, args }),
+      (name, chunk) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
       (name, result, success, args) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_end', name, result, success, args }),
       (error) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'error', message: error }),
       images as any
