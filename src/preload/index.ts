@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('koda', {
     ipcRenderer.removeAllListeners('agent:update')
   },
   planResponse: (approved: boolean) => ipcRenderer.invoke('agent:plan_response', approved),
+  questionsResponse: (answers: any[]) => ipcRenderer.invoke('agent:questions_response', answers),
   shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => ipcRenderer.invoke('agent:shell_response', approved, alwaysAllowBase, alwaysAllowFull),
   getApprovedCommands: () => ipcRenderer.invoke('agent:get_approved_commands'),
   updateApprovedCommands: (lists: { base?: string[], full?: string[] }) => ipcRenderer.invoke('agent:update_approved_commands', lists),

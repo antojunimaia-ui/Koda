@@ -38,7 +38,8 @@ Koda is a fully autonomous software engineering agent that runs as a native desk
 - **Split-view panels** — browser preview and terminal panel share the left side with a draggable vertical divider. The main horizontal divider is also resizable.
 - **Built-in browser preview** — a `<webview>`-based browser panel with navigation controls, defaulting to `localhost:5173`. Useful for inspecting running apps without leaving Koda.
 - **Web navigation agent** — via [`operantid.js`](https://www.npmjs.com/package/operantid.js), Koda can spawn a sub-agent that controls a real browser to navigate, interact with UI elements, and extract data from websites.
-- **Shell approval system** — non-read-only commands pause for your approval inline, with three levels: once, base command (session), or full string (session). Allowlists persist in `localStorage`.
+- **Questions tool** — the agent can invoke a `questions` tool to ask up to 10 clarifying questions before acting. Questions are presented one at a time as a wizard panel above the chat input, supporting single and multiple-choice options. The agent blocks until all answers are submitted.
+- **Shell approval panel** — shell approval requests now appear as an inline panel above the chat input instead of inline in the message list. The command is shown on the left with a dropdown Accept button (Once / Base / Full) and a Deny button on the right, matching the same visual language as the Questions panel.
 - **4 operation modes** — Fast, Planner, Colab, and Teach & Code, selectable from a dropdown in the TitleBar.
 - **Planner mode** — for complex tasks, Koda enters a read-only exploration cycle, writes a detailed Markdown plan, and waits for your explicit approval before touching any file.
 - **Collaborative mode** — Koda can open a multi-turn session with a second LLM (the "advisor") for architectural brainstorming, then proceed with the implementation.
@@ -138,8 +139,9 @@ All tools extend `BaseTool` and are registered in `ToolRegistry`. The registry e
 | `send_to_advisor` | Sends a message to the advisor and streams back the response. *(Colab mode only)* |
 | `end_collaboration` | Terminates the advisor session and clears its conversation state. *(Colab mode only)* |
 | `load_skill` | Loads a skill by name from `~/.koda/skills/` or `.koda/skills/` and injects its instructions into context. The agent calls this autonomously when it detects a matching task domain. |
+| `questions` | Asks the user up to 10 clarifying questions before proceeding. Each question supports single or multiple-choice options (2–5 each). Rendered as a wizard panel above the chat input. Blocks execution until all answers are submitted. |
 
-### Shell Approval System
+### Shell Approval Panel
 
 When the agent calls `shell`, Koda checks the command against:
 
@@ -147,7 +149,7 @@ When the agent calls `shell`, Koda checks the command against:
 2. A **base command allowlist** (e.g. `npm`) — persisted in `localStorage` and synced to the main process.
 3. A **full command allowlist** (e.g. `npm install`) — same persistence.
 
-If none match, the UI shows an approval prompt with three options: *Accept Once*, *Accept Base Command* (session), or *Accept Full Command* (session). The agent's PTY execution is suspended via a `Promise` until the user responds.
+If none match, an inline panel appears **above the chat input** showing the command on the left and action buttons on the right: **Deny**, and **Accept** with a dropdown for *Accept Once*, *Accept Base Command* (session), or *Accept Full Command* (session). The agent's PTY execution is suspended via a `Promise` until the user responds.
 
 ---
 
@@ -286,6 +288,7 @@ src/
 │   │   ├── file-edit.ts         # String-replace edit with unified diff output
 │   │   ├── collaborate.ts       # Advisor LLM session (StartColab/SendColab/EndColab)
 │   │   ├── plan.ts              # Plan mode state machine + approval Promise
+│   │   ├── questions.ts         # Questions tool — wizard panel, blocks via Promise until user answers
 │   │   └── mcp-tool.ts          # Dynamic MCP tool wrapper
 │   ├── services/
 │   │   ├── snapshot.ts          # In-memory workspace snapshots (create/restore/list)
@@ -314,6 +317,10 @@ src/
     ├── components/
     │   ├── classic/ClassicUI.tsx# Cyberpunk terminal-inspired interface
     │   ├── modern/ModernUI.tsx  # Sleek, minimal backdrop-blur interface with Iconbar
+    │   ├── modals/
+    │   │   ├── PlanApprovalModal.tsx  # Plan approval overlay
+    │   │   ├── QuestionsModal.tsx     # Questions wizard panel (above input, stepper)
+    │   │   └── ShellApprovalPanel.tsx # Shell approval panel (above input, command + buttons)
     │   ├── WorkspaceTabs.tsx    # Tab bar for switching/creating/closing workspaces (classic & modern variants)
     │   ├── TitleBar.tsx         # Mode switcher + Workspace Split toggle + panel toggles + window controls
     │   ├── TerminalPanel.tsx    # xterm.js terminal connected to a live PTY (workspace-aware)

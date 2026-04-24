@@ -14,6 +14,8 @@ import TerminalPanel from '../TerminalPanel.js'
 import WorkspaceTabs from '../WorkspaceTabs.js'
 import SplitView from '../SplitView.js'
 import CompactToolView from '../messages/CompactToolView.js'
+import QuestionsModal from '../modals/QuestionsModal.js'
+import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -75,6 +77,10 @@ interface ModernUIProps {
   onSplitWith?: (id: string) => void
   handleSendForWs?: (text: string, images: any[], wsId: string) => void
   handleRollbackForWs?: (msgId: number, wsId: string) => void
+  pendingQuestions?: import('../../types/index.js').Question[] | null
+  onQuestionsSubmit?: (answers: import('../../types/index.js').QuestionAnswer[]) => void
+  pendingShell?: { command: string; baseCommand: string; description?: string } | null
+  onShellDismiss?: () => void
 }
 
 // ─── Auto Resize Hook ────────────────────────────────────────────────────────
@@ -140,7 +146,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
   leftPanelWidth, rightPanelWidth, startResizing, isResizing, startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
   isSplitEnabled = false, onToggleSplit,
   workspaces = [], activeId, setActiveId, onAddWorkspace, onCloseWorkspace,
-  splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs
+  splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs,
+  pendingQuestions, onQuestionsSubmit,
+  pendingShell, onShellDismiss,
 }) => {
   
   const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
@@ -461,6 +469,24 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
                 {/* Input Area */}
                 <div className="px-6 pb-6 pt-2">
+                  {pendingShell && (
+                    <div className="mx-4">
+                      <ShellApprovalPanel
+                        command={pendingShell.command}
+                        baseCommand={pendingShell.baseCommand}
+                        description={pendingShell.description}
+                        variant="modern"
+                      />
+                    </div>
+                  )}
+                  {pendingQuestions && pendingQuestions.length > 0 && onQuestionsSubmit && (
+                    <div className="mx-4">
+                      <QuestionsModal
+                        questions={pendingQuestions}
+                        onSubmit={onQuestionsSubmit}
+                      />
+                    </div>
+                  )}
                   <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
                     {pendingImages.length > 0 && (
                       <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">

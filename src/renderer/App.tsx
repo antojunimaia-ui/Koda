@@ -124,6 +124,8 @@ const App: React.FC = () => {
       pendingImages: [],
       taskQueue: [],
       pendingPlan: null,
+      pendingQuestions: null,
+      pendingShell: null,
       inPlanMode: false,
       terminalOutput: ''
     }
@@ -205,8 +207,11 @@ const App: React.FC = () => {
     onProcessing: (id, processing) => updateWorkspace(id, { isProcessing: processing }),
     onTrackedFiles: (id, files) => updateWorkspace(id, { trackedFiles: files }),
     onPendingPlan: (id, plan) => updateWorkspace(id, { pendingPlan: plan }),
+    onPendingQuestions: (id, questions) => updateWorkspace(id, { pendingQuestions: questions }),
+    onPendingShell: (id, shell) => updateWorkspace(id, { pendingShell: shell }),
     onPlanMode: (id, inPlanMode) => updateWorkspace(id, { inPlanMode }),
-    scheduleScroll
+    scheduleScroll,
+    activeWorkspaceId: activeId,
   })
 
   // ── Session context switch — per-workspace, won't fire on tab switch ─────────
@@ -319,6 +324,8 @@ const App: React.FC = () => {
                   pendingImages: [],
                   taskQueue: [],
                   pendingPlan: null,
+                  pendingQuestions: null,
+                  pendingShell: null,
                   inPlanMode: false,
                   terminalOutput: ''
                 }
@@ -341,6 +348,8 @@ const App: React.FC = () => {
                 pendingImages: [],
                 taskQueue: [],
                 pendingPlan: null,
+                pendingQuestions: null,
+                pendingShell: null,
                 inPlanMode: false,
                 terminalOutput: ''
               }
@@ -864,6 +873,12 @@ const App: React.FC = () => {
           onSplitWith={onSplitWith}
           handleSendForWs={handleSendForWs}
           handleRollbackForWs={handleRollback}
+          pendingQuestions={activeWorkspace.pendingQuestions}
+          onQuestionsSubmit={(answers) => {
+            updateWorkspace(activeWorkspace.id, { pendingQuestions: null })
+            window.koda.questionsResponse(answers)
+          }}
+          pendingShell={activeWorkspace.pendingShell}
         />
       ) : (
         <ClassicUI
@@ -951,6 +966,12 @@ const App: React.FC = () => {
           onSplitWith={onSplitWith}
           handleSendForWs={handleSendForWs}
           handleRollbackForWs={handleRollback}
+          pendingQuestions={activeWorkspace.pendingQuestions}
+          onQuestionsSubmit={(answers) => {
+            updateWorkspace(activeWorkspace.id, { pendingQuestions: null })
+            window.koda.questionsResponse(answers)
+          }}
+          pendingShell={activeWorkspace.pendingShell}
         />
       )}
 

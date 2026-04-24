@@ -3,6 +3,7 @@ import {
   MessageEntry,
   AgentInfo,
   TrackedFile,
+  Question,
 } from '../types/index.js'
 
 let _nextId = 0
@@ -14,8 +15,11 @@ interface UseAgentStreamOptions {
   onProcessing: (workspaceId: string, processing: boolean) => void
   onTrackedFiles: (workspaceId: string, files: TrackedFile[]) => void
   onPendingPlan: (workspaceId: string, plan: string | null) => void
+  onPendingQuestions: (workspaceId: string, questions: Question[] | null) => void
+  onPendingShell: (workspaceId: string, shell: { command: string; baseCommand: string; description?: string } | null) => void
   onPlanMode: (workspaceId: string, inPlanMode: boolean) => void
   scheduleScroll: (workspaceId: string) => void
+  activeWorkspaceId: string | null
 }
 
 /**
@@ -28,12 +32,18 @@ export function useAgentStream({
   onProcessing,
   onTrackedFiles,
   onPendingPlan,
+  onPendingQuestions,
+  onPendingShell,
   onPlanMode,
   scheduleScroll,
+  activeWorkspaceId,
 }: UseAgentStreamOptions) {
   const chunkBuffersRef = useRef<Map<string, string>>(new Map())
   const rafRefs = useRef<Map<string, number | null>>(new Map())
   const taskStartsRef = useRef<Map<string, number | null>>(new Map())
+  // Keep a ref so the IPC listener always sees the latest activeId without re-subscribing
+  const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId)
+  useEffect(() => { activeWorkspaceIdRef.current = activeWorkspaceId }, [activeWorkspaceId])
 
   const flushStreaming = useCallback((workspaceId: string) => {
     rafRefs.current.set(workspaceId, null)
@@ -61,7 +71,11 @@ export function useAgentStream({
     if (!window.koda) return
 
     const unsubscribe = window.koda.onUpdate((payload: any) => {
-      const { workspaceId, ...update } = payload
+      const { workspaceId: rawWsId, ...update } = payload
+      // Events emitted by tools (plan, questions) don't carry workspaceId.
+      // Fall back to the currently active workspace.
+      const workspaceId: string = rawWsId ?? activeWorkspaceIdRef.current ?? ''
+      if (!workspaceId) return
       
       if (update.type === 'text') {
         const current = chunkBuffersRef.current.get(workspaceId) || ''
@@ -113,6 +127,10 @@ export function useAgentStream({
         )
 
       } else if (update.type === 'tool_end') {
+        // Clear shell approval panel when the shell tool resolves
+        if (update.name === 'shell') {
+          onPendingShell(workspaceId, null)
+        }
         const applyEnd = () => onUpdate(workspaceId, prev =>
           prev.map(m =>
             m.type === 'tool' && m.tool && m.tool.name === update.name && (m.tool.status === 'running' || m.tool.status === 'writing' || m.tool.status === 'awaiting_approval')
@@ -164,7 +182,18 @@ export function useAgentStream({
         onPendingPlan(workspaceId, update.plan)
         scheduleScroll(workspaceId)
 
+      } else if (update.type === 'questions_requested') {
+        onPendingQuestions(workspaceId, update.questions)
+        scheduleScroll(workspaceId)
+
       } else if (update.type === 'shell_awaiting_approval') {
+        // Show the inline approval panel above the input
+        onPendingShell(workspaceId, {
+          command: update.command,
+          baseCommand: update.baseCommand,
+          description: update.description,
+        })
+        // Also update the tool message status in the chat
         onUpdate(workspaceId, prev => {
           const updated = [...prev]
           const lastToolIdx = updated.map(m => m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null).lastIndexOf('shell')
@@ -234,7 +263,7 @@ export function useAgentStream({
       window.koda.removeUpdateListener()
       rafRefs.current.forEach(raf => raf && cancelAnimationFrame(raf))
     }
-  }, [scheduleFlush, scheduleScroll, onAgentInfo, onPlanMode, onProcessing, onUpdate, onPendingPlan, onTrackedFiles])
+  }, [scheduleFlush, scheduleScroll, onAgentInfo, onPlanMode, onProcessing, onUpdate, onPendingPlan, onPendingQuestions, onPendingShell, onTrackedFiles])
 
   return { chunkBuffersRef, rafRefs, taskStartsRef, scheduleFlush }
 }

@@ -14,6 +14,7 @@ import { LoadSkillTool } from "./skill.js";
 import { DiagnosticsTool } from "./diagnostics.js";
 import { WebSearchTool } from "./web-search.js";
 import { WebFetchTool } from "./web-fetch.js";
+import { QuestionsTool } from "./questions.js";
 import { trackFile } from "../services/file-tracker.js";
 import { AppSettings } from "../config/settings.js";
 import { resolve } from "path";
@@ -49,10 +50,11 @@ export class ToolRegistry {
     this.register(new DiagnosticsTool());
     this.register(new WebSearchTool());
     this.register(new WebFetchTool());
+    this.register(new QuestionsTool());
   }
 
   clearNonCoreTools(): void {
-    const coreTools = ["file_read", "file_write", "file_edit", "shell", "search", "list_dir", "file_find", "browser", "lsp", "enter_plan_mode", "exit_plan_mode", "kill_pty", "list_pty", "shell_input", "shell_wait", "start_collaboration", "send_to_advisor", "end_collaboration", "load_skill", "get_diagnostics", "web_search", "web_fetch"];
+    const coreTools = ["file_read", "file_write", "file_edit", "shell", "search", "list_dir", "file_find", "browser", "lsp", "enter_plan_mode", "exit_plan_mode", "kill_pty", "list_pty", "shell_input", "shell_wait", "start_collaboration", "send_to_advisor", "end_collaboration", "load_skill", "get_diagnostics", "web_search", "web_fetch", "questions"];
     for (const name of this.tools.keys()) {
       if (!coreTools.includes(name)) {
         this.tools.delete(name);

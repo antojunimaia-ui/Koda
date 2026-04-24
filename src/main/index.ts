@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Agent } from './core/agent.js'
 import { resolvePlanApproval } from './tools/plan.js'
+import { resolveQuestions } from './tools/questions.js'
 import { sendCtrlC, killPty, ShellTool, startInteractiveTerminal, writeToPty, resizePty } from './tools/shell.js'
 import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
 import { clearTrackedFiles } from './services/file-tracker.js'
@@ -279,6 +280,11 @@ ipcMain.handle('agent:model', async (event, workspaceId: string, model: string) 
 
 ipcMain.handle('agent:plan_response', async (_event, approved: boolean) => {
   resolvePlanApproval(approved)
+  return { success: true }
+})
+
+ipcMain.handle('agent:questions_response', async (_event, answers: any[]) => {
+  resolveQuestions(answers)
   return { success: true }
 })
 

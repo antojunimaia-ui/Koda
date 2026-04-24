@@ -10,6 +10,8 @@ import WorkspaceTabs from '../WorkspaceTabs.js'
 import SplitView from '../SplitView.js'
 import CompactToolView from '../messages/CompactToolView.js'
 import { ArrowUpIcon } from 'lucide-react'
+import QuestionsModal from '../modals/QuestionsModal.js'
+import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
 
 interface ClassicUIProps {
   messages: MessageEntry[]
@@ -81,6 +83,9 @@ interface ClassicUIProps {
   onSplitWith?: (id: string) => void
   handleSendForWs?: (text: string, images: any[], wsId: string) => void
   handleRollbackForWs?: (msgId: number, wsId: string) => void
+  pendingQuestions?: import('../../types/index.js').Question[] | null
+  onQuestionsSubmit?: (answers: import('../../types/index.js').QuestionAnswer[]) => void
+  pendingShell?: { command: string; baseCommand: string; description?: string } | null
 }
 
 const ClassicUI: React.FC<ClassicUIProps> = ({
@@ -94,7 +99,9 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
   symbols, slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
   suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
   isSplitEnabled, onToggleSplit, workspaces, activeId, setActiveId, onAddWorkspace, onCloseWorkspace,
-  splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs, handleStop, handlePaste
+  splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs, handleStop, handlePaste,
+  pendingQuestions, onQuestionsSubmit,
+  pendingShell,
 }) => {
   
   const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
@@ -382,6 +389,25 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                 )}
 
                 <div className="relative w-full mt-2">
+                  {pendingShell && (
+                    <div className="mx-3">
+                      <ShellApprovalPanel
+                        command={pendingShell.command}
+                        baseCommand={pendingShell.baseCommand}
+                        description={pendingShell.description}
+                        variant="classic"
+                      />
+                    </div>
+                  )}
+                  {pendingQuestions && pendingQuestions.length > 0 && onQuestionsSubmit && (
+                    <div className="mx-3">
+                      <QuestionsModal
+                        questions={pendingQuestions}
+                        onSubmit={onQuestionsSubmit}
+                        variant="classic"
+                      />
+                    </div>
+                  )}
                   {showSlashMenu && slashItems.length > 0 && (
                     <div className="absolute bottom-[100%] left-4 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar mb-2 p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
                       {slashItems.map((item, idx) => (

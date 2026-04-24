@@ -21,6 +21,7 @@ declare global {
       onUpdate: (callback: (update: any) => void) => (() => void)
       removeUpdateListener: () => void
       planResponse: (approved: boolean) => Promise<{ success: boolean }>
+      questionsResponse: (answers: any[]) => Promise<{ success: boolean }>
       shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => Promise<{ success: boolean }>
       getApprovedCommands: () => Promise<{ base: string[], full: string[] }>
       updateApprovedCommands: (lists: { base?: string[], full?: string[] }) => Promise<{ success: boolean }>

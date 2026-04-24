@@ -118,6 +118,24 @@ export interface SlashItem {
   isSkill?: boolean
 }
 
+export interface QuestionOption {
+  label: string
+  description: string
+}
+
+export interface Question {
+  header: string
+  multiple: boolean
+  question: string
+  options: QuestionOption[]
+}
+
+export interface QuestionAnswer {
+  index: number
+  question: string
+  selected: string[]
+}
+
 export interface Workspace {
   id: string
   name: string
@@ -131,6 +149,8 @@ export interface Workspace {
   pendingImages: AttachedImage[]
   taskQueue: { text: string; images: AttachedImage[] }[]
   pendingPlan: string | null
+  pendingQuestions: Question[] | null
+  pendingShell: { command: string; baseCommand: string; description?: string } | null
   inPlanMode: boolean
   terminalOutput: string
 }
