@@ -1,6 +1,6 @@
-# New Session
+# analise o projeto
 
-Exported: 4/24/2026, 9:50:06 AM
+Exported: 4/25/2026, 9:50:01 AM
 
 ---
 
@@ -860,5 +860,527 @@ amei essa estetica, podemos fazer isso com o negocio de comandos tambem, pra apr
 Deixa eu ver como o shell approval funciona atualmente antes de redesenhar.
 
 Tenho tudo. O approval atual fica inline na mensagem de tool, dentro do chat. A ideia é mover para o mesmo painel acima do input, com o comando à esquerda e os botões à direita. Vou criar um `ShellApprovalPanel` com a mesma estética do `QuestionsModal`.
+
+Agora preciso adicionar `pendingShell` ao estado do workspace, capturar o evento `shell_awaiting_approval` no hook, e renderizar o painel nos UIs. Primeiro o tipo:
+
+Agora o hook — adiciona `onPendingShell` e captura `shell_awaiting_approval`:
+
+Agora substitui o handler `shell_awaiting_approval` no hook para também acionar o painel, e limpa quando aprovado/negado:
+
+Limpa o painel quando o tool termina (aprovado ou negado):
+
+Atualiza o deps array do useEffect:
+
+Agora inicializa `pendingShell: null` em todos os workspaces no `App.tsx` e passa para os UIs:
+
+O PowerShell inseriu backtick-n literalmente em vez de newlines. Vou corrigir diretamente:
+
+Agora conecta `onPendingShell` no `useAgentStream` call e passa as props para `ModernUI`/`ClassicUI`:
+
+Agora adiciona as props `pendingShell` e `onShellDismiss` ao `ModernUI` e `ClassicUI`. Primeiro ModernUI:
+
+Adiciona o import e renderiza o painel no ModernUI (junto com o QuestionsModal, acima do prompt):
+
+Agora ClassicUI:
+
+Agora passa as props do `App.tsx` para `ModernUI` e `ClassicUI`:
+
+Build limpo. O que foi feito:
+
+**`ShellApprovalPanel`** — novo componente com a mesma estética do `QuestionsModal`. Layout horizontal: comando à esquerda (fundo escuro, fonte mono, `$` em âmbar, expansível se longo) e 4 botões à direita — **Deny** (rose), **Once** (emerald), **Base** (violet), **Always** (cyan). Uma linha de hint embaixo explica o que cada opção faz. Encaixa acima do prompt box com `rounded-b-none border-b-0`.
+
+**Fluxo:** quando `shell_awaiting_approval` chega, o hook agora faz duas coisas — atualiza o status da tool no chat (como antes) **e** seta `pendingShell` no workspace, que renderiza o painel. Quando o `tool_end` do shell chega, limpa automaticamente.
+
+---
+
+**User:**
+
+tira isso "Once—approve this run only·Base—allow npm this session·Always—allow exact command this session" issso "Shell ApprovalCheck NPM version" e a bolinha tambem, e era pra manter aquele visual dos botões originais
+
+---
+
+**Assistant:**
+
+Deixa eu ver como ficou e o visual original dos botões.
+
+Entendido — remove o header inteiro (bolinha + "Shell Approval" + description), remove o hint row, e usa os botões no estilo original do `ToolMessage`: **Deny** simples, **Accept** com dropdown para as opções Base/Full/Once.
+
+Também remove o `description` prop das chamadas já que não é mais usado:
+
+Build limpo (os `✓ built` aparecem no output anterior, sem erros TS). O que mudou no painel:
+
+- **Removido:** header com bolinha + "Shell Approval" + description
+- **Removido:** hint row com explicações
+- **Mantido:** layout comando à esquerda + botões à direita
+- **Botões:** exatamente o visual original — **Deny** (slate/rose) + **Accept** com dropdown chevron (emerald), e o dropdown abre **para cima** (`bottom-full`) com as mesmas 3 opções: Accept Base Command, Accept Full Command, Accept Once
+
+---
+
+**User:**
+
+atualiza o README.md se tiver algo desatualizado, atualiza o arquivo Release v26.0.0.md, e olha o RULES.md e executa a instrução Update Project
+
+---
+
+**Assistant:**
+
+Deixa eu ler tudo primeiro.
+
+Vou fazer tudo em paralelo: atualizar o README, atualizar o Release v26.0.0.md, e preparar a mensagem de commit.
+
+Tenho tudo. Agora atualizo o README e o Release em paralelo:
+
+Now update the Tool Arsenal table in README to add `questions`:
+
+Now update the Shell Approval section in README:
+
+Now update the architecture section to reflect the new files:
+
+Now update the Release v26.0.0.md to add the new features as a new section at the top:
+
+Agora a mensagem de commit seguindo Conventional Commits:
+
+---
+
+**Mensagem de commit:**
+
+```
+feat(tools): add questions tool and redesign shell approval panel
+
+- Add `questions` tool: LLM can ask up to 10 clarifying questions
+  before acting; questions are presented as a step-by-step wizard
+  panel above the chat input, blocking execution via Promise until
+  all answers are submitted (single/multiple choice, 2–5 options each)
+
+- Redesign shell approval: move approval UI from inline chat messages
+  to an inline panel above the input (ShellApprovalPanel), matching
+  the Questions panel aesthetic; command shown left, Deny + Accept
+  dropdown (Once/Base/Full) shown right; panel auto-clears on tool_end
+
+- Add `pendingQuestions` and `pendingShell` to Workspace state
+- Add `onPendingQuestions` and `onPendingShell` callbacks to useAgentStream
+- Add `activeWorkspaceIdRef` fallback in useAgentStream for events
+  emitted without workspaceId (plan, questions, shell tools)
+- Expose `questionsResponse` IPC in preload and main process
+- Register QuestionsTool in ToolRegistry and core tools list
+- Update README and release notes
+```
+
+---
+
+**User:**
+
+pode me dar mais ideias de features?
+
+---
+
+**Assistant:**
+
+Com base no que o projeto já tem, aqui vão ideias que fazem sentido no contexto:
+
+---
+
+## Features que encaixam bem no Koda
+
+### Produtividade do agente
+
+**Memória persistente entre sessões**
+O agente hoje perde contexto ao resetar. Um arquivo `.koda/memory.md` por projeto onde o agente pode escrever e ler fatos importantes — stack do projeto, decisões arquiteturais, preferências do usuário. Persiste entre sessões sem ocupar tokens do histórico.
+
+**Tool `checkpoint`**
+O agente cria um checkpoint nomeado manualmente durante uma tarefa longa. Diferente do snapshot automático por mensagem, o usuário pode nomear ("antes de refatorar auth") e restaurar pelo nome na UI.
+
+**Resumo automático de sessão**
+Quando o contexto está prestes a ser compactado, o agente gera um resumo estruturado da sessão atual e injeta no topo da conversa em vez de simplesmente descartar mensagens antigas.
+
+---
+
+### UI / UX
+
+**Histórico de tarefas**
+Uma aba lateral mostrando todas as tarefas enviadas na sessão com status (concluída, falhou, em andamento) e tempo de execução. Clica numa tarefa para rolar até ela no chat.
+
+**Minimap do chat**
+Barra lateral fina à direita da lista de mensagens mostrando a densidade de conteúdo — onde estão as edições de arquivo, erros, respostas longas. Clica para navegar direto.
+
+**Diff antes de aplicar**
+Antes de executar `file_edit` ou `file_write`, mostrar um preview do diff no painel de aprovação (igual ao Questions/Shell panel) com opção de aprovar ou rejeitar arquivo por arquivo. Útil para mudanças grandes.
+
+---
+
+### Integração com o ambiente
+
+**Tool `git`**
+Wrapper de operações git comuns: `status`, `diff`, `add`, `commit`, `log`, `stash`. O agente pode commitar o próprio trabalho quando o usuário pedir, com mensagem gerada automaticamente seguindo Conventional Commits.
+
+**Tool `open_in_editor`**
+Abre um arquivo em um editor externo (VS Code, Cursor, etc.) na linha exata. Já existe `openFile` via `vscode://`, mas expor isso como tool dá ao agente a capacidade de direcionar o usuário para o código relevante.
+
+**Notificações de erro em tempo real**
+Integração com o LSP para mostrar erros de TypeScript/ESLint no painel de contexto enquanto o agente edita, sem precisar rodar um build. O agente já tem `get_diagnostics` mas o usuário não vê isso passivamente.
+
+---
+
+### Agente
+
+**Modo `Review`**
+O agente lê o diff do último commit (ou staged) e faz uma code review estruturada: bugs potenciais, violações de padrão, sugestões de melhoria. Sem editar nada, só análise.
+
+**Sub-tarefas visuais**
+Quando o agente usa `enter_plan_mode`, o plano aprovado vira uma checklist visual no painel lateral. Cada item é marcado conforme o agente executa, dando visibilidade do progresso em tarefas longas.
+
+**Tool `ask_user`** *(variante simples do Questions)*
+Input de texto livre em vez de múltipla escolha. O agente faz uma pergunta aberta e aguarda a resposta digitada. Útil para casos onde as opções não são conhecidas de antemão.
+
+---
+
+### Infraestrutura
+
+**Exportar conversa**
+Botão para exportar o histórico da sessão como Markdown ou JSON. Útil para documentar o que foi feito, compartilhar com o time, ou usar como contexto em outra ferramenta.
+
+**Profiles de configuração**
+Salvar e carregar conjuntos de configurações (provider + model + system prompt customizado + verbosity) com nome. Troca rápida entre "modo rápido com Groq" e "modo cuidadoso com Claude".
+
+**Webhook de saída**
+Além do webhook de entrada (Remote Control), um webhook de saída que notifica uma URL externa quando uma tarefa termina — útil para integrar com CI/CD, Slack, ou outros sistemas.
+
+---
+
+Das que listei, as que teriam mais impacto imediato com menos complexidade: **memória persistente**, **modo Review**, e **tool `ask_user`**. Qual direção te interessa mais?
+
+---
+
+**User:**
+
+quero algo matador
+
+---
+
+**Assistant:**
+
+Aqui vai uma ideia que muda o jogo:
+
+---
+
+## 🎯 Agent Loop — Execução Autônoma Contínua
+
+O Koda hoje é **reativo** — você manda uma tarefa, ele executa, para. A ideia é torná-lo **proativo**.
+
+### Como funciona
+
+Você define um **objetivo de alto nível**:
+
+> *"Quero que o projeto tenha 80% de cobertura de testes e zero erros de TypeScript"*
+
+O agente entra num loop autônomo:
+
+```
+1. Avalia o estado atual (roda testes, checa erros TS, lê coverage)
+2. Identifica o próximo passo mais impactante
+3. Executa
+4. Avalia o resultado
+5. Decide: objetivo atingido? → para. Não? → volta ao passo 2.
+```
+
+Cada iteração aparece no chat como uma "rodada" com seu próprio contexto. O usuário vê o progresso em tempo real e pode **pausar**, **redirecionar** ("foca só nos testes de auth") ou **parar** a qualquer momento.
+
+---
+
+### O que torna isso matador
+
+**Não é só "rodar várias tarefas"** — é o agente tomando decisões sobre *o que fazer a seguir* baseado no estado real do projeto. Ele lê o output dos testes, vê o que falhou, decide qual arquivo atacar, corrige, roda de novo.
+
+**Memória de iteração** — cada rodada sabe o que as anteriores fizeram. Não repete trabalho, não entra em loop infinito no mesmo erro.
+
+**Critério de parada inteligente** — você define o objetivo em linguagem natural. O agente avalia se foi atingido usando as próprias ferramentas (shell, LSP, diagnostics).
+
+**Visibilidade total** — não é uma caixa preta. Cada decisão aparece no chat com o raciocínio: *"Rodei os testes, 12 falhando. O maior cluster é em `auth/`. Vou atacar `auth/login.test.ts` primeiro."*
+
+---
+
+### Na prática, casos de uso reais
+
+- *"Refatora todos os componentes que usam a API antiga para a nova"* — o agente encontra, migra, testa, passa pro próximo.
+- *"Deixa o build passando"* — roda o build, lê os erros, corrige, roda de novo.
+- *"Implementa as issues abertas do milestone v2"* — lê as issues (via MCP GitHub), implementa uma por uma, commita cada uma.
+- *"Otimiza o bundle até ficar abaixo de 500KB"* — analisa, aplica técnicas, mede, itera.
+
+---
+
+### Implementação no Koda
+
+Tecnicamente é uma extensão do loop que já existe em `agent.ts`, mas com:
+
+1. **Tool `set_goal`** — define o objetivo e inicia o loop
+2. **Tool `evaluate_goal`** — o agente avalia se o critério foi atingido
+3. **Tool `loop_status`** — emite progresso para a UI (rodada N, estado atual, próximo passo)
+4. **UI de controle** — painel acima do input com `[Pausar]` `[Redirecionar]` `[Parar]` e um indicador de rodada atual
+
+O diferencial em relação a outros agentes: **roda localmente, tem acesso real ao filesystem e ao terminal, e o usuário está no controle a qualquer momento**.
+
+---
+
+Isso transforma o Koda de "assistente que executa tarefas" para "engenheiro autônomo que persegue objetivos". Quer explorar como implementar?
+
+---
+
+**User:**
+
+me diz algo que voce não resolve
+
+---
+
+**Assistant:**
+
+Sendo direto:
+
+---
+
+### O que o Koda não resolve bem hoje
+
+**Projetos grandes de verdade**
+Repositórios com 500+ arquivos, monorepos, codebases de anos. O contexto de 100k tokens parece muito mas some rápido quando você começa a ler arquivos reais. O agente perde o fio da meada em tarefas que exigem entender 30 arquivos ao mesmo tempo.
+
+**Debugging não-determinístico**
+Race conditions, bugs que só aparecem em produção, problemas de timing, memory leaks. O agente consegue ler o código e sugerir, mas não consegue *observar* o programa rodando de verdade. Ele não tem acesso a profilers, heap dumps, ou traces em tempo real.
+
+**Frontend visual**
+Ele edita o CSS, mas não vê o resultado. Não tem como saber se o botão ficou alinhado, se o layout quebrou no mobile, se a animação está suave. O browser preview existe mas o agente não consegue "olhar" para ele de forma útil.
+
+**Testes que dependem de infraestrutura**
+Se o projeto precisa de banco de dados, Redis, serviços externos rodando — o agente pode tentar subir via Docker, mas qualquer coisa que fuja do happy path vira um ciclo de tentativa e erro cego.
+
+**Decisões de produto**
+"Qual é a melhor arquitetura para esse sistema?" — ele dá uma resposta, mas não conhece seu time, suas constraints de prazo, o histórico de decisões ruins que você já tomou. O contexto humano que importa não está nos arquivos.
+
+**Refatorações que exigem julgamento estético**
+Ele sabe o que é código limpo no papel, mas não sabe o que *você* considera limpo. Sem um guia de estilo explícito, ele vai oscilar entre abordagens a cada sessão.
+
+---
+
+O problema central é que o agente **não tem estado persistente do mundo** — cada sessão começa do zero, ele não aprende com os erros anteriores no seu projeto específico, e não tem sentidos além de ler arquivos e rodar comandos.
+
+A memória persistente que mencionei antes resolve uma fatia disso. O Agent Loop resolve outra. Mas o gap de "ver o programa rodando" é estrutural — exigiria integração com debuggers, profilers, e ferramentas de observabilidade que vão muito além do que um agente de filesystem consegue fazer hoje.
+
+---
+
+**User:**
+
+me fala uma ferida que todo dev tem e nemhuma ferramenta resolve
+
+---
+
+**Assistant:**
+
+**Retomar o contexto depois de uma pausa.**
+
+Você para no meio de uma tarefa complexa — fim do dia, reunião, fim de semana. Volta segunda-feira e passa 40 minutos tentando lembrar onde estava, o que já fez, o que falta, por que tomou aquela decisão estranha no arquivo X.
+
+Nenhuma ferramenta resolve isso de verdade.
+
+O git log te diz *o que* mudou, não *por que*. Os comentários no código são mentira ou estão desatualizados. O histórico do chat do Cursor/Copilot some ou é inútil fora de contexto. O Notion/Obsidian que você prometeu manter atualizado está vazio.
+
+---
+
+### Por que é uma ferida profunda
+
+Não é só perda de tempo. É **perda de estado mental**. O dev que voltou segunda não é o mesmo que saiu sexta — o grafo mental de "como esse sistema funciona" que levou horas pra construir evaporou. Você reconstrói do zero toda vez.
+
+Multiplica isso por:
+- Trocar de branch
+- Pegar uma tarefa que ficou parada 2 semanas
+- Entrar num projeto que outra pessoa começou
+- Voltar a um bug que você "ia resolver depois"
+
+---
+
+### O que o Koda poderia fazer que ninguém faz
+
+No fim de cada sessão, antes de fechar, o agente gera automaticamente um **"diário de bordo"** do que aconteceu:
+
+- O que foi feito (não o diff — a *intenção*)
+- O que foi decidido e por quê
+- O que ficou pela metade e qual era o próximo passo
+- Armadilhas encontradas no caminho
+
+Na próxima sessão, você abre o Koda e ele lê esse diário antes de qualquer coisa. Você digita "onde eu estava?" e ele te devolve o contexto completo em 30 segundos.
+
+Não é documentação. É **memória de trabalho persistente**.
+
+Isso resolve uma dor que todo dev tem todo dia e que nenhuma ferramenta — nem os agentes mais avançados — trata como feature de primeira classe.
+
+Quer construir isso?
+
+---
+
+**User:**
+
+uma pessoa falou pra mim que pelo Koda ser em Electron, ele podia ter uma versão em extensão no VSCODE, me diz como isso funcionaria
+
+---
+
+**Assistant:**
+
+A pessoa está certa que é possível, mas o raciocínio "por ser Electron" está errado. Electron e VS Code compartilham a mesma base técnica (Chromium + Node.js), mas isso não significa que o código migra automaticamente. Seria uma reescrita significativa.
+
+---
+
+### Como funcionaria na prática
+
+Uma extensão VS Code tem dois ambientes:
+
+**Extension Host** — Node.js puro, roda em background. É onde ficaria toda a lógica do Koda: o `Agent`, os providers, as tools, o MCP manager, o LSP client. Tudo isso é Node.js e migraria sem grandes problemas.
+
+**Webview** — um iframe com HTML/CSS/JS isolado que a extensão injeta no painel lateral ou numa aba. É onde ficaria a UI React do Koda. Comunica com o Extension Host via `postMessage`, que é funcionalmente equivalente ao IPC do Electron.
+
+Então a arquitetura seria:
+
+```
+Extension Host (Node.js)
+  ├── Agent, Providers, Tools          ← migra direto
+  ├── MCP Manager, LSP Client          ← migra direto
+  └── postMessage bridge               ← substitui ipcMain/ipcRenderer
+
+Webview (React)
+  ├── ClassicUI / ModernUI             ← migra direto
+  └── window.koda → postMessage API    ← substitui contextBridge
+```
+
+---
+
+### O que você ganha
+
+- Acesso nativo ao workspace aberto no VS Code — sem precisar selecionar diretório, sem `cd`, o agente já sabe onde está
+- Integração com a árvore de arquivos, abas abertas, seleção de texto
+- O usuário não precisa instalar nada separado — já tem o VS Code
+- Distribuição pelo Marketplace
+
+### O que você perde ou complica
+
+**PTY / Terminal** — `node-pty` funciona no Extension Host, mas o terminal integrado do VS Code tem sua própria API (`vscode.window.createTerminal`). Você pode usar as duas, mas a integração fica mais complexa.
+
+**`<webview>` tag** — o browser preview do Koda usa uma tag `<webview>` do Electron que não existe em extensões VS Code. Teria que virar um painel separado usando a API de webview do VS Code, com mais restrições de segurança.
+
+**Auto-update** — o `electron-updater` some. Passa a depender do ciclo de release do Marketplace.
+
+**Window controls, TitleBar customizada** — irrelevantes, o VS Code gerencia a janela.
+
+---
+
+### A decisão real
+
+Não é "Electron vs extensão" — são produtos diferentes.
+
+O Koda como app Electron é **soberano**: janela própria, sem depender do VS Code estar instalado, sem as restrições de sandbox do Marketplace, experiência controlada do início ao fim.
+
+Como extensão, você entra no ecossistema do VS Code — distribuição mais fácil, integração mais profunda com o editor, mas você joga no campo do outro.
+
+O caminho que faz mais sentido seria manter o Electron como produto principal e eventualmente lançar uma extensão como canal de aquisição — não como substituto.
+
+---
+
+**User:**
+
+teria como eu fazer um Koda Bench? pras pessoas saberem qual modelo se da melhorr no Koda?
+
+---
+
+**Assistant:**
+
+Sim, e seria um diferencial real. Nenhum benchmark existente testa modelos *dentro de um agente real com ferramentas reais*. O SWE-bench testa em ambiente controlado, o MMLU testa conhecimento puro — nenhum testa "qual modelo usa melhor o `file_edit` sem corromper o arquivo" ou "qual modelo para de loopar depois de 3 tentativas".
+
+---
+
+### Como estruturar
+
+**A ideia central:** um conjunto de tarefas reais em projetos reais, executadas pelo Koda com diferentes modelos, avaliadas por critérios objetivos.
+
+```
+Tarefa → Koda executa com modelo X → avalia resultado → score
+                                    → avalia resultado → score
+         Koda executa com modelo Y → avalia resultado → score
+```
+
+---
+
+### As dimensões que importam de verdade
+
+**Tool use accuracy** — o modelo chama as ferramentas certas com os argumentos certos? Usa `file_edit` quando deveria, ou fica tentando escrever código no texto?
+
+**Loop efficiency** — quantas iterações pra completar a tarefa? Um modelo que resolve em 3 tool calls é melhor que um que usa 12.
+
+**File integrity** — depois da tarefa, o projeto ainda builda? Os testes passam? Isso é objetivo e automatizável.
+
+**Instruction following** — quando você diz "não mexa no arquivo X", ele respeita?
+
+**Recovery** — quando uma tool falha, o modelo se recupera ou entra em loop?
+
+**Context efficiency** — quantos tokens consumiu pra completar a tarefa?
+
+---
+
+### As tarefas do benchmark
+
+Precisam ser reproduzíveis e ter critério de sucesso binário ou numérico. Exemplos:
+
+- *"Adiciona validação de email no formulário de login"* → sucesso = arquivo modificado corretamente + build passa
+- *"Corrige o bug onde o array retorna undefined"* → sucesso = teste específico passa
+- *"Refatora essa função pra usar async/await"* → sucesso = comportamento idêntico + sem erros TS
+- *"Cria um componente Button com as props X, Y, Z"* → sucesso = componente existe + props corretas
+
+Cada tarefa roda em um projeto-template limpo, versionado no git, restaurado antes de cada execução.
+
+---
+
+### Como implementar no Koda
+
+O Koda já tem tudo que precisa:
+
+1. **Snapshot system** — restaura o projeto ao estado inicial antes de cada run
+2. **Shell tool** — roda `npm run build`, `npm test`, captura o resultado
+3. **Remote Control API** — você dispara tarefas programaticamente via `POST /task`
+
+O bench seria um script externo que:
+```
+para cada modelo:
+  para cada tarefa:
+    1. restaura o projeto template via git
+    2. POST /task com a descrição da tarefa
+    3. aguarda conclusão via GET /status
+    4. roda os critérios de avaliação (build, testes, diff)
+    5. registra score, tokens, iterações, tempo
+```
+
+---
+
+### O resultado
+
+Uma tabela pública tipo:
+
+| Modelo | Score | Avg turns | Build pass | Token cost |
+|--------|-------|-----------|------------|------------|
+| claude-3-7-sonnet | 94% | 4.2 | 98% | $$$ |
+| gemini-2.0-flash | 87% | 5.8 | 91% | $ |
+| gpt-4o | 82% | 6.1 | 88% | $$ |
+| qwen2.5-coder | 79% | 7.3 | 84% | free |
+
+Isso tem valor enorme pra comunidade porque responde a pergunta real: **qual modelo vale o custo dentro de um agente de código com ferramentas reais**, não em testes acadêmicos.
+
+---
+
+### O que torna isso difícil
+
+**Determinismo** — o mesmo modelo pode ter resultados diferentes em runs diferentes. Precisa de múltiplas execuções por tarefa e média.
+
+**Custo** — rodar 20 modelos × 30 tarefas × 3 runs = 1800 execuções. Dependendo dos modelos, caro.
+
+**Manutenção das tarefas** — os projetos template precisam ser mantidos conforme as tecnologias evoluem.
+
+---
+
+A parte mais valiosa não seria nem o benchmark em si — seria o **site público** onde qualquer pessoa consulta antes de escolher o modelo. Isso coloca o Koda no centro da conversa sobre qual modelo usar pra código.
+
+Quer começar pelo script de benchmark ou pelo design das tarefas?
 
 ---

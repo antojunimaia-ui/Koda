@@ -258,6 +258,7 @@ export class Agent {
         let assistantThoughts: any[] = [];
         const pendingToolCalls: ToolCall[] = [];
         let hasToolCalls = false;
+        let currentStreamingToolName = "";
 
         // Tool results collected during streaming (executed eagerly on tool_call_end)
         const toolResults: { id: string; name: string; output: string; success: boolean }[] = [];
@@ -286,18 +287,20 @@ export class Agent {
             case "tool_call_start":
               hasToolCalls = true;
               if (chunk.toolCall?.name) {
+                currentStreamingToolName = chunk.toolCall.name;
                 onToolStart(chunk.toolCall.name, chunk.toolCall.arguments);
               }
               break;
 
             case "tool_call_args":
-              if (chunk.toolCall?.name && chunk.content) {
-                onToolProgress(chunk.toolCall.name, chunk.content);
+              if (currentStreamingToolName && chunk.content) {
+                onToolProgress(currentStreamingToolName, chunk.content);
               }
               break;
 
             case "tool_call_end":
               if (chunk.toolCall?.name && chunk.toolCall?.id) {
+                currentStreamingToolName = "";
                 const toolCall = chunk.toolCall as ToolCall;
                 pendingToolCalls.push(toolCall);
 
