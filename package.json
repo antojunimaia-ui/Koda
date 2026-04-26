@@ -123,6 +123,11 @@
     "asarUnpack": [
       "**/node_modules/node-pty/**",
       "**/node_modules/operantid.js/**"
-    ]
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "antojunimaia-ui",
+      "repo": "Koda"
+    }
   }
 }

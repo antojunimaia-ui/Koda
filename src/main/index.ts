@@ -9,6 +9,8 @@ import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
 import { clearTrackedFiles } from './services/file-tracker.js'
 import { sessionManager } from './services/session-manager.js'
 import { startWebhookServer, stopWebhookServer, getWebhookStatus } from './services/webhook-server.js'
+import electronUpdater from 'electron-updater'
+const { autoUpdater } = electronUpdater
 import dotenv from 'dotenv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -78,6 +80,26 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  // Auto-updater — only runs in packaged app, not in dev
+  if (!process.env.VITE_DEV_SERVER_URL) {
+    autoUpdater.autoDownload = true
+    autoUpdater.autoInstallOnAppQuit = false
+
+    autoUpdater.on('update-available', (info) => {
+      mainWindow?.webContents.send('updater:update-available', { version: info.version })
+    })
+
+    autoUpdater.on('update-downloaded', () => {
+      mainWindow?.webContents.send('updater:update-downloaded')
+    })
+
+    autoUpdater.on('error', (err) => {
+      console.error('[AutoUpdater] Error:', err.message)
+    })
+
+    autoUpdater.checkForUpdates().catch(() => {})
+  }
 })
 
 app.on('window-all-closed', () => {
@@ -97,6 +119,10 @@ ipcMain.handle('window:maximize', () => {
 })
 ipcMain.handle('window:close', () => {
   mainWindow?.close()
+})
+
+ipcMain.handle('updater:install', () => {
+  autoUpdater.quitAndInstall()
 })
 ipcMain.handle('window:open_directory', async () => {
   if (!mainWindow) return null

@@ -16,6 +16,7 @@ import SplitView from '../SplitView.js'
 import CompactToolView from '../messages/CompactToolView.js'
 import QuestionsModal from '../modals/QuestionsModal.js'
 import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
+import UpdateBanner from '../UpdateBanner.js'
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -81,6 +82,8 @@ interface ModernUIProps {
   onQuestionsSubmit?: (answers: import('../../types/index.js').QuestionAnswer[]) => void
   pendingShell?: { command: string; baseCommand: string; description?: string } | null
   onShellDismiss?: () => void
+  updateInfo?: { version?: string; downloaded: boolean } | null
+  onUpdateDismiss?: () => void
 }
 
 // ─── Auto Resize Hook ────────────────────────────────────────────────────────
@@ -149,6 +152,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
   splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs,
   pendingQuestions, onQuestionsSubmit,
   pendingShell, onShellDismiss,
+  updateInfo, onUpdateDismiss,
 }) => {
   
   const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
@@ -432,9 +436,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
             </div>
           ) : (
             <div className="flex flex-col flex-1 relative min-h-0">
-              <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full relative pt-4">
+              <div className={`flex-1 flex flex-col max-w-5xl mx-auto w-full relative ${messages.length === 0 ? 'justify-center' : 'pt-4'}`}>
                 {/* Message List */}
-                <div className="flex-1 min-h-0 px-4">
+                <div className={`min-h-0 px-4 ${messages.length === 0 ? 'hidden' : 'flex-1'}`}>
                   <Virtuoso
                     ref={virtuosoRef}
                     data={renderableMessages}
@@ -468,7 +472,23 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 </div>
 
                 {/* Input Area */}
-                <div className="px-6 pb-6 pt-2">
+                <div className={`px-6 pb-6 ${messages.length === 0 ? 'pt-0' : 'pt-2'}`}>
+                  {messages.length === 0 && (
+                    <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
+                      What are we building today?
+                    </p>
+                  )}
+                  {updateInfo && onUpdateDismiss && (
+                    <div className="mb-0">
+                      <UpdateBanner
+                        version={updateInfo.version}
+                        downloaded={updateInfo.downloaded}
+                        onInstall={() => window.koda.updaterInstall()}
+                        onDismiss={onUpdateDismiss}
+                        variant="modern"
+                      />
+                    </div>
+                  )}
                   {pendingShell && (
                     <div className="mx-4">
                       <ShellApprovalPanel
@@ -572,7 +592,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         
                         <div onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
                           <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-                          <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd}</span>
+                          <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
                         </div>
                       </div>
 

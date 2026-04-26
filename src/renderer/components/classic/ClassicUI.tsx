@@ -12,6 +12,7 @@ import CompactToolView from '../messages/CompactToolView.js'
 import { ArrowUpIcon } from 'lucide-react'
 import QuestionsModal from '../modals/QuestionsModal.js'
 import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
+import UpdateBanner from '../UpdateBanner.js'
 
 interface ClassicUIProps {
   messages: MessageEntry[]
@@ -86,6 +87,8 @@ interface ClassicUIProps {
   pendingQuestions?: import('../../types/index.js').Question[] | null
   onQuestionsSubmit?: (answers: import('../../types/index.js').QuestionAnswer[]) => void
   pendingShell?: { command: string; baseCommand: string; description?: string } | null
+  updateInfo?: { version?: string; downloaded: boolean } | null
+  onUpdateDismiss?: () => void
 }
 
 const ClassicUI: React.FC<ClassicUIProps> = ({
@@ -102,6 +105,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
   splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs, handleStop, handlePaste,
   pendingQuestions, onQuestionsSubmit,
   pendingShell,
+  updateInfo, onUpdateDismiss,
 }) => {
   
   const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
@@ -315,7 +319,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   title="Click to select new working directory"
                 >
                   <span className="opacity-40 group-hover:opacity-100 transition-all" style={{ color: 'var(--koda-accent)' }}>{symbols.dir}</span>
-                  <span className="truncate max-w-[300px] transition-all group-hover:text-white">{agentInfo.cwd}</span>
+                  <span className="truncate max-w-[300px] transition-all group-hover:text-white">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
                 </div>
               </div>
 
@@ -389,6 +393,17 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                 )}
 
                 <div className="relative w-full mt-2">
+                  {updateInfo && onUpdateDismiss && (
+                    <div className="mx-3">
+                      <UpdateBanner
+                        version={updateInfo.version}
+                        downloaded={updateInfo.downloaded}
+                        onInstall={() => window.koda.updaterInstall()}
+                        onDismiss={onUpdateDismiss}
+                        variant="classic"
+                      />
+                    </div>
+                  )}
                   {pendingShell && (
                     <div className="mx-3">
                       <ShellApprovalPanel

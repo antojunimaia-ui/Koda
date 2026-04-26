@@ -48,5 +48,16 @@ contextBridge.exposeInMainWorld('koda', {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),
   close: () => ipcRenderer.invoke('window:close'),
-  selectDirectory: () => ipcRenderer.invoke('window:open_directory')
+  selectDirectory: () => ipcRenderer.invoke('window:open_directory'),
+  updaterInstall: () => ipcRenderer.invoke('updater:install'),
+  onUpdaterEvent: (callback: (event: string, data?: any) => void) => {
+    const available = (_e: any, data: any) => callback('update-available', data)
+    const downloaded = (_e: any) => callback('update-downloaded')
+    ipcRenderer.on('updater:update-available', available)
+    ipcRenderer.on('updater:update-downloaded', downloaded)
+    return () => {
+      ipcRenderer.removeListener('updater:update-available', available)
+      ipcRenderer.removeListener('updater:update-downloaded', downloaded)
+    }
+  }
 })

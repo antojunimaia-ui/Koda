@@ -46,6 +46,8 @@ declare global {
       maximize: () => Promise<void>
       close: () => Promise<void>
       selectDirectory: () => Promise<string | null>
+      updaterInstall: () => Promise<void>
+      onUpdaterEvent: (callback: (event: string, data?: any) => void) => (() => void)
     }
   }
 }

@@ -20,6 +20,7 @@ import TerminalPanel from './components/TerminalPanel.js'
 import { BrailleSpinner } from './components/BrailleSpinner.js'
 import MessageRow from './components/messages/MessageRow.js'
 import PlanApprovalModal from './components/modals/PlanApprovalModal.js'
+import UpdateBanner from './components/UpdateBanner.js'
 import ContextPanel from './components/context/ContextPanel.js'
 import SettingsUI, { DEFAULT_THEME } from './components/settings/SettingsUI.js'
 
@@ -69,6 +70,8 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false)
   const [showMcpSettings, setShowMcpSettings] = useState(false)
   const [showBrowser, setShowBrowser] = useState(false)
+  // ── Auto-updater state ──────────────────────────────────────────────────────
+  const [updateInfo, setUpdateInfo] = useState<{ version?: string; downloaded: boolean } | null>(null)
   const [showTerminal, setShowTerminal] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
   
@@ -366,6 +369,13 @@ const App: React.FC = () => {
       if (r.success && r.skills) setAvailableSkills(r.skills)
     })
     if (Notification.permission === 'default') Notification.requestPermission()
+
+    // Auto-updater listener
+    const unsubUpdater = window.koda.onUpdaterEvent?.((event, data) => {
+      if (event === 'update-available') setUpdateInfo({ version: data?.version, downloaded: false })
+      if (event === 'update-downloaded') setUpdateInfo(prev => prev ? { ...prev, downloaded: true } : { downloaded: true })
+    })
+    return () => { unsubUpdater?.() }
   }, [])
 
   // ── Refresh skills when marketplace installs/uninstalls ──────────────────────
@@ -879,6 +889,8 @@ const App: React.FC = () => {
             window.koda.questionsResponse(answers)
           }}
           pendingShell={activeWorkspace.pendingShell}
+          updateInfo={updateInfo}
+          onUpdateDismiss={() => setUpdateInfo(null)}
         />
       ) : (
         <ClassicUI
@@ -972,6 +984,8 @@ const App: React.FC = () => {
             window.koda.questionsResponse(answers)
           }}
           pendingShell={activeWorkspace.pendingShell}
+          updateInfo={updateInfo}
+          onUpdateDismiss={() => setUpdateInfo(null)}
         />
       )}
 

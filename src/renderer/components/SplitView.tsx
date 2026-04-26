@@ -186,7 +186,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
             
             <div className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
               <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-              <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[120px] group-hover:text-zinc-200">{agentInfo.cwd}</span>
+              <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[120px] group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
             </div>
           </div>
 
