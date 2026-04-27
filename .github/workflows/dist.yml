@@ -13,7 +13,17 @@ jobs:
     
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+            arch: x64
+          - os: windows-latest
+            platform: win
+            arch: ia32
  
     steps:
       - name: Check out git repository
@@ -26,7 +36,7 @@ jobs:
           cache: 'npm'
  
       - name: Install Linux Build Dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxkbfile-dev libsecret-1-dev
@@ -35,75 +45,38 @@ jobs:
         run: npm install
  
       - name: Build Vite App
-        if: matrix.os == 'windows-latest'
+        if: matrix.platform == 'win'
         run: npm run build
 
       - name: Build Windows x64
-        if: matrix.os == 'windows-latest'
+        if: matrix.platform == 'win' && matrix.arch == 'x64'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --x64 --publish never
 
-      - name: Rename x64 artifacts
-        if: matrix.os == 'windows-latest'
-        run: |
-          if (Test-Path "release-build/*.exe") {
-            Get-ChildItem release-build/*.exe | ForEach-Object {
-              $newName = $_.Name -replace '\.exe$', '-x64.exe'
-              Move-Item $_.FullName "release-build/$newName" -Force
-            }
-          }
-        shell: pwsh
-
-      - name: Clean electron-builder cache before ia32 build
-        if: matrix.os == 'windows-latest'
-        run: |
-          Remove-Item -Recurse -Force release-build/win-unpacked -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force $env:LOCALAPPDATA/electron-builder/Cache -ErrorAction SilentlyContinue
-        shell: pwsh
-
       - name: Build Windows ia32
-        if: matrix.os == 'windows-latest'
+        if: matrix.platform == 'win' && matrix.arch == 'ia32'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --ia32 --publish never
 
-      - name: Rename ia32 artifacts
-        if: matrix.os == 'windows-latest'
-        run: |
-          if (Test-Path "release-build/*.exe") {
-            Get-ChildItem release-build/*.exe | Where-Object { $_.Name -notmatch '-x64\.exe$' } | ForEach-Object {
-              $newName = $_.Name -replace '\.exe$', '-ia32.exe'
-              Move-Item $_.FullName "release-build/$newName" -Force
-            }
-          }
-        shell: pwsh
-
       - name: List Windows Build Artifacts
-        if: matrix.os == 'windows-latest'
+        if: matrix.platform == 'win'
         run: |
           echo "Listing all generated files:"
           dir release-build
         shell: pwsh
 
-      - name: Upload Windows x64 Artifact
-        if: matrix.os == 'windows-latest'
+      - name: Upload Windows Artifacts
+        if: matrix.platform == 'win'
         uses: actions/upload-artifact@v4
         with:
-          name: koda-windows-x64
-          path: release-build/*-x64.exe
-          retention-days: 7
-
-      - name: Upload Windows ia32 Artifact
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: koda-windows-ia32
-          path: release-build/*-ia32.exe
+          name: koda-windows-${{ matrix.arch }}
+          path: release-build/*.exe
           retention-days: 7
 
       - name: Publish Windows Builds to GitHub Release
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/v')
+        if: matrix.platform == 'win' && startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -111,7 +84,7 @@ jobs:
         shell: pwsh
 
       - name: Build and Publish (Linux/macOS)
-        if: matrix.os != 'windows-latest'
+        if: matrix.platform != 'win'
         uses: samuelmeuli/action-electron-builder@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -120,7 +93,7 @@ jobs:
 
       - name: Upload Artifacts (Linux/macOS)
         uses: actions/upload-artifact@v4
-        if: matrix.os != 'windows-latest'
+        if: matrix.platform != 'win'
         with:
           name: koda-${{ matrix.os }}-build
           path: |

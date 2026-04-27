@@ -112,7 +112,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Koda AI",
-      "include": "installer.nsh"
+      "include": "installer.nsh",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
     },
     "asar": true,
     "asarUnpack": [
