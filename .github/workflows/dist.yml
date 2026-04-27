@@ -38,17 +38,49 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: npm run build
 
+      - name: Clean dist-electron before x64 build
+        if: matrix.os == 'windows-latest'
+        run: Remove-Item -Recurse -Force dist-electron -ErrorAction SilentlyContinue
+        shell: pwsh
+
       - name: Build Windows x64
         if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --x64 --publish never
 
+      - name: Rename x64 artifacts
+        if: matrix.os == 'windows-latest'
+        run: |
+          if (Test-Path "release-build/*.exe") {
+            Get-ChildItem release-build/*.exe | ForEach-Object {
+              $newName = $_.Name -replace '\.exe$', '-x64.exe'
+              Move-Item $_.FullName "release-build/$newName" -Force
+            }
+          }
+        shell: pwsh
+
+      - name: Clean dist-electron before ia32 build
+        if: matrix.os == 'windows-latest'
+        run: Remove-Item -Recurse -Force dist-electron -ErrorAction SilentlyContinue
+        shell: pwsh
+
       - name: Build Windows ia32
         if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --ia32 --publish never
+
+      - name: Rename ia32 artifacts
+        if: matrix.os == 'windows-latest'
+        run: |
+          if (Test-Path "release-build/*.exe") {
+            Get-ChildItem release-build/*.exe | Where-Object { $_.Name -notmatch '-x64\.exe$' } | ForEach-Object {
+              $newName = $_.Name -replace '\.exe$', '-ia32.exe'
+              Move-Item $_.FullName "release-build/$newName" -Force
+            }
+          }
+        shell: pwsh
 
       - name: List Windows Build Artifacts
         if: matrix.os == 'windows-latest'
@@ -62,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: koda-windows-x64
-          path: release-build/*x64.exe
+          path: release-build/*-x64.exe
           retention-days: 7
 
       - name: Upload Windows ia32 Artifact
@@ -70,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: koda-windows-ia32
-          path: release-build/*ia32.exe
+          path: release-build/*-ia32.exe
           retention-days: 7
 
       - name: Publish Windows Builds to GitHub Release
