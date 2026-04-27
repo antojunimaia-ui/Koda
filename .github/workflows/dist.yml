@@ -34,13 +34,21 @@ jobs:
       - name: Install dependencies
         run: npm install
  
-      - name: Build and Publish (Windows - Both architectures)
+      - name: Build Vite App
+        if: matrix.os == 'windows-latest'
+        run: npm run build
+
+      - name: Build Windows x64
         if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm run build
-          npx electron-builder --win --x64 --ia32 --publish always
+        run: npx electron-builder --win --x64 --publish always
+
+      - name: Build Windows ia32
+        if: matrix.os == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --ia32 --publish always
 
       - name: List Windows Build Artifacts
         if: matrix.os == 'windows-latest'
