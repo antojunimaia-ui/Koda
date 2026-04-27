@@ -36,12 +36,17 @@ jobs:
  
       - name: Build and Publish (Windows - Both architectures)
         if: matrix.os == 'windows-latest'
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          max_attempts: 3
-          args: --win --x64 --ia32
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build
+          npx electron-builder --win --x64 --ia32 --publish always
+
+      - name: List Windows Build Artifacts
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "Listing all generated files:"
+          dir release-build
 
       - name: Build and Publish (Linux/macOS)
         if: matrix.os != 'windows-latest'
