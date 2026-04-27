@@ -9,6 +9,7 @@
     "clean": "npx rimraf dist-electron dist",
     "dev:clean": "npx rimraf dist-electron && vite",
     "build": "vite build",
+    "postinstall": "electron-builder install-app-deps",
     "dist": "npm run build && electron-builder --win --x64",
     "dist:32": "npm run build && electron-builder --win --ia32",
     "dist:all": "npm run build && electron-builder --win --x64 --ia32",

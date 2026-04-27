@@ -48,11 +48,21 @@ jobs:
         if: matrix.platform == 'win'
         run: npm run build
 
+      - name: Rebuild native modules for x64
+        if: matrix.platform == 'win' && matrix.arch == 'x64'
+        run: npx electron-builder install-app-deps --arch=x64
+        shell: pwsh
+
       - name: Build Windows x64
         if: matrix.platform == 'win' && matrix.arch == 'x64'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --x64 --publish never
+
+      - name: Rebuild native modules for ia32
+        if: matrix.platform == 'win' && matrix.arch == 'ia32'
+        run: npx electron-builder install-app-deps --arch=ia32
+        shell: pwsh
 
       - name: Build Windows ia32
         if: matrix.platform == 'win' && matrix.arch == 'ia32'
