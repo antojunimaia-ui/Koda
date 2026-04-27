@@ -86,16 +86,7 @@
       }
     ],
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": "x64"
-        },
-        {
-          "target": "nsis",
-          "arch": "ia32"
-        }
-      ],
+      "target": "nsis",
       "icon": "public/icon.ico"
     },
     "linux": {
@@ -121,7 +112,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Koda AI",
-      "include": "installer.nsh"
+      "include": "installer.nsh",
+      "artifactName": "${productName} Setup ${version} ${arch}.${ext}"
     },
     "asar": true,
     "asarUnpack": [

@@ -42,19 +42,26 @@ jobs:
         if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win --x64 --publish always
+        run: npx electron-builder --win --x64 --publish never
 
       - name: Build Windows ia32
         if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win --ia32 --publish always
+        run: npx electron-builder --win --ia32 --publish never
 
       - name: List Windows Build Artifacts
         if: matrix.os == 'windows-latest'
         run: |
           echo "Listing all generated files:"
           dir release-build
+
+      - name: Publish Windows Builds to GitHub Release
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.ref_name }} release-build/*.exe --clobber
 
       - name: Build and Publish (Linux/macOS)
         if: matrix.os != 'windows-latest'
