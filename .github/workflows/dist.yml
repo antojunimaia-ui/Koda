@@ -38,11 +38,6 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: npm run build
 
-      - name: Clean dist-electron before x64 build
-        if: matrix.os == 'windows-latest'
-        run: Remove-Item -Recurse -Force dist-electron -ErrorAction SilentlyContinue
-        shell: pwsh
-
       - name: Build Windows x64
         if: matrix.os == 'windows-latest'
         env:
@@ -60,9 +55,11 @@ jobs:
           }
         shell: pwsh
 
-      - name: Clean dist-electron before ia32 build
+      - name: Clean electron-builder cache before ia32 build
         if: matrix.os == 'windows-latest'
-        run: Remove-Item -Recurse -Force dist-electron -ErrorAction SilentlyContinue
+        run: |
+          Remove-Item -Recurse -Force release-build/win-unpacked -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force $env:LOCALAPPDATA/electron-builder/Cache -ErrorAction SilentlyContinue
         shell: pwsh
 
       - name: Build Windows ia32
