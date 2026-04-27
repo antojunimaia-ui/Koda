@@ -55,6 +55,23 @@ jobs:
         run: |
           echo "Listing all generated files:"
           dir release-build
+        shell: pwsh
+
+      - name: Upload Windows x64 Artifact
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: koda-windows-x64
+          path: release-build/*x64.exe
+          retention-days: 7
+
+      - name: Upload Windows ia32 Artifact
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: koda-windows-ia32
+          path: release-build/*ia32.exe
+          retention-days: 7
 
       - name: Publish Windows Builds to GitHub Release
         if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/v')
@@ -62,6 +79,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ github.ref_name }} release-build/*.exe --clobber
+        shell: pwsh
 
       - name: Build and Publish (Linux/macOS)
         if: matrix.os != 'windows-latest'
@@ -71,13 +89,12 @@ jobs:
           release: ${{ startsWith(github.ref, 'refs/tags/v') }}
           max_attempts: 3
 
-      - name: Upload Artifacts
+      - name: Upload Artifacts (Linux/macOS)
         uses: actions/upload-artifact@v4
-        if: always()
+        if: matrix.os != 'windows-latest'
         with:
           name: koda-${{ matrix.os }}-build
           path: |
-            release-build/*.exe
             release-build/*.dmg
             release-build/*.AppImage
             release-build/*.zip
