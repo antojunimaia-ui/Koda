@@ -10,6 +10,8 @@
     "dev:clean": "npx rimraf dist-electron && vite",
     "build": "vite build",
     "dist": "npm run build && electron-builder --win --x64",
+    "dist:32": "npm run build && electron-builder --win --ia32",
+    "dist:all": "npm run build && electron-builder --win --x64 --ia32",
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:mac": "npm run build && electron-builder --mac",
     "preview": "vite preview"
@@ -88,7 +90,8 @@
         {
           "target": "nsis",
           "arch": [
-            "x64"
+            "x64",
+            "ia32"
           ]
         }
       ],

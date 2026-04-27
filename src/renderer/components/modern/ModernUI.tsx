@@ -17,6 +17,7 @@ import CompactToolView from '../messages/CompactToolView.js'
 import QuestionsModal from '../modals/QuestionsModal.js'
 import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
 import UpdateBanner from '../UpdateBanner.js'
+import ChatHistory from '../ChatHistory.js'
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -77,6 +78,8 @@ interface ModernUIProps {
   splitViewIds?: [string, string] | null
   onSplitWith?: (id: string) => void
   handleSendForWs?: (text: string, images: any[], wsId: string) => void
+  onNewSession?: () => void
+  onLoadSession?: (sessionId: string) => void
   handleRollbackForWs?: (msgId: number, wsId: string) => void
   pendingQuestions?: import('../../types/index.js').Question[] | null
   onQuestionsSubmit?: (answers: import('../../types/index.js').QuestionAnswer[]) => void
@@ -153,7 +156,10 @@ const ModernUI: React.FC<ModernUIProps> = ({
   pendingQuestions, onQuestionsSubmit,
   pendingShell, onShellDismiss,
   updateInfo, onUpdateDismiss,
+  onNewSession, onLoadSession,
 }) => {
+  
+  const [showChatHistory, setShowChatHistory] = useState(false)
   
   const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: 60,
@@ -168,9 +174,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
   }, [externalInputRef, textareaRef])
 
   const scheduleScroll = () => {
-    setTimeout(() => {
-      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: 'auto' })
-    }, 100)
+    // Removed manual scrollToIndex - let Virtuoso's followOutput handle it
   }
 
   const renderableMessages = useMemo(() => {
@@ -343,51 +347,64 @@ const ModernUI: React.FC<ModernUIProps> = ({
       <div className="flex flex-1 min-h-0 relative flex-row">
         {/* ── Iconbar (Modern Only) ── */}
         {kodaSettings.showIconBar && (
-          <div className="w-12 bg-[#0a0a0b] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]">
-            
-            <div className="flex flex-col gap-2 flex-1 pt-2">
-            <button 
-              onClick={() => onTerminalClick()}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showTerminal ? 'bg-amber-500/10 text-amber-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
-              title="Toggle Terminal"
+          <>
+            <div 
+              className="w-12 bg-[#0a0a0b] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]"
+              onMouseEnter={() => setShowChatHistory(true)}
+              onMouseLeave={() => setShowChatHistory(false)}
             >
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-            </button>
+              <div className="flex flex-col gap-2 flex-1 pt-2">
+              <button 
+                onClick={() => onTerminalClick()}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showTerminal ? 'bg-amber-500/10 text-amber-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+                title="Toggle Terminal"
+              >
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+              </button>
 
-            <button 
-              onClick={() => onBrowserClick()}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showBrowser ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
-              title="Toggle Browser"
-            >
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            </button>
+              <button 
+                onClick={() => onBrowserClick()}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showBrowser ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+                title="Toggle Browser"
+              >
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              </button>
 
-            <button 
-              onClick={() => onTogglePanel()}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showPanel ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
-              title="Toggle Context Panel"
-            >
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h12M3 18h8"/></svg>
-            </button>
+              <button 
+                onClick={() => onTogglePanel()}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showPanel ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+                title="Toggle Context Panel"
+              >
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h12M3 18h8"/></svg>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 mb-2">
+              <button 
+                onClick={onMcpClick}
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-400 hover:bg-white/5 transition-all"
+                title="MCP Systems"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              </button>
+              <button 
+                onClick={onSettingsClick}
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-zinc-200 hover:bg-white/5 transition-all"
+                title="Settings"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2 mb-2">
-            <button 
-              onClick={onMcpClick}
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-400 hover:bg-white/5 transition-all"
-              title="MCP Systems"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-            </button>
-            <button 
-              onClick={onSettingsClick}
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-zinc-200 hover:bg-white/5 transition-all"
-              title="Settings"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-          </div>
-        </div>
+          {/* Chat History Panel */}
+          <ChatHistory
+            projectPath={agentInfo?.cwd || ''}
+            onNewSession={() => onNewSession?.()}
+            onLoadSession={(sessionId) => onLoadSession?.(sessionId)}
+            isVisible={showChatHistory}
+          />
+        </>
       )}
 
         <div className="flex-1 flex flex-col min-w-0">
@@ -442,10 +459,11 @@ const ModernUI: React.FC<ModernUIProps> = ({
                   <Virtuoso
                     ref={virtuosoRef}
                     data={renderableMessages}
-                    followOutput="auto"
+                    alignToBottom
+                    increaseViewportBy={{ top: 200, bottom: 200 }}
                     className="custom-scrollbar pr-2"
                     itemContent={(index, item: any) => (
-                      <div className={index === renderableMessages.length - 1 ? `mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300` : 'mb-6'}>
+                      <div className="mb-6">
                         {item.type === 'tool_group' ? (
                           <CompactToolView 
                             tools={item.tools} 

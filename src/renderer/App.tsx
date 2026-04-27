@@ -130,7 +130,8 @@ const App: React.FC = () => {
       pendingQuestions: null,
       pendingShell: null,
       inPlanMode: false,
-      terminalOutput: ''
+      terminalOutput: '',
+      currentSessionId: null
     }
     
     setWorkspaces(prev => [...prev, newWorkspace])
@@ -152,11 +153,7 @@ const App: React.FC = () => {
 
   // ── Debounced scroll ────────────────────────────────────────────────────────
   const scheduleScroll = useCallback((workspaceId: string) => {
-    if (workspaceId !== activeId) return // Only scroll if it's the active one
-    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
-    scrollTimerRef.current = setTimeout(() => {
-      virtuosoRef.current?.scrollToIndex({ index: (activeWorkspace?.messages.length || 0) - 1, behavior: 'auto' })
-    }, 80)
+    // Removed manual scrollToIndex - let Virtuoso's followOutput handle it
   }, [activeId, activeWorkspace?.messages.length])
 
   // ── Custom hooks ────────────────────────────────────────────────────────────
@@ -236,10 +233,11 @@ const App: React.FC = () => {
         rendererMessages: activeWorkspace.messages,
         backendMessages: null,
         pinnedFiles: activeWorkspace.pinnedFiles,
+        sessionId: activeWorkspace.currentSessionId || undefined
       })
     }, 1000)
     return () => clearTimeout(timer)
-  }, [activeWorkspace?.messages, activeWorkspace?.pinnedFiles, activeWorkspace?.agentInfo.cwd, initializing])
+  }, [activeWorkspace?.messages, activeWorkspace?.pinnedFiles, activeWorkspace?.agentInfo.cwd, activeWorkspace?.currentSessionId, initializing])
 
   // ── Theme & settings persistence ────────────────────────────────────────────
   useEffect(() => {
@@ -330,7 +328,8 @@ const App: React.FC = () => {
                   pendingQuestions: null,
                   pendingShell: null,
                   inPlanMode: false,
-                  terminalOutput: ''
+                  terminalOutput: '',
+                  currentSessionId: null
                 }
                 setWorkspaces([initialWs])
                 setActiveId(initialId)
@@ -354,7 +353,8 @@ const App: React.FC = () => {
                 pendingQuestions: null,
                 pendingShell: null,
                 inPlanMode: false,
-                terminalOutput: ''
+                terminalOutput: '',
+                currentSessionId: null
               }
               setWorkspaces([initialWs])
               setActiveId(initialId)
@@ -414,6 +414,40 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!activeWorkspace?.isProcessing && !initializing) inputRef.current?.focus()
   }, [activeWorkspace?.isProcessing, initializing])
+
+  // ── Session Management ──────────────────────────────────────────────────────
+  const handleNewSession = useCallback(() => {
+    if (!activeId) return
+    updateWorkspace(activeId, { 
+      messages: [], 
+      pinnedFiles: [],
+      currentSessionId: null // Clear session ID to create a new one
+    })
+    window.koda.softReset(activeId)
+  }, [activeId, updateWorkspace])
+
+  const handleLoadSession = useCallback(async (sessionId: string) => {
+    if (!activeId || !activeWorkspace) return
+    
+    try {
+      const session = await window.koda.getSessionById(sessionId);
+      if (session) {
+        updateWorkspace(activeId, {
+          messages: session.messages || [],
+          pinnedFiles: session.pinnedFiles || [],
+          currentSessionId: sessionId // Set the current session ID
+        })
+        
+        // Restore backend history if available
+        if (session.backendHistory) {
+          await window.koda.softReset(activeId)
+          // The backend will restore history automatically on next message
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load session:', error)
+    }
+  }, [activeId, activeWorkspace, updateWorkspace])
 
   // ── Auto-dequeue ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -891,6 +925,8 @@ const App: React.FC = () => {
           pendingShell={activeWorkspace.pendingShell}
           updateInfo={updateInfo}
           onUpdateDismiss={() => setUpdateInfo(null)}
+          onNewSession={handleNewSession}
+          onLoadSession={handleLoadSession}
         />
       ) : (
         <ClassicUI

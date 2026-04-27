@@ -37,7 +37,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
   }, [isFocused])
 
   useEffect(() => {
-    virtuosoRef.current?.scrollToIndex({ index: workspace.messages.length - 1, behavior: 'smooth' })
+    // Removed manual scrollToIndex - let Virtuoso's followOutput handle it
   }, [workspace.messages.length])
 
   const adjustHeight = (reset?: boolean) => {
@@ -273,7 +273,8 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
         <Virtuoso
           ref={virtuosoRef}
           data={renderableMessages}
-          followOutput="auto"
+          alignToBottom
+          increaseViewportBy={{ top: 200, bottom: 200 }}
           className="custom-scrollbar h-full"
           itemContent={(_, item: any) => (
             <div className="px-3 py-1">

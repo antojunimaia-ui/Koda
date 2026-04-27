@@ -153,4 +153,5 @@ export interface Workspace {
   pendingShell: { command: string; baseCommand: string; description?: string } | null
   inPlanMode: boolean
   terminalOutput: string
+  currentSessionId: string | null
 }

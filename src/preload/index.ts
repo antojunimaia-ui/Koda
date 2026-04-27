@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('koda', {
   saveMcpConfigs: (configs: any[]) => ipcRenderer.invoke('mcp:save_configs', configs),
   getProjectSession: (projectPath: string) => ipcRenderer.invoke('agent:get_session', projectPath),
   saveProjectSession: (workspaceId: string, projectPath: string, data: any) => ipcRenderer.invoke('agent:save_session', workspaceId, projectPath, data),
+  listProjectSessions: (projectPath: string) => ipcRenderer.invoke('agent:list_sessions', projectPath),
+  getSessionById: (sessionId: string) => ipcRenderer.invoke('agent:get_session_by_id', sessionId),
   listSkills: () => ipcRenderer.invoke('skills:list'),
   marketplaceFetch: () => ipcRenderer.invoke('marketplace:fetch'),
   marketplaceInstall: (skillName: string, version?: string) => ipcRenderer.invoke('marketplace:install', skillName, version),

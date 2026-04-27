@@ -31,6 +31,9 @@ const CompactToolView = memo(({ tools, settings, agentInfo, uiMode, isLastAndAct
     Created: 0,
     Searched: 0,
     Browsed: 0,
+    Queried: 0,
+    Asked: 0,
+    Managed: 0,
   }
 
   let isAnyRunning = false
@@ -67,6 +70,25 @@ const CompactToolView = memo(({ tools, settings, agentInfo, uiMode, isLastAndAct
     } else if (tool.name === 'browser_agent' || tool.name === 'web_fetch') {
       category = 'Browsed'
       value = tool.args?.url ? String(tool.args.url).replace(/^https?:\/\//, '').split('/')[0] : 'page'
+    } else if (tool.name === 'lsp_query' || tool.name === 'get_diagnostics') {
+      category = 'Queried'
+      value = tool.name === 'lsp_query' ? (tool.args?.query || 'code') : 'diagnostics'
+    } else if (tool.name === 'questions') {
+      category = 'Asked'
+      const questionCount = tool.args?.questions?.length || 1
+      value = `${questionCount} question${questionCount > 1 ? 's' : ''}`
+    } else if (tool.name === 'kill_pty' || tool.name === 'list_pty' || tool.name === 'shell_input') {
+      category = 'Managed'
+      value = tool.name === 'kill_pty' ? `PTY ${tool.args?.pid || ''}` : (tool.name === 'list_pty' ? 'PTY list' : 'PTY input')
+    } else if (tool.name === 'enter_plan_mode' || tool.name === 'exit_plan_mode') {
+      category = 'Managed'
+      value = tool.name === 'enter_plan_mode' ? 'plan mode' : 'exit plan'
+    } else if (tool.name === 'start_collaboration' || tool.name === 'send_to_advisor' || tool.name === 'end_collaboration') {
+      category = 'Managed'
+      value = tool.name === 'start_collaboration' ? 'collaboration' : (tool.name === 'send_to_advisor' ? 'advisor message' : 'end collaboration')
+    } else if (tool.name === 'load_skill') {
+      category = 'Managed'
+      value = `skill: ${tool.args?.name || 'unknown'}`
     }
 
     counts[category]++
@@ -81,6 +103,9 @@ const CompactToolView = memo(({ tools, settings, agentInfo, uiMode, isLastAndAct
       else if (cat === 'Executed') noun = 'command'
       else if (cat === 'Searched') noun = 'query'
       else if (cat === 'Analyzed') noun = 'folder'
+      else if (cat === 'Queried') noun = 'query'
+      else if (cat === 'Asked') noun = 'question'
+      else if (cat === 'Managed') noun = 'action'
       
       const plural = count === 1 ? noun : (noun === 'query' ? 'queries' : noun + 's')
       return `${cat} ${count} ${plural}`

@@ -327,7 +327,8 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                 <Virtuoso
                   ref={virtuosoRef}
                   data={renderableMessages}
-                  followOutput="auto"
+                  alignToBottom
+                  increaseViewportBy={{ top: 200, bottom: 200 }}
                   className="terminal-scroll-area h-full custom-scrollbar"
                   itemContent={(_index, item: any) => (
                     item.type === 'tool_group' ? (

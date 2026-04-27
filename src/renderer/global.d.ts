@@ -35,6 +35,8 @@ declare global {
       saveMcpConfigs: (configs: any[]) => Promise<{ success: boolean; error?: string }>
       getProjectSession: (projectPath: string) => Promise<any>
       saveProjectSession: (workspaceId: string, projectPath: string, data: any) => Promise<void>
+      listProjectSessions: (projectPath: string) => Promise<Array<{ id: string; title: string; timestamp: number }>>
+      getSessionById: (sessionId: string) => Promise<any>
       listSkills: () => Promise<{ success: boolean; skills?: Array<{ name: string; description: string; triggers: string[]; filePath: string }>; error?: string }>
       marketplaceFetch: () => Promise<{ success: boolean; skills: any[]; error?: string }>
       marketplaceInstall: (skillName: string, version?: string) => Promise<{ success: boolean; error?: string }>

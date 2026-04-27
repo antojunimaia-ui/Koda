@@ -262,8 +262,17 @@ ipcMain.handle('agent:save_session', async (event, workspaceId: string, projectP
     messages: rendererMessages, 
     backendHistory: historyToSave,
     pinnedFiles,
-    timestamp: Date.now() 
+    timestamp: Date.now(),
+    projectPath
   } as any);
+})
+
+ipcMain.handle('agent:list_sessions', async (event, projectPath: string) => {
+  return sessionManager.listSessions(projectPath);
+})
+
+ipcMain.handle('agent:get_session_by_id', async (event, sessionId: string) => {
+  return sessionManager.getSessionById(sessionId);
 })
 
 ipcMain.handle('agent:apikey', async (event, workspaceId: string, key: string) => {
