@@ -3,6 +3,7 @@ import { resolve } from "path";
 import { existsSync } from "fs";
 import { BaseTool, ToolParameter, ToolResult } from "./base.js";
 import { applyStringEdit, generateDiff } from "../utils/diff.js";
+import { checkKodaIgnore } from "../utils/kodaignore.js";
 
 export class FileEditTool extends BaseTool {
   name = "file_edit";
@@ -37,6 +38,9 @@ export class FileEditTool extends BaseTool {
     const filePath = resolve(process.cwd(), args.path as string);
     const target = args.target as string;
     const replacement = args.replacement as string;
+
+    const blocked = checkKodaIgnore(args.path as string);
+    if (blocked) return this.failure(blocked);
 
     if (!existsSync(filePath)) {
       return this.failure(`File not found: ${filePath}`);

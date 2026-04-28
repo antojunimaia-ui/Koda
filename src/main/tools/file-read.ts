@@ -3,6 +3,7 @@ import { resolve } from "path";
 import { existsSync } from "fs";
 import { BaseTool, ToolParameter, ToolResult } from "./base.js";
 import { detectLanguage, highlightCode } from "../utils/syntax.js";
+import { checkKodaIgnore } from "../utils/kodaignore.js";
 
 export class FileReadTool extends BaseTool {
   name = "file_read";
@@ -34,6 +35,9 @@ export class FileReadTool extends BaseTool {
     if (error) return this.failure(error);
 
     const filePath = resolve(process.cwd(), args.path as string);
+
+    const blocked = checkKodaIgnore(args.path as string);
+    if (blocked) return this.failure(blocked);
 
     if (!existsSync(filePath)) {
       return this.failure(`File not found: ${filePath}`);

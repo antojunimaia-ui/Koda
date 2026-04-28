@@ -2,6 +2,7 @@ import { exec } from "child_process";
 import { resolve } from "path";
 import { readdir, readFile, stat } from "fs/promises";
 import { BaseTool, ToolParameter, ToolResult } from "./base.js";
+import { checkKodaIgnore } from "../utils/kodaignore.js";
 
 export class SearchTool extends BaseTool {
   name = "search";
@@ -76,9 +77,19 @@ export class SearchTool extends BaseTool {
         return this.success(`No matches found for pattern: "${pattern}"`);
       }
 
-      const output = results.join("\n");
+      // Filtra resultados de arquivos bloqueados pelo .kodaignore
+      const filtered = results.filter(line => {
+        const filePart = line.split(':')[0]
+        return !checkKodaIgnore(filePart)
+      })
+
+      if (filtered.length === 0) {
+        return this.success(`No matches found for pattern: "${pattern}"`);
+      }
+
+      const output = filtered.join("\n");
       return this.success(
-        `🔍 Found ${results.length} match(es) for "${pattern}":\n\n${output}`
+        `🔍 Found ${filtered.length} match(es) for "${pattern}":\n\n${output}`
       );
     } catch (err) {
       return this.failure(`Search failed: ${(err as Error).message}`);

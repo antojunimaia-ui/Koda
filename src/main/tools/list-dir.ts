@@ -1,6 +1,7 @@
 import { readdir, stat } from "fs/promises";
 import { resolve, relative } from "path";
 import { BaseTool, ToolParameter, ToolResult } from "./base.js";
+import { checkKodaIgnore } from "../utils/kodaignore.js";
 
 export class ListDirTool extends BaseTool {
   name = "list_dir";
@@ -90,6 +91,9 @@ export class ListDirTool extends BaseTool {
 
       const fullPath = resolve(currentPath, item.name);
       const relPath = relative(basePath, fullPath);
+
+      // Verifica .kodaignore
+      if (checkKodaIgnore(relPath)) continue;
       const indent = "  ".repeat(depth);
 
       if (item.isDirectory()) {

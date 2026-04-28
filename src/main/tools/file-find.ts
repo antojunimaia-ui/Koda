@@ -1,6 +1,7 @@
 import { resolve, relative } from "path";
 import { globby } from "globby";
 import { BaseTool, ToolParameter, ToolResult } from "./base.js";
+import { checkKodaIgnore } from "../utils/kodaignore.js";
 
 export class FileFindTool extends BaseTool {
   name = "file_find";
@@ -52,10 +53,12 @@ export class FileFindTool extends BaseTool {
       const limitedMatches = matches.slice(0, maxResults);
 
       // Convert absolute paths back to relative for user readability
-      const relativeMatches = limitedMatches.map((match) => {
-        const path = typeof match === "string" ? match : match.path;
-        return relative(process.cwd(), path);
-      });
+      const relativeMatches = limitedMatches
+        .map((match) => {
+          const p = typeof match === "string" ? match : match.path;
+          return relative(process.cwd(), p);
+        })
+        .filter(rel => !checkKodaIgnore(rel)); // filtra .kodaignore
 
       const output = relativeMatches.join("\n");
       return this.success(
