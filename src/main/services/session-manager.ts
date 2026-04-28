@@ -55,7 +55,7 @@ export class SessionManager {
   }
 
   public async saveSession(projectPath: string, session: ProjectSession): Promise<void> {
-    // Generate new session ID if not provided
+    // Usa o sessionId fornecido — nunca gera um novo se já existe
     const sessionId = session.sessionId || this.generateSessionId(projectPath);
     const sessionPath = this.getSessionPathById(sessionId);
     
@@ -83,6 +83,17 @@ export class SessionManager {
       console.error(`Error loading session ${sessionId}:`, error);
     }
     return null;
+  }
+
+  public async deleteSession(sessionId: string): Promise<void> {
+    const sessionPath = this.getSessionPathById(sessionId);
+    try {
+      if (fs.existsSync(sessionPath)) {
+        await fs.promises.unlink(sessionPath);
+      }
+    } catch (error) {
+      console.error(`Error deleting session ${sessionId}:`, error);
+    }
   }
 
   public async clearSession(projectPath: string): Promise<void> {

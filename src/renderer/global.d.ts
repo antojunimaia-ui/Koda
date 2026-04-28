@@ -37,6 +37,7 @@ declare global {
       saveProjectSession: (workspaceId: string, projectPath: string, data: any) => Promise<void>
       listProjectSessions: (projectPath: string) => Promise<Array<{ id: string; title: string; timestamp: number }>>
       getSessionById: (sessionId: string) => Promise<any>
+      deleteSession: (sessionId: string) => Promise<void>
       listSkills: () => Promise<{ success: boolean; skills?: Array<{ name: string; description: string; triggers: string[]; filePath: string }>; error?: string }>
       marketplaceFetch: () => Promise<{ success: boolean; skills: any[]; error?: string }>
       marketplaceInstall: (skillName: string, version?: string) => Promise<{ success: boolean; error?: string }>

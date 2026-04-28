@@ -19,7 +19,7 @@ interface MessageRowProps {
 const MessageRow = memo(({ msg, onRollback, kodaSettings, agentInfo, uiMode = 'classic' }: MessageRowProps) => (
   <div className="flex flex-col text-sm">
     {msg.type === 'user' && (
-      <UserMessage text={msg.text!} images={msg.images} onRollback={onRollback} remote={msg.remote} />
+      <UserMessage text={msg.text!} images={msg.images} onRollback={onRollback} remote={msg.remote} uiMode={uiMode} />
     )}
     {msg.type === 'assistant' && (
       <AssistantMessage text={msg.text} done={msg.done} uiMode={uiMode} />

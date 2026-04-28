@@ -11,6 +11,7 @@ import { useResizable } from './hooks/useResizable.js'
 import { useDragDrop } from './hooks/useDragDrop.js'
 import { useAgentStream, nextId } from './hooks/useAgentStream.js'
 import { useSession } from './hooks/useSession.js'
+import { sessionStorage as kodaSessionStorage } from './hooks/useSessionStorage.js'
 
 // ─── Shared Components ──────────────────────────────────────────────────────
 import TitleBar from './components/TitleBar.js'
@@ -99,7 +100,7 @@ const App: React.FC = () => {
       showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,
       showFileWrite: true, showListDir: true, showFileFind: true, showSearch: true,
       showLspQuery: true, showBrowserAgent: true, showPlanMode: true, showColab: true,
-      showPty: true, uiMode: 'classic', toolViewMode: 'standard', browserPosition: 'left', terminalPosition: 'left', showIconBar: true
+      showPty: true, uiMode: 'modern', toolViewMode: 'standard', browserPosition: 'left', terminalPosition: 'left', showIconBar: true
     }
   })
 
@@ -150,6 +151,8 @@ const App: React.FC = () => {
   const virtuosoRef = useRef<VirtuosoHandle | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Ref para o sessionId atual — evita re-disparar o auto-save ao atualizar o workspace
+  const sessionIdRef = useRef<Map<string, string>>(new Map())
 
   // ── Debounced scroll ────────────────────────────────────────────────────────
   const scheduleScroll = useCallback((workspaceId: string) => {
@@ -228,16 +231,27 @@ const App: React.FC = () => {
   // ── Auto-save (debounced 1s) ────────────────────────────────────────────────
   useEffect(() => {
     if (initializing || !activeWorkspace || !activeWorkspace.agentInfo.cwd || activeWorkspace.agentInfo.cwd === '...') return
-    const timer = setTimeout(async () => {
-      await window.koda.saveProjectSession(activeWorkspace.id, activeWorkspace.agentInfo.cwd, {
-        rendererMessages: activeWorkspace.messages,
-        backendMessages: null,
-        pinnedFiles: activeWorkspace.pinnedFiles,
-        sessionId: activeWorkspace.currentSessionId || undefined
-      })
+    if (activeWorkspace.messages.length === 0) return
+
+    const wsId = activeWorkspace.id
+    const cwd = activeWorkspace.agentInfo.cwd
+    const messages = activeWorkspace.messages
+    const pinnedFiles = activeWorkspace.pinnedFiles
+
+    const timer = setTimeout(() => {
+      // Pega ou gera o sessionId via ref — não dispara re-render
+      let sessionId = sessionIdRef.current.get(wsId)
+      if (!sessionId) {
+        sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        sessionIdRef.current.set(wsId, sessionId)
+        updateWorkspace(wsId, { currentSessionId: sessionId })
+      }
+
+      // Salva no localStorage — sem IPC, sem race condition
+      kodaSessionStorage.save(cwd, { id: sessionId, messages, pinnedFiles })
     }, 1000)
     return () => clearTimeout(timer)
-  }, [activeWorkspace?.messages, activeWorkspace?.pinnedFiles, activeWorkspace?.agentInfo.cwd, activeWorkspace?.currentSessionId, initializing])
+  }, [activeWorkspace?.messages, activeWorkspace?.pinnedFiles, activeWorkspace?.agentInfo.cwd, initializing])
 
   // ── Theme & settings persistence ────────────────────────────────────────────
   useEffect(() => {
@@ -418,31 +432,27 @@ const App: React.FC = () => {
   // ── Session Management ──────────────────────────────────────────────────────
   const handleNewSession = useCallback(() => {
     if (!activeId) return
+    sessionIdRef.current.delete(activeId) // limpa o ID da ref pra gerar um novo
     updateWorkspace(activeId, { 
       messages: [], 
       pinnedFiles: [],
-      currentSessionId: null // Clear session ID to create a new one
+      currentSessionId: null
     })
     window.koda.softReset(activeId)
   }, [activeId, updateWorkspace])
 
   const handleLoadSession = useCallback(async (sessionId: string) => {
     if (!activeId || !activeWorkspace) return
-    
     try {
-      const session = await window.koda.getSessionById(sessionId);
+      const session = kodaSessionStorage.get(activeWorkspace.agentInfo.cwd, sessionId)
       if (session) {
+        sessionIdRef.current.set(activeId, sessionId)
         updateWorkspace(activeId, {
           messages: session.messages || [],
           pinnedFiles: session.pinnedFiles || [],
-          currentSessionId: sessionId // Set the current session ID
+          currentSessionId: sessionId
         })
-        
-        // Restore backend history if available
-        if (session.backendHistory) {
-          await window.koda.softReset(activeId)
-          // The backend will restore history automatically on next message
-        }
+        await window.koda.softReset(activeId)
       }
     } catch (error) {
       console.error('Failed to load session:', error)

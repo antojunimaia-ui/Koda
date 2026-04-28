@@ -275,6 +275,10 @@ ipcMain.handle('agent:get_session_by_id', async (event, sessionId: string) => {
   return sessionManager.getSessionById(sessionId);
 })
 
+ipcMain.handle('agent:delete_session', async (event, sessionId: string) => {
+  return sessionManager.deleteSession(sessionId);
+})
+
 ipcMain.handle('agent:apikey', async (event, workspaceId: string, key: string) => {
   const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
