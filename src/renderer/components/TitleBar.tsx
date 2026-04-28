@@ -47,7 +47,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
   }, [])
 
   const modeSelector = (
-    <div className="relative h-full flex items-center" ref={dropdownRef}>
+    <div id="tour-mode" className="relative h-full flex items-center" ref={dropdownRef}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-white/10 rounded-md border border-white/5 transition-all no-drag group"
@@ -112,7 +112,8 @@ const TitleBar: React.FC<TitleBarProps> = ({
             {modeSelector}
           </div>
 
-        <button 
+        <button
+          id="tour-workspaces"
           onClick={onToggleSplit}
           className={`w-7 h-7 flex items-center justify-center rounded transition-all no-drag ml-1 ${isSplitEnabled ? 'text-cyan-400 bg-cyan-400/10' : 'text-slate-500 hover:text-cyan-400 hover:bg-white/5'}`}
           title={isSplitEnabled ? 'Disable Workspace Split' : 'Enable Workspace Split'}

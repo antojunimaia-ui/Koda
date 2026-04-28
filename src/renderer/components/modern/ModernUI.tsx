@@ -18,6 +18,7 @@ import QuestionsModal from '../modals/QuestionsModal.js'
 import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
 import UpdateBanner from '../UpdateBanner.js'
 import ChatHistory from '../ChatHistory.js'
+import OnboardingTour from '../OnboardingTour.js'
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -349,6 +350,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
         {kodaSettings.showIconBar && (
           <>
             <div 
+              id="tour-iconbar"
               className="w-12 bg-[#0a0a0b] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]"
               onMouseEnter={() => setShowChatHistory(true)}
               onMouseLeave={() => setShowChatHistory(false)}
@@ -595,6 +597,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         }}
                         onKeyDown={handleKeyDown}
                         onPaste={handlePaste}
+                        id="tour-input"
                         placeholder="Ask Koda anything..."
                         className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
                         style={{ overflow: "hidden" }}
@@ -608,14 +611,18 @@ const ModernUI: React.FC<ModernUIProps> = ({
                           <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">Attach</span>
                         </button>
                         
-                        <div onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
+                        <div id="tour-cwd" onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
                           <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
                           <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">{agentInfo.provider}</span>
+                        <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">
+                          {agentInfo.providerId === 'koda-cloud'
+                            ? `${agentInfo.model} / Koda Cloud`
+                            : agentInfo.model}
+                        </span>
                         <button
                           type="button"
                           onClick={() => isProcessing ? handleStop() : handleSend()}
@@ -657,6 +664,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
           </div>
         </div>
       </div>
+
+      <OnboardingTour show={messages.length === 0} />
     </div>
   )
 }

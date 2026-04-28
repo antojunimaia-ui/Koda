@@ -102,8 +102,11 @@
       ],
       "icon": "public/icon.png",
       "identity": null,
-      "type": "distribution"
+      "type": "development",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
     },
+    "afterSign": "scripts/after-sign.cjs",
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,

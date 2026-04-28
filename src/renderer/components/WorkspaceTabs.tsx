@@ -158,7 +158,7 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
 
   return (
     <>
-      <div className="flex items-center h-8 select-none border-b border-white/5 bg-[#0a0a0b]">
+      <div id="tour-workspaces" className="flex items-center h-8 select-none border-b border-white/5 bg-[#0a0a0b]">
         <div className="flex items-center gap-1 px-2 h-full flex-1 overflow-x-auto no-scrollbar">
           {workspaces.map((ws) => {
             const isActive = activeId === ws.id
