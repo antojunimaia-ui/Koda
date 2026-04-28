@@ -3,7 +3,7 @@ import { KodaTheme, KodaSettings } from '../../types/index.js'
 import KodaSettingsTab from './KodaSettingsTab.js'
 import RemoteControlTab from './RemoteControlTab.js'
 import SkillMarketplace from './SkillMarketplace.js'
-
+import OnboardingTour from '../OnboardingTour.js'
 import tokyoNight from '../../themes/tokyo-night.json'
 import monokai from '../../themes/monokai.json'
 import cyberpunk from '../../themes/cyberpunk.json'
@@ -35,6 +35,7 @@ const SettingsUI = memo(({
   theme, setTheme, kodaSettings, setKodaSettings
 }: SettingsUIProps) => {
   const [activeTab, setActiveTab] = useState<'api' | 'themes' | 'koda' | 'remote' | 'skills'>('api')
+  const [showTour, setShowTour] = useState(() => !localStorage.getItem('koda_settings_tour_done'))
   const [provider, setProvider] = useState(defaultProvider || 'openai')
   const [model, setModel] = useState(defaultModel || 'gpt-4o')
   const [advisorModel, setAdvisorModel] = useState(defaultAdvisorModel || 'gpt-4o')
@@ -91,19 +92,19 @@ const SettingsUI = memo(({
             <span className="text-xl">⚙️</span> Settings
           </div>
 
-          <button onClick={() => setActiveTab('api')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'api' ? 'bg-cyan/10 text-cyan border-r-2 border-cyan' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-api" onClick={() => setActiveTab('api')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'api' ? 'bg-cyan/10 text-cyan border-r-2 border-cyan' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
             <span>🏢</span> API & Models
           </button>
-          <button onClick={() => setActiveTab('themes')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'themes' ? 'bg-magenta/10 text-magenta border-r-2 border-magenta' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-themes" onClick={() => setActiveTab('themes')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'themes' ? 'bg-magenta/10 text-magenta border-r-2 border-magenta' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
             <span>🎨</span> Themes
           </button>
-          <button onClick={() => setActiveTab('koda')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'koda' ? 'bg-amber-400/10 text-amber-400 border-r-2 border-amber-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-koda" onClick={() => setActiveTab('koda')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'koda' ? 'bg-amber-400/10 text-amber-400 border-r-2 border-amber-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
             <span>🤖</span> Koda Settings
           </button>
-          <button onClick={() => setActiveTab('remote')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'remote' ? 'bg-emerald-400/10 text-emerald-400 border-r-2 border-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-remote" onClick={() => setActiveTab('remote')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'remote' ? 'bg-emerald-400/10 text-emerald-400 border-r-2 border-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
             <span>🌐</span> Remote Control
           </button>
-          <button onClick={() => setActiveTab('skills')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'skills' ? 'bg-indigo-400/10 text-indigo-400 border-r-2 border-indigo-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-skills" onClick={() => setActiveTab('skills')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'skills' ? 'bg-indigo-400/10 text-indigo-400 border-r-2 border-indigo-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
             <span>🎯</span> Skills
           </button>
 
@@ -265,6 +266,8 @@ const SettingsUI = memo(({
           </div>
         </div>
       </div>
+
+      <OnboardingTour mode="settings" active={showTour} onDone={() => setShowTour(false)} />
     </div>
   )
 })

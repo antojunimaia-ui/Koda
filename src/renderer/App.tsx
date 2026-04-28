@@ -740,10 +740,11 @@ const App: React.FC = () => {
   // ── handleInputChange ────────────────────────────────────────────────────────
   const handleInputChange = async (val: string) => {
     setInput(val)
-    const cursor = inputRef.current?.selectionStart || 0
+    const cursor = inputRef.current?.selectionStart ?? val.length
     const textBefore = val.slice(0, cursor)
 
-    const slashMatch = textBefore.match(/^\/(\S*)$/)
+    // Detecta / no início do input (com ou sem texto depois)
+    const slashMatch = val.match(/^\/(\S*)/)
     if (slashMatch) {
       const query = slashMatch[1].toLowerCase()
       const skillItems = availableSkills.map(s => ({ name: `/${s.name}`, description: s.description, icon: '🎯', isSkill: true as const }))

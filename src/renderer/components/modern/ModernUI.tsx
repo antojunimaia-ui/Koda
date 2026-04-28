@@ -527,6 +527,53 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       />
                     </div>
                   )}
+
+                  {/* Slash Menu — estilo UpdateBanner */}
+                  {showSlashMenu && slashItems.length > 0 && (
+                    <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                      <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
+                        {slashItems.map((item, idx) => (
+                          <button
+                            key={item.name}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === slashIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                            onClick={() => selectSlashItem(item)}
+                          >
+                            <span className="text-sm flex-shrink-0">{item.icon}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
+                                {item.name}
+                              </span>
+                              {item.description && (
+                                <span className="text-[10px] text-slate-600 group-hover:text-slate-500 transition-colors truncate">
+                                  {item.description}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                      <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
+                        {suggestions.map((file, idx) => (
+                          <button
+                            key={file}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === suggestionIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                            onClick={() => selectSuggestion(file)}
+                          >
+                            <span className="text-sm flex-shrink-0">📄</span>
+                            <span className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
+                              {file}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
                     {pendingImages.length > 0 && (
                       <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
@@ -542,57 +589,12 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       </div>
                     )}
 
-                    {showSlashMenu && slashItems.length > 0 && (
-                      <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                        {slashItems.map((item, idx) => (
-                          <button
-                            key={item.name}
-                            className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${idx === slashIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                            onClick={() => selectSlashItem(item)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs">{item.icon}</span>
-                                <span className={`text-[10px] font-black uppercase tracking-widest ${idx === slashIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                                  {item.name}
-                                </span>
-                              </div>
-                            </div>
-                            {item.description && (
-                              <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">
-                                {item.description}
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {showSuggestions && suggestions.length > 0 && (
-                      <div className="absolute bottom-[100%] mb-2 left-0 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                        {suggestions.map((file, idx) => (
-                          <button
-                            key={file}
-                            className={`w-full flex flex-col px-3 py-2 rounded-md transition-all text-left group ${idx === suggestionIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
-                            onClick={() => selectSuggestion(file)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs">📄</span>
-                              <span className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                                {file}
-                              </span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
                     <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
                       <textarea
                         ref={textareaRef}
                         value={input}
                         onChange={(e) => {
-                          setInput(e.target.value)
+                          handleInputChange(e.target.value)
                           adjustHeight()
                         }}
                         onKeyDown={handleKeyDown}

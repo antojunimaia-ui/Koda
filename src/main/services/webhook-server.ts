@@ -8,12 +8,27 @@ export interface WebhookConfig {
   enabled: boolean;
 }
 
+interface TaskResult {
+  text: string;
+  done: boolean;
+  error?: string;
+}
+
 let server: http.Server | null = null;
 let currentConfig: WebhookConfig | null = null;
 
+// SSE clients per messageId
+const sseClients = new Map<number, http.ServerResponse[]>();
+// Completed task results (kept for 10 min)
+const taskResults = new Map<number, TaskResult>();
+
 function json(res: http.ServerResponse, status: number, data: unknown) {
   const body = JSON.stringify(data);
-  res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+  });
   res.end(body);
 }
 
@@ -30,6 +45,25 @@ function isValidToken(req: http.IncomingMessage, token: string): boolean {
   const auth = req.headers['authorization'] || '';
   const query = new URL(req.url || '/', `http://localhost`).searchParams.get('token') || '';
   return auth === `Bearer ${token}` || query === token;
+}
+
+function sseWrite(res: http.ServerResponse, event: string, data: unknown) {
+  try {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  } catch { /* client disconnected */ }
+}
+
+function broadcastSSE(msgId: number, event: string, data: unknown) {
+  const clients = sseClients.get(msgId) || [];
+  for (const client of clients) sseWrite(client, event, data);
+  if (event === 'done' || event === 'error') {
+    for (const client of clients) { try { client.end(); } catch { } }
+    sseClients.delete(msgId);
+  }
+}
+
+function cleanupResult(msgId: number) {
+  setTimeout(() => taskResults.delete(msgId), 10 * 60 * 1000);
 }
 
 export function startWebhookServer(
@@ -52,12 +86,16 @@ export function startWebhookServer(
 
       // CORS preflight
       if (method === 'OPTIONS') {
-        res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,Authorization' });
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+        });
         res.end();
         return;
       }
 
-      // GET /status — public, no token required
+      // ── GET /status — public ──────────────────────────────────────────────
       if (method === 'GET' && pathname === '/status') {
         const agent = getAgent();
         const info = agent?.getInfo();
@@ -77,42 +115,145 @@ export function startWebhookServer(
         return;
       }
 
-      // POST /task
+      // ── GET /stream?messageId=X ───────────────────────────────────────────
+      if (method === 'GET' && pathname === '/stream') {
+        const msgId = parseInt(url.searchParams.get('messageId') || '0');
+        if (!msgId) { json(res, 400, { error: 'messageId is required' }); return; }
+
+        // If task already done, return result immediately as SSE then close
+        const existing = taskResults.get(msgId);
+        if (existing) {
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+          });
+          if (existing.error) {
+            sseWrite(res, 'error', { message: existing.error });
+          } else {
+            sseWrite(res, 'text', { content: existing.text });
+            sseWrite(res, 'done', { text: existing.text });
+          }
+          res.end();
+          return;
+        }
+
+        // Open SSE stream and wait for task
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.write(': connected\n\n'); // keep-alive comment
+
+        const clients = sseClients.get(msgId) || [];
+        clients.push(res);
+        sseClients.set(msgId, clients);
+
+        req.on('close', () => {
+          const list = sseClients.get(msgId) || [];
+          sseClients.set(msgId, list.filter(c => c !== res));
+        });
+        return;
+      }
+
+      // ── GET /result?messageId=X ───────────────────────────────────────────
+      if (method === 'GET' && pathname === '/result') {
+        const msgId = parseInt(url.searchParams.get('messageId') || '0');
+        if (!msgId) { json(res, 400, { error: 'messageId is required' }); return; }
+        const result = taskResults.get(msgId);
+        if (!result) { json(res, 404, { error: 'Result not found or expired' }); return; }
+        json(res, 200, result);
+        return;
+      }
+
+      // ── POST /task ────────────────────────────────────────────────────────
       if (method === 'POST' && pathname === '/task') {
         const agent = getAgent();
         if (!agent) { json(res, 503, { error: 'Agent not initialized' }); return; }
         if ((agent as any).isProcessing) { json(res, 409, { error: 'busy' }); return; }
 
-        let body: { message?: string } = {};
+        let body: { message?: string; wait?: boolean } = {};
         try { body = JSON.parse(await readBody(req)); } catch { json(res, 400, { error: 'Invalid JSON' }); return; }
         if (!body.message?.trim()) { json(res, 400, { error: 'message is required' }); return; }
 
         const msgId = Date.now();
+        const result: TaskResult = { text: '', done: false };
+        taskResults.set(msgId, result);
+        cleanupResult(msgId);
 
-        // Show in UI as a remote message
+        // Show in UI
         mainWindow?.webContents.send('agent:update', {
           type: 'remote_task',
           messageId: msgId,
           message: body.message,
         });
 
-        // Fire and forget — response is immediate, result streams to UI
-        agent.processMessage(
+        const runTask = agent.processMessage(
           body.message,
-          (text) => mainWindow?.webContents.send('agent:update', { type: 'text', content: text }),
-          (name, args) => mainWindow?.webContents.send('agent:update', { type: 'tool_start', name, args }),
-          (name, chunk) => mainWindow?.webContents.send('agent:update', { type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
-          (name, result, success, args) => mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result, success, args }),
-          (error) => mainWindow?.webContents.send('agent:update', { type: 'error', message: error }),
+          (text) => {
+            result.text += text;
+            mainWindow?.webContents.send('agent:update', { type: 'text', content: text });
+            broadcastSSE(msgId, 'text', { content: text });
+          },
+          (name, args) => {
+            mainWindow?.webContents.send('agent:update', { type: 'tool_start', name, args });
+            broadcastSSE(msgId, 'tool_start', { name, args });
+          },
+          (name, chunk) => {
+            mainWindow?.webContents.send('agent:update', { type: 'tool_progress', event: 'writing', toolName: name, content: chunk });
+          },
+          (name, r, success, args) => {
+            mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result: r, success, args });
+            broadcastSSE(msgId, 'tool_end', { name, success });
+          },
+          (error) => {
+            result.error = error;
+            mainWindow?.webContents.send('agent:update', { type: 'error', message: error });
+            broadcastSSE(msgId, 'error', { message: error });
+          },
         ).then(() => {
+          result.done = true;
           mainWindow?.webContents.send('agent:update', { type: 'done' });
+          broadcastSSE(msgId, 'done', { text: result.text, messageId: msgId });
         });
 
-        json(res, 202, { accepted: true, messageId: msgId });
+        // wait=true: hold response until done
+        if (body.wait) {
+          await runTask;
+          json(res, 200, { done: true, messageId: msgId, result: result.text, error: result.error });
+        } else {
+          json(res, 202, { accepted: true, messageId: msgId });
+        }
         return;
       }
 
-      // POST /reset
+      // ── POST /cd ──────────────────────────────────────────────────────────
+      if (method === 'POST' && pathname === '/cd') {
+        const agent = getAgent();
+        if (!agent) { json(res, 503, { error: 'Agent not initialized' }); return; }
+        if ((agent as any).isProcessing) { json(res, 409, { error: 'busy' }); return; }
+
+        let body: { path?: string } = {};
+        try { body = JSON.parse(await readBody(req)); } catch { json(res, 400, { error: 'Invalid JSON' }); return; }
+        if (!body.path?.trim()) { json(res, 400, { error: 'path is required' }); return; }
+
+        try {
+          process.chdir(body.path);
+          agent.resetConversation();
+          await agent.initialize();
+          const info = agent.getInfo();
+          mainWindow?.webContents.send('agent:update', { type: 'remote_cd', cwd: info.cwd });
+          json(res, 200, { success: true, cwd: info.cwd });
+        } catch (err: any) {
+          json(res, 400, { error: err.message });
+        }
+        return;
+      }
+
+      // ── POST /reset ───────────────────────────────────────────────────────
       if (method === 'POST' && pathname === '/reset') {
         const agent = getAgent();
         if (!agent) { json(res, 503, { error: 'Agent not initialized' }); return; }
@@ -122,7 +263,7 @@ export function startWebhookServer(
         return;
       }
 
-      // GET /messages
+      // ── GET /messages ─────────────────────────────────────────────────────
       if (method === 'GET' && pathname === '/messages') {
         const agent = getAgent();
         if (!agent) { json(res, 503, { error: 'Agent not initialized' }); return; }
@@ -151,6 +292,11 @@ export function startWebhookServer(
 export function stopWebhookServer(): Promise<void> {
   return new Promise((resolve) => {
     if (!server) { resolve(); return; }
+    // Close all SSE clients
+    for (const clients of sseClients.values()) {
+      for (const c of clients) { try { c.end(); } catch { } }
+    }
+    sseClients.clear();
     server.close(() => { server = null; currentConfig = null; resolve(); });
   });
 }

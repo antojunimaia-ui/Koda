@@ -12,98 +12,29 @@
     <style>
       body {
         margin: 0;
-        background-color: #0d1117;
-        color: #22d3ee;
-        font-family: monospace;
+        background-color: #0a0a0b;
         overflow: hidden;
       }
 
       .splash {
         display: flex;
-        flex-direction: column;
         width: 100vw;
         height: 100vh;
         align-items: center;
         justify-content: center;
+        background-color: #0a0a0b;
       }
 
-      .logo-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 96px;
-        height: 96px;
-        border-radius: 16px;
-        background-color: rgba(34, 211, 238, 0.1);
-        border: 2px solid #22d3ee;
-        box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
-        margin-bottom: 24px;
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-      }
-
-      .logo-text {
-        font-size: 60px;
-        font-weight: 900;
-        margin-top: 4px;
-      }
-
-      .brand {
-        font-size: 24px;
-        font-weight: 900;
-        color: white;
-        letter-spacing: 0.3em;
-        margin-bottom: 12px;
-      }
-
-      .loading-container {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #64748b;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        font-weight: bold;
-      }
-
-      .dot {
-        width: 6px;
-        height: 6px;
-        background-color: #22d3ee;
-        border-radius: 50%;
-        animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-      }
-
-      @keyframes pulse {
-
-        0%,
-        100% {
-          opacity: 1;
-        }
-
-        50% {
-          opacity: .5;
-        }
-      }
-
-      @keyframes ping {
-
-        75%,
-        100% {
-          transform: scale(2);
-          opacity: 0;
-        }
+      .splash video {
+        width: 220px;
+        height: 220px;
+        object-fit: contain;
       }
     </style>
     <div class="splash">
-      <div class="logo-box">
-        <span class="logo-text">K</span>
-      </div>
-      <div class="brand">KODA</div>
-      <div class="loading-container">
-        <div class="dot"></div>
-        Carregando Núcleo do Agente...
-      </div>
+      <video autoplay loop muted playsinline>
+        <source src="/Loading.webm" type="video/webm" />
+      </video>
     </div>
   </div>
   <script type="module" src="/src/renderer/main.tsx"></script>
