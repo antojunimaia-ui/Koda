@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { MessageSquarePlus, MoreHorizontal, Trash2 } from 'lucide-react'
-import { sessionStorage as kodaSessionStorage } from '../hooks/useSessionStorage.js'
+import { sessionStorage as kodaSessionStorage } from '../../hooks/useSessionStorage.js'
 
 interface ChatHistoryProps {
   projectPath: string
