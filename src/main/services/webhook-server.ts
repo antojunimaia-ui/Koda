@@ -68,7 +68,7 @@ function cleanupResult(msgId: number) {
 
 export function startWebhookServer(
   config: WebhookConfig,
-  getAgent: () => Agent | null,
+  getAgent: () => { agent: Agent; workspaceId: string } | null,
   mainWindow: BrowserWindow | null
 ): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -97,11 +97,11 @@ export function startWebhookServer(
 
       // ── GET /status — public ──────────────────────────────────────────────
       if (method === 'GET' && pathname === '/status') {
-        const agent = getAgent();
-        const info = agent?.getInfo();
+        const entry = getAgent();
+        const info = entry?.agent?.getInfo();
         json(res, 200, {
           online: true,
-          busy: agent ? (agent as any).isProcessing ?? false : false,
+          busy: entry?.agent ? (entry.agent as any).isProcessing ?? false : false,
           project: info?.project ?? null,
           model: info?.model ?? null,
           cwd: info?.cwd ?? null,
@@ -171,8 +171,9 @@ export function startWebhookServer(
 
       // ── POST /task ────────────────────────────────────────────────────────
       if (method === 'POST' && pathname === '/task') {
-        const agent = getAgent();
-        if (!agent) { json(res, 503, { error: 'Agent not initialized' }); return; }
+        const entry = getAgent();
+        if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
+        const { agent, workspaceId } = entry;
         if ((agent as any).isProcessing) { json(res, 409, { error: 'busy' }); return; }
 
         let body: { message?: string; wait?: boolean } = {};
@@ -184,43 +185,40 @@ export function startWebhookServer(
         taskResults.set(msgId, result);
         cleanupResult(msgId);
 
+        const emit = (data: object) => mainWindow?.webContents.send('agent:update', { workspaceId, ...data });
+
         // Show in UI
-        mainWindow?.webContents.send('agent:update', {
-          type: 'remote_task',
-          messageId: msgId,
-          message: body.message,
-        });
+        emit({ type: 'remote_task', messageId: msgId, message: body.message });
 
         const runTask = agent.processMessage(
           body.message,
           (text) => {
             result.text += text;
-            mainWindow?.webContents.send('agent:update', { type: 'text', content: text });
+            emit({ type: 'text', content: text });
             broadcastSSE(msgId, 'text', { content: text });
           },
           (name, args) => {
-            mainWindow?.webContents.send('agent:update', { type: 'tool_start', name, args });
+            emit({ type: 'tool_start', name, args });
             broadcastSSE(msgId, 'tool_start', { name, args });
           },
           (name, chunk) => {
-            mainWindow?.webContents.send('agent:update', { type: 'tool_progress', event: 'writing', toolName: name, content: chunk });
+            emit({ type: 'tool_progress', event: 'writing', toolName: name, content: chunk });
           },
           (name, r, success, args) => {
-            mainWindow?.webContents.send('agent:update', { type: 'tool_end', name, result: r, success, args });
+            emit({ type: 'tool_end', name, result: r, success, args });
             broadcastSSE(msgId, 'tool_end', { name, success });
           },
           (error) => {
             result.error = error;
-            mainWindow?.webContents.send('agent:update', { type: 'error', message: error });
+            emit({ type: 'error', message: error });
             broadcastSSE(msgId, 'error', { message: error });
           },
         ).then(() => {
           result.done = true;
-          mainWindow?.webContents.send('agent:update', { type: 'done' });
+          emit({ type: 'done' });
           broadcastSSE(msgId, 'done', { text: result.text, messageId: msgId });
         });
 
-        // wait=true: hold response until done
         if (body.wait) {
           await runTask;
           json(res, 200, { done: true, messageId: msgId, result: result.text, error: result.error });
@@ -232,8 +230,9 @@ export function startWebhookServer(
 
       // ── POST /cd ──────────────────────────────────────────────────────────
       if (method === 'POST' && pathname === '/cd') {
-        const agent = getAgent();
-        if (!agent) { json(res, 503, { error: 'Agent not initialized' }); return; }
+        const entry = getAgent();
+        if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
+        const { agent, workspaceId } = entry;
         if ((agent as any).isProcessing) { json(res, 409, { error: 'busy' }); return; }
 
         let body: { path?: string } = {};
@@ -245,7 +244,7 @@ export function startWebhookServer(
           agent.resetConversation();
           await agent.initialize();
           const info = agent.getInfo();
-          mainWindow?.webContents.send('agent:update', { type: 'remote_cd', cwd: info.cwd });
+          mainWindow?.webContents.send('agent:update', { workspaceId, type: 'remote_cd', cwd: info.cwd });
           json(res, 200, { success: true, cwd: info.cwd });
         } catch (err: any) {
           json(res, 400, { error: err.message });
@@ -255,19 +254,20 @@ export function startWebhookServer(
 
       // ── POST /reset ───────────────────────────────────────────────────────
       if (method === 'POST' && pathname === '/reset') {
-        const agent = getAgent();
-        if (!agent) { json(res, 503, { error: 'Agent not initialized' }); return; }
+        const entry = getAgent();
+        if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
+        const { agent, workspaceId } = entry;
         agent.resetConversation();
-        mainWindow?.webContents.send('agent:update', { type: 'remote_reset' });
+        mainWindow?.webContents.send('agent:update', { workspaceId, type: 'remote_reset' });
         json(res, 200, { success: true });
         return;
       }
 
       // ── GET /messages ─────────────────────────────────────────────────────
       if (method === 'GET' && pathname === '/messages') {
-        const agent = getAgent();
-        if (!agent) { json(res, 503, { error: 'Agent not initialized' }); return; }
-        json(res, 200, { messages: agent.getHistory() });
+        const entry = getAgent();
+        if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
+        json(res, 200, { messages: entry.agent.getHistory() });
         return;
       }
 

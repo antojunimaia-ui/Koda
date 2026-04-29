@@ -667,7 +667,12 @@ ipcMain.handle('marketplace:uninstall', async (_event, skillName: string) => {
 // Webhook / Remote Control
 ipcMain.handle('webhook:start', async (_event, config: { port: number; token: string }) => {
   try {
-    await startWebhookServer({ ...config, enabled: true }, () => agents.values().next().value || null, mainWindow)
+    const getAgentWithId = () => {
+      const entry = agents.entries().next().value
+      if (!entry) return null
+      return { agent: entry[1], workspaceId: entry[0] }
+    }
+    await startWebhookServer({ ...config, enabled: true }, getAgentWithId, mainWindow)
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }

@@ -17,8 +17,8 @@ import CompactToolView from '../messages/CompactToolView.js'
 import QuestionsModal from '../modals/QuestionsModal.js'
 import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
 import UpdateBanner from '../UpdateBanner.js'
-import ChatHistory from '../ChatHistory.js'
-import OnboardingTour from '../OnboardingTour.js'
+import ChatHistory from './ChatHistory.js'
+import OnboardingTour from './OnboardingTour.js'
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -514,7 +514,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       <ShellApprovalPanel
                         command={pendingShell.command}
                         baseCommand={pendingShell.baseCommand}
-                        description={pendingShell.description}
                         variant="modern"
                       />
                     </div>

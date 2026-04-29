@@ -849,6 +849,7 @@ const App: React.FC = () => {
           setTheme={setTheme}
           kodaSettings={kodaSettings}
           setKodaSettings={setKodaSettings}
+          uiMode={kodaSettings.uiMode ?? 'classic'}
         />
       )}
 

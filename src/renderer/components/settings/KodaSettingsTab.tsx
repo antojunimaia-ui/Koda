@@ -156,20 +156,27 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings, uiMode }: KodaSet
         </h3>
         <p className="text-slate-400 text-[10px] leading-relaxed mb-4">Toggle tool output visibility in chat. Does not affect agent context.</p>
 
+        {kodaSettings.toolViewMode === 'compact' && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+            <span className="text-amber-400 text-xs">⚠</span>
+            <span className="text-amber-400 text-[10px] font-medium">Unavailable in Compact mode — tool outputs are grouped into summaries.</span>
+          </div>
+        )}
+
         <div className="flex flex-col gap-4 bg-slate-800/20 p-4 rounded-xl border border-slate-700/50">
-          <SettingToggle label="Show Terminal Output" description="Live output from running terminal processes (npm, etc)" enabled={kodaSettings.showTerminal} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showTerminal: v }))} />
-          <SettingToggle label="Show Terminal Stream" description="Enable or disable the display of PTY (Terminal) shell messages in chat" enabled={kodaSettings.showPty} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showPty: v }))} />
-          <SettingToggle label="Show Shell Wait Output" description="Output from synchronous shell commands (ls, mkdir, etc)" enabled={kodaSettings.showShellWait} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showShellWait: v }))} />
-          <SettingToggle label="Show File Read Output" description="The content of files read by the agent" enabled={kodaSettings.showFileRead} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileRead: v }))} />
-          <SettingToggle label="Show File Edit Output" description="Diffs and changes made to files" enabled={kodaSettings.showFileEdit} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileEdit: v }))} />
-          <SettingToggle label="Show List Dir Output" description="Directory listings and file structures" enabled={kodaSettings.showListDir} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showListDir: v }))} />
-          <SettingToggle label="Show File Find Output" description="Search results and file matching logs" enabled={kodaSettings.showFileFind} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileFind: v }))} />
-          <SettingToggle label="Show File Write Output" description="Details of files created or overwritten" enabled={kodaSettings.showFileWrite} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileWrite: v }))} />
-          <SettingToggle label="Show Search Output" description="Results from regex searches across files" enabled={kodaSettings.showSearch} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showSearch: v }))} />
-          <SettingToggle label="Show LSP Query Output" description="Results from semantic code analysis (Hover/Definition)" enabled={kodaSettings.showLspQuery} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showLspQuery: v }))} />
-          <SettingToggle label="Show Browser Agent Output" description="Reports from web navigation sub-agents" enabled={kodaSettings.showBrowserAgent} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showBrowserAgent: v }))} />
-          <SettingToggle label="Show Plan Mode Output" description="Transitions and strategies developed in Plan Mode" enabled={kodaSettings.showPlanMode} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showPlanMode: v }))} />
-          <SettingToggle label="Show Collaboration Output" description="Messages exchanged with advisor LLMs" enabled={kodaSettings.showColab} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showColab: v }))} />
+          <SettingToggle label="Show Terminal Output" description="Live output from running terminal processes (npm, etc)" enabled={kodaSettings.showTerminal} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showTerminal: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show Terminal Stream" description="Enable or disable the display of PTY (Terminal) shell messages in chat" enabled={kodaSettings.showPty} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showPty: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show Shell Wait Output" description="Output from synchronous shell commands (ls, mkdir, etc)" enabled={kodaSettings.showShellWait} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showShellWait: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show File Read Output" description="The content of files read by the agent" enabled={kodaSettings.showFileRead} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileRead: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show File Edit Output" description="Diffs and changes made to files" enabled={kodaSettings.showFileEdit} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileEdit: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show List Dir Output" description="Directory listings and file structures" enabled={kodaSettings.showListDir} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showListDir: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show File Find Output" description="Search results and file matching logs" enabled={kodaSettings.showFileFind} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileFind: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show File Write Output" description="Details of files created or overwritten" enabled={kodaSettings.showFileWrite} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showFileWrite: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show Search Output" description="Results from regex searches across files" enabled={kodaSettings.showSearch} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showSearch: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show LSP Query Output" description="Results from semantic code analysis (Hover/Definition)" enabled={kodaSettings.showLspQuery} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showLspQuery: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show Browser Agent Output" description="Reports from web navigation sub-agents" enabled={kodaSettings.showBrowserAgent} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showBrowserAgent: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show Plan Mode Output" description="Transitions and strategies developed in Plan Mode" enabled={kodaSettings.showPlanMode} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showPlanMode: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
+          <SettingToggle label="Show Collaboration Output" description="Messages exchanged with advisor LLMs" enabled={kodaSettings.showColab} onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showColab: v }))} disabled={kodaSettings.toolViewMode === 'compact'} />
         </div>
       </section>
 

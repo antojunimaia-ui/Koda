@@ -3,7 +3,7 @@ import { KodaTheme, KodaSettings } from '../../types/index.js'
 import KodaSettingsTab from './KodaSettingsTab.js'
 import RemoteControlTab from './RemoteControlTab.js'
 import SkillMarketplace from './SkillMarketplace.js'
-import OnboardingTour from '../OnboardingTour.js'
+import OnboardingTour from '../modern/OnboardingTour.js'
 import tokyoNight from '../../themes/tokyo-night.json'
 import monokai from '../../themes/monokai.json'
 import cyberpunk from '../../themes/cyberpunk.json'
@@ -28,11 +28,12 @@ interface SettingsUIProps {
   setTheme: React.Dispatch<React.SetStateAction<KodaTheme>>
   kodaSettings: KodaSettings
   setKodaSettings: React.Dispatch<React.SetStateAction<KodaSettings>>
+  uiMode?: 'classic' | 'modern'
 }
 
 const SettingsUI = memo(({
   onClose, onSave, defaultProvider, defaultModel, defaultAdvisorModel,
-  theme, setTheme, kodaSettings, setKodaSettings
+  theme, setTheme, kodaSettings, setKodaSettings, uiMode = 'classic'
 }: SettingsUIProps) => {
   const [activeTab, setActiveTab] = useState<'api' | 'themes' | 'koda' | 'remote' | 'skills'>('api')
   const [showTour, setShowTour] = useState(() => !localStorage.getItem('koda_settings_tour_done'))
@@ -83,28 +84,28 @@ const SettingsUI = memo(({
     }`
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="flex w-[960px] h-[640px] bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
+    <div className={`absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200 ${uiMode === 'modern' ? 'bg-black/60' : 'bg-black/80'}`}>
+      <div className={`flex w-[960px] h-[640px] border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#0a0a0b] border-white/8' : 'bg-slate-900 border-slate-700/50'}`}>
 
         {/* Sidebar */}
-        <div className="w-1/4 bg-slate-800/30 border-r border-slate-700/50 flex flex-col p-4 gap-2">
-          <div className="text-cyan font-bold flex items-center gap-2 mb-6 px-2">
+        <div className={`w-1/4 flex flex-col p-4 gap-2 ${uiMode === 'modern' ? 'bg-white/[0.02] border-r border-white/5' : 'bg-slate-800/30 border-r border-slate-700/50'}`}>
+          <div className={`font-bold flex items-center gap-2 mb-6 px-2 ${uiMode === 'modern' ? 'text-white' : 'text-cyan'}`}>
             <span className="text-xl">⚙️</span> Settings
           </div>
 
-          <button id="stour-api" onClick={() => setActiveTab('api')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'api' ? 'bg-cyan/10 text-cyan border-r-2 border-cyan' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-api" onClick={() => setActiveTab('api')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'api' ? (uiMode === 'modern' ? 'bg-white/5 text-white border-r-2 border-white/30' : 'bg-cyan/10 text-cyan border-r-2 border-cyan') : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
             <span>🏢</span> API & Models
           </button>
-          <button id="stour-themes" onClick={() => setActiveTab('themes')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'themes' ? 'bg-magenta/10 text-magenta border-r-2 border-magenta' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-themes" onClick={() => setActiveTab('themes')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'themes' ? (uiMode === 'modern' ? 'bg-white/5 text-white border-r-2 border-white/30' : 'bg-magenta/10 text-magenta border-r-2 border-magenta') : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
             <span>🎨</span> Themes
           </button>
-          <button id="stour-koda" onClick={() => setActiveTab('koda')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'koda' ? 'bg-amber-400/10 text-amber-400 border-r-2 border-amber-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-koda" onClick={() => setActiveTab('koda')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'koda' ? (uiMode === 'modern' ? 'bg-white/5 text-white border-r-2 border-white/30' : 'bg-amber-400/10 text-amber-400 border-r-2 border-amber-400') : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
             <span>🤖</span> Koda Settings
           </button>
-          <button id="stour-remote" onClick={() => setActiveTab('remote')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'remote' ? 'bg-emerald-400/10 text-emerald-400 border-r-2 border-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-remote" onClick={() => setActiveTab('remote')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'remote' ? (uiMode === 'modern' ? 'bg-white/5 text-white border-r-2 border-white/30' : 'bg-emerald-400/10 text-emerald-400 border-r-2 border-emerald-400') : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
             <span>🌐</span> Remote Control
           </button>
-          <button id="stour-skills" onClick={() => setActiveTab('skills')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'skills' ? 'bg-indigo-400/10 text-indigo-400 border-r-2 border-indigo-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+          <button id="stour-skills" onClick={() => setActiveTab('skills')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'skills' ? (uiMode === 'modern' ? 'bg-white/5 text-white border-r-2 border-white/30' : 'bg-indigo-400/10 text-indigo-400 border-r-2 border-indigo-400') : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
             <span>🎯</span> Skills
           </button>
 
@@ -120,8 +121,7 @@ const SettingsUI = memo(({
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col">
-          <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
-            {activeTab === 'api' && (
+          <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">            {activeTab === 'api' && (
               <div className="flex flex-col gap-6 animate-in slide-in-from-left-2 duration-300">
                 <h3 className="text-white font-bold text-sm flex items-center gap-2">
                   <span className="w-1.5 h-4 bg-cyan rounded-full"></span>
@@ -251,7 +251,7 @@ const SettingsUI = memo(({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 flex justify-between items-center bg-slate-800/10 border-t border-slate-700/50">
+          <div className={`px-6 py-4 flex justify-between items-center border-t ${uiMode === 'modern' ? 'bg-white/[0.02] border-white/5' : 'bg-slate-800/10 border-slate-700/50'}`}>
             <div className="text-[10px] text-slate-500 font-mono">
               v26.18.4 — Build 2026.04.18
             </div>
