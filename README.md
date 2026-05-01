@@ -13,7 +13,7 @@
 **Koda is your ideal development partner.**
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v26.18.4-cyan)](package.json)
+[![Version](https://img.shields.io/badge/Version-v26.1.5-cyan)](package.json)
 [![Electron](https://img.shields.io/badge/Electron-41.x-47848F?logo=electron&logoColor=white)](https://electronjs.org/)
 [![React](https://img.shields.io/badge/React-19.x-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)

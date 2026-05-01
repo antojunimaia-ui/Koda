@@ -1,6 +1,6 @@
 {
   "name": "koda-electron",
-  "version": "26.18.4",
+  "version": "26.1.5",
   "description": "Koda AI - Desktop Edition",
   "main": "dist-electron/index.js",
   "type": "module",
