@@ -579,6 +579,47 @@ ipcMain.handle('project:get_files', async () => {
   }
 })
 
+ipcMain.handle('project:read_file', async (_, filePath: string) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    
+    // Security: ensure the file is within the current working directory
+    const resolvedPath = path.resolve(filePath)
+    const cwd = process.cwd()
+    if (!resolvedPath.startsWith(cwd)) {
+      throw new Error('Access denied: file outside project directory')
+    }
+    
+    const content = await fs.readFile(resolvedPath, 'utf-8')
+    return { success: true, content }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('project:write_file', async (_, filePath: string, content: string) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    
+    // Security: ensure the file is within the current working directory
+    const resolvedPath = path.resolve(filePath)
+    const cwd = process.cwd()
+    if (!resolvedPath.startsWith(cwd)) {
+      throw new Error('Access denied: file outside project directory')
+    }
+    
+    // Ensure directory exists
+    await fs.mkdir(path.dirname(resolvedPath), { recursive: true })
+    
+    await fs.writeFile(resolvedPath, content, 'utf-8')
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
 // Skills
 ipcMain.handle('skills:list', async () => {
   try {

@@ -53,6 +53,8 @@ export interface KodaSettings {
   browserPosition: 'left' | 'right'
   terminalPosition: 'left' | 'right'
   showIconBar: boolean
+  explorerButtonPosition: 'iconbar' | 'titlebar'
+  explorerTabPosition: 'panel' | 'iconbar' | 'titlebar'
 }
 
 export interface KodaTheme {

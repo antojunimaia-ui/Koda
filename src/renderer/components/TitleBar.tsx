@@ -17,6 +17,7 @@ interface TitleBarProps {
   showIconBar?: boolean
   isSplitEnabled: boolean
   onToggleSplit: () => void
+  extraButton?: React.ReactNode
 }
 
 const MODES: { id: Mode; label: string; icon: string; desc: string; color: string }[] = [
@@ -30,7 +31,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
   mode, onModeChange, onSettingsClick, onMcpClick, 
   onBrowserClick, showBrowser, onTerminalClick, showTerminal, 
   showPanel, onTogglePanel, uiMode = 'classic', showIconBar = true,
-  isSplitEnabled, onToggleSplit
+  isSplitEnabled, onToggleSplit, extraButton
 }) => {
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -123,6 +124,8 @@ const TitleBar: React.FC<TitleBarProps> = ({
             <line x1="12" y1="3" x2="12" y2="21"/>
           </svg>
         </button>
+
+        {extraButton}
 
         {uiMode === 'classic' && (
           <button 

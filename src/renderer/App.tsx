@@ -22,7 +22,8 @@ import { BrailleSpinner } from './components/BrailleSpinner.js'
 import MessageRow from './components/messages/MessageRow.js'
 import PlanApprovalModal from './components/modals/PlanApprovalModal.js'
 import UpdateBanner from './components/UpdateBanner.js'
-import ContextPanel from './components/context/ContextPanel.js'
+import ContextPanel, { ContextPanelOverlay, ExplorerTabButton } from './components/context/ContextPanel.js'
+import { ExplorerPanelOverlay } from './components/context/ContextPanel.js'
 import SettingsUI, { DEFAULT_THEME } from './components/settings/SettingsUI.js'
 
 // ─── UI Modes ───────────────────────────────────────────────────────────────
@@ -75,6 +76,8 @@ const App: React.FC = () => {
   const [updateInfo, setUpdateInfo] = useState<{ version?: string; downloaded: boolean } | null>(null)
   const [showTerminal, setShowTerminal] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
+  const [contextPanelTab, setContextPanelTab] = useState<'context' | 'explorer'>('context')
+  const [showExplorer, setShowExplorer] = useState(false)
   
   // ── Suggestions state (shared) ──────────────────────────────────────────────
   const [allFiles, setAllFiles] = useState<string[]>([])
@@ -94,13 +97,13 @@ const App: React.FC = () => {
   const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
     try {
       const saved = localStorage.getItem('koda_settings')
-      if (saved) return { browserPosition: 'left', terminalPosition: 'left', showIconBar: true, ...JSON.parse(saved) }
+      if (saved) return { browserPosition: 'left', terminalPosition: 'left', showIconBar: true, explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel', ...JSON.parse(saved) }
     } catch { }
     return {
       showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,
       showFileWrite: true, showListDir: true, showFileFind: true, showSearch: true,
       showLspQuery: true, showBrowserAgent: true, showPlanMode: true, showColab: true,
-      showPty: true, uiMode: 'modern', toolViewMode: 'standard', browserPosition: 'left', terminalPosition: 'left', showIconBar: true
+      showPty: true, uiMode: 'modern', toolViewMode: 'standard', browserPosition: 'left', terminalPosition: 'left', showIconBar: true, explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel'
     }
   })
 
@@ -164,12 +167,15 @@ const App: React.FC = () => {
     leftPanelWidth, 
     rightPanelWidth, 
     browserHeight, 
+    contextPanelWidth,
     isResizing, 
     isResizingRight, 
-    isResizingHeight, 
+    isResizingHeight,
+    isResizingContext,
     startResizing, 
     startResizingRight, 
-    startResizingHeight 
+    startResizingHeight,
+    startResizingContext,
   } = useResizable()
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } = useDragDrop({ 
     setInput, 
@@ -690,6 +696,7 @@ const App: React.FC = () => {
   }, [activeWorkspace, updateWorkspace])
 
   const handleInjectFile = (path: string) => setInput((prev: string) => prev + ` @[${path}] `)
+  const handleAddToInput = (path: string) => setInput((prev: string) => prev + ` @[${path}] `)
   const handlePinFile = (path: string) => {
     if (!activeId) return
     updateWorkspace(activeId, (prev: Workspace) => ({
@@ -891,6 +898,7 @@ const App: React.FC = () => {
           virtuosoRef={virtuosoRef}
           theme={theme}
           kodaSettings={kodaSettings}
+          setKodaSettings={setKodaSettings}
           onSettingsClick={() => setShowSettings(true)}
           onMcpClick={() => setShowMcpSettings(true)}
           onBrowserClick={() => setShowBrowser(p => !p)}
@@ -899,6 +907,11 @@ const App: React.FC = () => {
           showTerminal={showTerminal}
           showPanel={showPanel}
           onTogglePanel={() => setShowPanel(p => !p)}
+          showExplorer={showExplorer}
+          setShowExplorer={setShowExplorer}
+          contextPanelWidth={contextPanelWidth}
+          contextPanelTab={contextPanelTab}
+          onContextPanelTabChange={(t) => { setContextPanelTab(t); if (!showPanel) setShowPanel(true) }}
           leftPanelWidth={leftPanelWidth}
           rightPanelWidth={rightPanelWidth}
           startResizing={startResizing}
@@ -1039,19 +1052,44 @@ const App: React.FC = () => {
 
       {/* Universal Context Panel Overlay */}
       {showPanel && (
-        <div 
-          className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex"
-          style={{ backgroundColor: 'var(--koda-sidebar)' }}
-        >
-           <ContextPanel 
-             files={activeWorkspace.trackedFiles} 
-             pinnedFiles={activeWorkspace.pinnedFiles} 
-             onPin={handlePinFile} 
-             onUnpin={handleUnpinFile} 
-             onInject={handleInjectFile}
-             cwd={activeWorkspace.agentInfo.cwd}
-           />
-        </div>
+        <ContextPanelOverlay
+          files={activeWorkspace.trackedFiles}
+          pinnedFiles={activeWorkspace.pinnedFiles}
+          onPin={handlePinFile}
+          onUnpin={handleUnpinFile}
+          onInject={handleInjectFile}
+          onAddToInput={handleAddToInput}
+          cwd={activeWorkspace.agentInfo.cwd}
+          width={contextPanelWidth}
+          isResizing={isResizingContext}
+          onStartResize={startResizingContext}
+          explorerTabPosition={kodaSettings.explorerTabPosition ?? 'panel'}
+          onExplorerTabPositionChange={(pos) => setKodaSettings(prev => ({ ...prev, explorerTabPosition: pos }))}
+          showExplorerTab={(kodaSettings.explorerTabPosition ?? 'panel') === 'panel'}
+          activeTab={contextPanelTab}
+          onTabChange={setContextPanelTab}
+        />
+      )}
+
+      {/* Standalone Explorer Panel Overlay */}
+      {showExplorer && (kodaSettings.explorerTabPosition === 'iconbar' || kodaSettings.explorerTabPosition === 'titlebar') && (
+        <ExplorerPanelOverlay
+          cwd={activeWorkspace.agentInfo.cwd}
+          pinnedFiles={activeWorkspace.pinnedFiles}
+          onPin={handlePinFile}
+          onInject={handleInjectFile}
+          onAddToInput={handleAddToInput}
+          onClose={() => setShowExplorer(false)}
+          explorerTabPosition={kodaSettings.explorerTabPosition as 'iconbar' | 'titlebar'}
+          onMoveTo={(pos) => {
+            setKodaSettings(prev => ({ ...prev, explorerTabPosition: pos }))
+            if (pos === 'panel') {
+              setShowExplorer(false)
+              setShowPanel(true)
+              setContextPanelTab('explorer')
+            }
+          }}
+        />
       )}
     </div>
   )

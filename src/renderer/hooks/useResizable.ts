@@ -4,12 +4,15 @@ interface UseResizableReturn {
   leftPanelWidth: number
   rightPanelWidth: number
   browserHeight: number
+  contextPanelWidth: number
   isResizing: boolean
   isResizingRight: boolean
   isResizingHeight: boolean
+  isResizingContext: boolean
   startResizing: () => void
   startResizingRight: () => void
   startResizingHeight: () => void
+  startResizingContext: () => void
 }
 
 /**
@@ -20,9 +23,11 @@ export function useResizable(): UseResizableReturn {
   const [leftPanelWidth, setLeftPanelWidth] = useState(30)
   const [rightPanelWidth, setRightPanelWidth] = useState(30)
   const [browserHeight, setBrowserHeight] = useState(60)
+  const [contextPanelWidth, setContextPanelWidth] = useState(256)
   const [isResizing, setIsResizing] = useState(false)
   const [isResizingRight, setIsResizingRight] = useState(false)
   const [isResizingHeight, setIsResizingHeight] = useState(false)
+  const [isResizingContext, setIsResizingContext] = useState(false)
 
   // ── Left Horizontal resize ────────────────────────────────────────────────────
   const startResizing = useCallback(() => setIsResizing(true), [])
@@ -97,15 +102,42 @@ export function useResizable(): UseResizableReturn {
     }
   }, [isResizingHeight, resizeHeight, stopResizingHeight])
 
+  // ── Context Panel resize (right side, px-based) ──────────────────────────
+  const startResizingContext = useCallback(() => setIsResizingContext(true), [])
+  const stopResizingContext = useCallback(() => setIsResizingContext(false), [])
+
+  const resizeContext = useCallback((e: MouseEvent) => {
+    if (!isResizingContext) return
+    const newWidth = Math.max(180, Math.min(520, window.innerWidth - e.clientX))
+    setContextPanelWidth(newWidth)
+  }, [isResizingContext])
+
+  useEffect(() => {
+    if (isResizingContext) {
+      window.addEventListener('mousemove', resizeContext)
+      window.addEventListener('mouseup', stopResizingContext)
+    } else {
+      window.removeEventListener('mousemove', resizeContext)
+      window.removeEventListener('mouseup', stopResizingContext)
+    }
+    return () => {
+      window.removeEventListener('mousemove', resizeContext)
+      window.removeEventListener('mouseup', stopResizingContext)
+    }
+  }, [isResizingContext, resizeContext, stopResizingContext])
+
   return {
     leftPanelWidth,
     rightPanelWidth,
     browserHeight,
+    contextPanelWidth,
     isResizing,
     isResizingRight,
     isResizingHeight,
+    isResizingContext,
     startResizing,
     startResizingRight,
     startResizingHeight,
+    startResizingContext,
   }
 }

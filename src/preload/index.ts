@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('koda', {
   ptyWrite: (pid: number, data: string) => ipcRenderer.invoke('pty:write', pid, data),
   ptyResize: (pid: number, cols: number, rows: number) => ipcRenderer.invoke('pty:resize', pid, cols, rows),
   getFiles: () => ipcRenderer.invoke('project:get_files'),
+  readFile: (filePath: string) => ipcRenderer.invoke('project:read_file', filePath),
+  writeFile: (filePath: string, content: string) => ipcRenderer.invoke('project:write_file', filePath, content),
   getMcpConfigs: () => ipcRenderer.invoke('mcp:get_configs'),
   saveMcpConfigs: (configs: any[]) => ipcRenderer.invoke('mcp:save_configs', configs),
   getProjectSession: (projectPath: string) => ipcRenderer.invoke('agent:get_session', projectPath),

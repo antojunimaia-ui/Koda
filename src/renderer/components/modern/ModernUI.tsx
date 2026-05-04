@@ -19,6 +19,93 @@ import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
 import UpdateBanner from '../UpdateBanner.js'
 import ChatHistory from './ChatHistory.js'
 import OnboardingTour from './OnboardingTour.js'
+import { ExplorerTabButton } from '../context/ContextPanel.js'
+
+// ─── Explorer Button with context menu ───────────────────────────────────────
+const ExplorerButton: React.FC<{
+  showPanel: boolean
+  onTogglePanel: () => void
+  position: 'iconbar' | 'titlebar'
+  onMoveToIconbar: () => void
+  onMoveToTitlebar: () => void
+}> = ({ showPanel, onTogglePanel, position, onMoveToIconbar, onMoveToTitlebar }) => {
+  const [menu, setMenu] = React.useState<{ x: number; y: number } | null>(null)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    if (!menu) return
+    const close = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenu(null)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [menu])
+
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setMenu({ x: e.clientX, y: e.clientY })
+  }
+
+  const icon = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M3 12h12M3 18h8"/>
+    </svg>
+  )
+
+  return (
+    <>
+      {position === 'iconbar' ? (
+        <button
+          onClick={onTogglePanel}
+          onContextMenu={onContextMenu}
+          className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showPanel ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+          title="Toggle Context Panel (right-click to move)"
+        >
+          {icon}
+        </button>
+      ) : (
+        <button
+          onClick={onTogglePanel}
+          onContextMenu={onContextMenu}
+          className={`w-7 h-7 flex items-center justify-center rounded transition-all no-drag ml-1 ${showPanel ? 'text-cyan-400 bg-cyan-400/10' : 'text-slate-500 hover:text-cyan-400 hover:bg-white/5'}`}
+          title="Toggle Context Panel (right-click to move)"
+        >
+          {icon}
+        </button>
+      )}
+
+      {menu && (
+        <div
+          ref={menuRef}
+          className="fixed z-[9999] bg-[#141414] border border-white/10 rounded-xl shadow-2xl py-1 w-52"
+          style={{ top: menu.y, left: menu.x }}
+        >
+          <div className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-600">Move to</div>
+          <button
+            onClick={() => { onMoveToIconbar(); setMenu(null) }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${position === 'iconbar' ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-300 hover:bg-white/5'}`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="4" height="18" rx="1"/><path d="M7 12h14"/>
+            </svg>
+            Iconbar
+            {position === 'iconbar' && <span className="ml-auto text-[9px] text-indigo-400">✓</span>}
+          </button>
+          <button
+            onClick={() => { onMoveToTitlebar(); setMenu(null) }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${position === 'titlebar' ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-300 hover:bg-white/5'}`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="4" rx="1"/><path d="M12 7v14"/>
+            </svg>
+            Title Bar
+            {position === 'titlebar' && <span className="ml-auto text-[9px] text-indigo-400">✓</span>}
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
 
 interface ModernUIProps {
   messages: MessageEntry[]
@@ -41,6 +128,7 @@ interface ModernUIProps {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>
   theme: KodaTheme
   kodaSettings: KodaSettings
+  setKodaSettings: React.Dispatch<React.SetStateAction<KodaSettings>>
   onSettingsClick: () => void
 
   onMcpClick: () => void
@@ -50,6 +138,11 @@ interface ModernUIProps {
   showTerminal: boolean
   showPanel: boolean
   onTogglePanel: () => void
+  showExplorer: boolean
+  setShowExplorer: (show: boolean) => void
+  contextPanelWidth?: number
+  contextPanelTab?: 'context' | 'explorer'
+  onContextPanelTabChange?: (tab: 'context' | 'explorer') => void
   slashItems: import('../../types/index.js').SlashItem[]
   showSlashMenu: boolean
   slashIndex: number
@@ -145,9 +238,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
   messages, input, setInput, isProcessing, agentInfo, mode, setMode,
   pendingImages, setPendingImages, handleSend, handleStop, handlePathClick, handleInputChange, handleRollback, handlePaste,
 
-  inputRef: externalInputRef, virtuosoRef, theme, kodaSettings, onSettingsClick, onMcpClick, onBrowserClick,
+  inputRef: externalInputRef, virtuosoRef, theme, kodaSettings, setKodaSettings, onSettingsClick, onMcpClick, onBrowserClick,
 
-  showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel,
+  showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel, showExplorer, setShowExplorer, contextPanelWidth = 256, contextPanelTab, onContextPanelTabChange,
   slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
   suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
   leftPanelWidth, rightPanelWidth, startResizing, isResizing, startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
@@ -283,12 +376,14 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
   // Layout Logic
   const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
-  const showRight = (showBrowser && kodaSettings.browserPosition === 'right') || (showTerminal && kodaSettings.terminalPosition === 'right');
+  const showRight = (showBrowser && kodaSettings.browserPosition === 'right') || (showTerminal && kodaSettings.terminalPosition === 'right') || showExplorer;
 
   const renderPanelStack = (pos: 'left' | 'right') => {
     const hasBrowser = showBrowser && kodaSettings.browserPosition === pos;
     const hasTerminal = showTerminal && kodaSettings.terminalPosition === pos;
-    if (!hasBrowser && !hasTerminal) return null;
+    const hasExplorer = showExplorer && pos === 'right'; // Explorer sempre à direita
+    
+    if (!hasBrowser && !hasTerminal && !hasExplorer) return null;
 
     return (
       <div 
@@ -296,14 +391,14 @@ const ModernUI: React.FC<ModernUIProps> = ({
         className={`flex flex-col flex-shrink-0 min-w-[200px] relative h-full bg-[#0d1117] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
       >
         {hasBrowser && (
-          <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
+          <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: (hasTerminal || hasExplorer) ? `${browserHeight}%` : '100%' }}>
             <BrowserPreview onClose={() => onBrowserClick()} />
             {(isResizingHeight || isResizing || isResizingRight) && (
                 <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
           </div>
         )}
-        {hasBrowser && hasTerminal && (
+        {hasBrowser && (hasTerminal || hasExplorer) && (
           <div
             onMouseDown={startResizingHeight}
             className={`h-1 w-full cursor-row-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
@@ -317,6 +412,12 @@ const ModernUI: React.FC<ModernUIProps> = ({
             {(isResizingHeight || isResizing || isResizingRight) && (
                 <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
+          </div>
+        )}
+        {hasExplorer && !hasTerminal && (
+          <div className="flex-1 min-h-[100px] relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
+            {/* Explorer será renderizado via overlay, então só precisamos do espaço */}
+            <div className="w-full h-full" />
           </div>
         )}
       </div>
@@ -341,6 +442,41 @@ const ModernUI: React.FC<ModernUIProps> = ({
         showIconBar={kodaSettings.showIconBar}
         isSplitEnabled={isSplitEnabled}
         onToggleSplit={onToggleSplit || (() => {})}
+        extraButton={
+          <>
+            {kodaSettings.explorerButtonPosition === 'titlebar' && (
+              <ExplorerButton
+                showPanel={showPanel}
+                onTogglePanel={onTogglePanel}
+                position="titlebar"
+                onMoveToIconbar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
+                onMoveToTitlebar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
+              />
+            )}
+            {(kodaSettings.explorerTabPosition ?? 'panel') === 'titlebar' && (
+              <ExplorerTabButton
+                active={kodaSettings.explorerTabPosition === 'panel' ? (showPanel && contextPanelTab === 'explorer') : showExplorer}
+                onClick={() => {
+                  if (kodaSettings.explorerTabPosition === 'panel') {
+                    onContextPanelTabChange?.('explorer')
+                  } else {
+                    setShowExplorer(!showExplorer)
+                  }
+                }}
+                position="titlebar"
+                onMoveTo={(pos) => {
+                  setKodaSettings(prev => ({ ...prev, explorerTabPosition: pos }))
+                  if (pos === 'panel') {
+                    setShowExplorer(false)
+                    onTogglePanel()
+                    onContextPanelTabChange?.('explorer')
+                  }
+                }}
+                variant="titlebar"
+              />
+            )}
+          </>
+        }
       />
 
 
@@ -372,13 +508,38 @@ const ModernUI: React.FC<ModernUIProps> = ({
                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
               </button>
 
-              <button 
-                onClick={() => onTogglePanel()}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showPanel ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
-                title="Toggle Context Panel"
-              >
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h12M3 18h8"/></svg>
-              </button>
+              {kodaSettings.explorerButtonPosition !== 'titlebar' && (
+                <ExplorerButton
+                  showPanel={showPanel}
+                  onTogglePanel={onTogglePanel}
+                  position={kodaSettings.explorerButtonPosition ?? 'iconbar'}
+                  onMoveToIconbar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
+                  onMoveToTitlebar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
+                />
+              )}
+
+              {(kodaSettings.explorerTabPosition ?? 'panel') === 'iconbar' && (
+                <ExplorerTabButton
+                  active={kodaSettings.explorerTabPosition === 'panel' ? (showPanel && contextPanelTab === 'explorer') : showExplorer}
+                  onClick={() => {
+                    if (kodaSettings.explorerTabPosition === 'panel') {
+                      onContextPanelTabChange?.('explorer')
+                    } else {
+                      setShowExplorer(!showExplorer)
+                    }
+                  }}
+                  position="iconbar"
+                  onMoveTo={(pos) => {
+                    setKodaSettings(prev => ({ ...prev, explorerTabPosition: pos }))
+                    if (pos === 'panel') {
+                      setShowExplorer(false)
+                      onTogglePanel()
+                      onContextPanelTabChange?.('explorer')
+                    }
+                  }}
+                  variant="iconbar"
+                />
+              )}
             </div>
 
             <div className="flex flex-col gap-2 mb-2">
@@ -661,7 +822,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
           {showRight && renderPanelStack('right')}
 
             {/* Space for ContextPanel overlay */}
-            {showPanel && <div className="w-64 flex-shrink-0" />}
+            {showPanel && <div className="flex-shrink-0" style={{ width: contextPanelWidth }} />}
           </div>
         </div>
       </div>
