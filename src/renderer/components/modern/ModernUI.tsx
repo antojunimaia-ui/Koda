@@ -393,7 +393,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
     return (
       <div 
         style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }} 
-        className={`flex flex-col flex-shrink-0 min-w-[200px] relative h-full bg-[#0d1117] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
+        className={`flex flex-col flex-shrink-0 min-w-[200px] relative h-full bg-[#1a1a1a] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
       >
         {hasBrowser && (
           <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: (hasTerminal || hasExplorer) ? `${browserHeight}%` : '100%' }}>
@@ -433,7 +433,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
   const isIDEMode = kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a0b] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
+    <div className="flex flex-col h-screen bg-[#1a1a1a] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
       
       <TitleBar 
         mode={mode} 
@@ -495,7 +495,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
           <>
             <div 
               id="tour-iconbar"
-              className="w-12 bg-[#0a0a0b] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]"
+              className="w-12 bg-[#1a1a1a] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]"
               onMouseEnter={() => setShowChatHistory(true)}
               onMouseLeave={() => setShowChatHistory(false)}
             >
@@ -603,6 +603,10 @@ const ModernUI: React.FC<ModernUIProps> = ({
               onInject={onInject || (() => {})}
               onAddToInput={onAddToInput || (() => {})}
               showEditorPanel={kodaSettings.showEditorPanel || false}
+              showBrowser={showBrowser}
+              showTerminal={showTerminal}
+              onBrowserClose={onBrowserClick}
+              onTerminalClose={onTerminalClick}
             >
               {/* Chat Panel Content */}
               <div className="flex flex-col h-full">

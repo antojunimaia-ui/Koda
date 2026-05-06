@@ -63,7 +63,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
   return (
     <div className="absolute left-12 top-0 bottom-0 z-[1050] pointer-events-none">
       <div
-        className={`w-72 h-full bg-[#0a0a0b] border-r border-white/5 flex flex-col transition-transform duration-200 shadow-2xl pointer-events-auto ${
+        className={`w-72 h-full bg-[#1a1a1a] border-r border-white/5 flex flex-col transition-transform duration-200 shadow-2xl pointer-events-auto ${
           (isVisible || isHovering) ? 'translate-x-0' : '-translate-x-full'
         }`}
         onMouseEnter={() => setIsHovering(true)}

@@ -363,7 +363,7 @@ const FileExplorer: React.FC<{
       {selectedFile && !disableInlineEditor && (
         <div className="w-1/2 border-r border-white/10 flex flex-col">
           {/* Editor Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-[#0a0a0b]">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-[#1a1a1a]">
             <div className="flex items-center gap-2">
               <span className="text-slate-300 text-[10px] font-medium truncate" title={selectedFile}>
                 {selectedFile.split('/').pop()}
@@ -467,7 +467,7 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, onAdd
   }
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-[#0a0a0b]">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-[#1a1a1a]">
 
       {/* Header */}
       <div className="flex items-center gap-0.5 px-2 pt-2 pb-1.5 border-b border-white/5 flex-shrink-0">
@@ -580,7 +580,7 @@ interface ContextPanelOverlayProps extends ContextPanelProps {
 export const ContextPanelOverlay: React.FC<ContextPanelOverlayProps> = ({ width, isResizing, onStartResize, ...props }) => {
   return (
     <div
-      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex bg-[#0a0a0b] border-l border-white/5"
+      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex bg-[#1a1a1a] border-l border-white/5"
       style={{ width }}
     >
       <div
@@ -649,7 +649,7 @@ export const ExplorerPanelOverlay: React.FC<ExplorerPanelOverlayProps> = ({
   return (
     <div
       ref={containerRef}
-      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex flex-col bg-[#0a0a0b] border-l border-white/5"
+      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex flex-col bg-[#1a1a1a] border-l border-white/5"
       style={{ width }}
     >
       {/* Resize handle */}
