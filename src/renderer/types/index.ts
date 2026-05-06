@@ -55,6 +55,8 @@ export interface KodaSettings {
   showIconBar: boolean
   explorerButtonPosition: 'iconbar' | 'titlebar'
   explorerTabPosition: 'panel' | 'iconbar' | 'titlebar'
+  showExplorerPanel: boolean
+  showEditorPanel: boolean
 }
 
 export interface KodaTheme {

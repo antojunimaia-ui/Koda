@@ -97,13 +97,13 @@ const App: React.FC = () => {
   const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
     try {
       const saved = localStorage.getItem('koda_settings')
-      if (saved) return { browserPosition: 'left', terminalPosition: 'left', showIconBar: true, explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel', ...JSON.parse(saved) }
+      if (saved) return { browserPosition: 'left', terminalPosition: 'left', showIconBar: true, explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel', showExplorerPanel: false, showEditorPanel: false, ...JSON.parse(saved) }
     } catch { }
     return {
       showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,
       showFileWrite: true, showListDir: true, showFileFind: true, showSearch: true,
       showLspQuery: true, showBrowserAgent: true, showPlanMode: true, showColab: true,
-      showPty: true, uiMode: 'modern', toolViewMode: 'standard', browserPosition: 'left', terminalPosition: 'left', showIconBar: true, explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel'
+      showPty: true, uiMode: 'modern', toolViewMode: 'standard', browserPosition: 'left', terminalPosition: 'left', showIconBar: true, explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel', showExplorerPanel: false, showEditorPanel: false
     }
   })
 
@@ -952,6 +952,10 @@ const App: React.FC = () => {
           onUpdateDismiss={() => setUpdateInfo(null)}
           onNewSession={handleNewSession}
           onLoadSession={handleLoadSession}
+          onAddToInput={handleAddToInput}
+          onInject={handleInjectFile}
+          pinnedFiles={activeWorkspace.pinnedFiles}
+          onPin={handlePinFile}
         />
       ) : (
         <ClassicUI

@@ -20,6 +20,7 @@ import UpdateBanner from '../UpdateBanner.js'
 import ChatHistory from './ChatHistory.js'
 import OnboardingTour from './OnboardingTour.js'
 import { ExplorerTabButton } from '../context/ContextPanel.js'
+import IDELayout from '../IDELayout.js'
 
 // ─── Explorer Button with context menu ───────────────────────────────────────
 const ExplorerButton: React.FC<{
@@ -179,6 +180,10 @@ interface ModernUIProps {
   onQuestionsSubmit?: (answers: import('../../types/index.js').QuestionAnswer[]) => void
   pendingShell?: { command: string; baseCommand: string; description?: string } | null
   onShellDismiss?: () => void
+  onAddToInput?: (path: string) => void
+  onInject?: (path: string) => void
+  pinnedFiles: string[]
+  onPin: (path: string) => void
   updateInfo?: { version?: string; downloaded: boolean } | null
   onUpdateDismiss?: () => void
 }
@@ -250,7 +255,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
   pendingQuestions, onQuestionsSubmit,
   pendingShell, onShellDismiss,
   updateInfo, onUpdateDismiss,
-  onNewSession, onLoadSession,
+  onNewSession, onLoadSession, onAddToInput, onInject, pinnedFiles, onPin,
 }) => {
   
   const [showChatHistory, setShowChatHistory] = useState(false)
@@ -424,6 +429,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
     );
   };
 
+  // IDE Mode Logic
+  const isIDEMode = kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel
+
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0b] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
       
@@ -584,7 +592,215 @@ const ModernUI: React.FC<ModernUIProps> = ({
               onSplitWith={onSplitWith}
             />
           )}
-          <div className="flex-1 relative flex flex-row min-h-0">
+          
+          {/* IDE Layout or Normal Layout */}
+          {isIDEMode ? (
+            <IDELayout
+              showExplorerPanel={kodaSettings.showExplorerPanel || false}
+              cwd={agentInfo.cwd}
+              pinnedFiles={pinnedFiles}
+              onPin={onPin}
+              onInject={onInject || (() => {})}
+              onAddToInput={onAddToInput || (() => {})}
+              showEditorPanel={kodaSettings.showEditorPanel || false}
+            >
+              {/* Chat Panel Content */}
+              <div className="flex flex-col h-full">
+                <div className={`flex-1 flex flex-col ${isIDEMode && kodaSettings.showEditorPanel ? 'max-w-full' : 'max-w-5xl mx-auto'} w-full relative ${messages.length === 0 ? 'justify-center' : 'pt-4'}`}>
+                  {/* Message List */}
+                  <div className={`min-h-0 px-4 ${messages.length === 0 ? 'hidden' : 'flex-1'}`}>
+                    <Virtuoso
+                      ref={virtuosoRef}
+                      data={renderableMessages}
+                      alignToBottom
+                      increaseViewportBy={{ top: 200, bottom: 200 }}
+                      className="custom-scrollbar pr-2"
+                      itemContent={(index, item: any) => (
+                        <div className="mb-6">
+                          {item.type === 'tool_group' ? (
+                            <CompactToolView 
+                              tools={item.tools} 
+                              settings={kodaSettings} 
+                              agentInfo={agentInfo} 
+                              uiMode="modern" 
+                              isLastAndActive={isProcessing && index === renderableMessages.length - 1}
+                            />
+                          ) : (
+                            <MessageRow 
+                              msg={item} 
+                              agentInfo={agentInfo}
+                              kodaSettings={kodaSettings} 
+                              uiMode="modern"
+                              onRollback={item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined}
+                            />
+                          )}
+                        </div>
+                      )}
+                      components={{
+                        Footer: VirtuosoFooter
+                      }}
+                    />
+                  </div>
+
+                  {/* Input Area */}
+                  <div className={`px-6 pb-6 ${messages.length === 0 ? 'pt-0' : 'pt-2'}`}>
+                    {messages.length === 0 && (
+                      <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
+                        What are we building today?
+                      </p>
+                    )}
+                    {updateInfo && onUpdateDismiss && (
+                      <div className="mb-0">
+                        <UpdateBanner
+                          version={updateInfo.version}
+                          downloaded={updateInfo.downloaded}
+                          onInstall={() => window.koda.updaterInstall()}
+                          onDismiss={onUpdateDismiss}
+                          variant="modern"
+                        />
+                      </div>
+                    )}
+                    {pendingShell && (
+                      <div className="mx-4">
+                        <ShellApprovalPanel
+                          command={pendingShell.command}
+                          baseCommand={pendingShell.baseCommand}
+                          variant="modern"
+                        />
+                      </div>
+                    )}
+                    {pendingQuestions && pendingQuestions.length > 0 && onQuestionsSubmit && (
+                      <div className="mx-4">
+                        <QuestionsModal
+                          questions={pendingQuestions}
+                          onSubmit={onQuestionsSubmit}
+                        />
+                      </div>
+                    )}
+
+                    {/* Slash Menu */}
+                    {showSlashMenu && slashItems.length > 0 && (
+                      <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                        <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
+                          {slashItems.map((item, idx) => (
+                            <button
+                              key={item.name}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === slashIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                              onClick={() => selectSlashItem(item)}
+                            >
+                              <span className="text-sm flex-shrink-0">{item.icon}</span>
+                              <div className="flex flex-col min-w-0">
+                                <span className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
+                                  {item.name}
+                                </span>
+                                {item.description && (
+                                  <span className="text-[10px] text-slate-600 group-hover:text-slate-500 transition-colors truncate">
+                                    {item.description}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                        <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
+                          {suggestions.map((file, idx) => (
+                            <button
+                              key={file}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === suggestionIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                              onClick={() => selectSuggestion(file)}
+                            >
+                              <span className="text-sm flex-shrink-0">📄</span>
+                              <span className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
+                                {file}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
+                      {pendingImages.length > 0 && (
+                        <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
+                          {pendingImages.map((img, i) => (
+                            <div key={i} className="relative group">
+                              <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
+                              <button 
+                                onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
+                                className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-neutral-900"
+                              >✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
+                        <textarea
+                          ref={textareaRef}
+                          value={input}
+                          onChange={(e) => {
+                            handleInputChange(e.target.value)
+                            adjustHeight()
+                          }}
+                          onKeyDown={handleKeyDown}
+                          onPaste={handlePaste}
+                          id="tour-input"
+                          placeholder="Ask Koda anything..."
+                          className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
+                          style={{ overflow: "hidden" }}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-2xl">
+                        <div className="flex items-center gap-1.5">
+                          <button type="button" onClick={onFileAttach} className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1">
+                            <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
+                            <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">Attach</span>
+                          </button>
+                          
+                          <div id="tour-cwd" onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
+                            <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
+                            <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">
+                            {agentInfo.providerId === 'koda-cloud'
+                              ? `${agentInfo.model} / Koda Cloud`
+                              : agentInfo.model}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => isProcessing ? handleStop() : handleSend()}
+                            disabled={!isProcessing && !input.trim()}
+                            className={`flex items-center justify-center p-1 rounded-lg transition-all ${
+                              isProcessing
+                                ? 'border border-zinc-400 text-zinc-400 hover:border-white hover:text-white bg-transparent cursor-pointer'
+                                : input.trim()
+                                  ? 'bg-white text-black hover:bg-zinc-200'
+                                  : 'bg-neutral-800 text-zinc-600 cursor-not-allowed'
+                            }`}
+                          >
+                            {isProcessing
+                              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5"/></svg>
+                              : <ArrowUpIcon className="w-4 h-4" />
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </IDELayout>
+          ) : (
+            <div className="flex-1 relative flex flex-row min-h-0">
             {/* ── Left Panel Area ── */}
           {showLeft && renderPanelStack('left')}
           
@@ -824,6 +1040,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
             {/* Space for ContextPanel overlay */}
             {showPanel && <div className="flex-shrink-0" style={{ width: contextPanelWidth }} />}
           </div>
+          )}
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect } from 'react'
 import { TrackedFile } from '../../types/index.js'
+import { getIconForFile, getIconForFolder, getIconForOpenFolder } from 'vscode-icons-js'
 
 interface ContextPanelProps {
   files: TrackedFile[]
@@ -37,12 +38,26 @@ const IconFolder = ({ open }: { open: boolean }) => (
 )
 
 const IconFile = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-    strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-500">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
+  <svg width="16" height="16" viewBox="0 0 32 32" fill="none" className="flex-shrink-0">
+    <path d="M28 4H14L10 8H4C2.9 8 2 8.9 2 10V26C2 27.1 2.9 28 4 28H28C29.1 28 30 27.1 30 26V6C30 4.9 29.1 4 28 4Z" fill="#6B7280"/>
   </svg>
 )
+
+const getFileIcon = (filename: string) => {
+  const iconName = getIconForFile(filename)
+  
+  // Usar CDN do jsdelivr para carregar os ícones do vscode-icons
+  return (
+    <img 
+      src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${iconName}`}
+      width="16" 
+      height="16" 
+      className="flex-shrink-0"
+      alt={filename}
+      style={{ objectFit: 'contain' }}
+    />
+  )
+}
 
 const IconAt = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -139,7 +154,7 @@ const ExplorerTabButton: React.FC<{
   )
 }
 
-export { ExplorerTabButton }
+export { ExplorerTabButton, FileExplorer }
 
 interface FileNode {
   name: string
@@ -197,7 +212,8 @@ const FileExplorer: React.FC<{
   onPin: (path: string) => void
   onAddToInput?: (path: string) => void
   pinnedFiles: string[]
-}> = ({ cwd, onInject, onPin, onAddToInput, pinnedFiles }) => {
+  disableInlineEditor?: boolean
+}> = ({ cwd, onInject, onPin, onAddToInput, pinnedFiles, disableInlineEditor = false }) => {
   const [tree, setTree] = useState<FileNode[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -274,7 +290,11 @@ const FileExplorer: React.FC<{
             if (node.isDir) {
               toggle(node.path)
             } else {
-              loadFileContent(node.path)
+              if (disableInlineEditor) {
+                onInject(node.path)
+              } else {
+                loadFileContent(node.path)
+              }
             }
           }}
           title={node.path}
@@ -283,7 +303,7 @@ const FileExplorer: React.FC<{
             ? <IconChevron open={isOpen} />
             : <span className="w-[10px] flex-shrink-0" />
           }
-          {node.isDir ? <IconFolder open={isOpen} /> : <IconFile />}
+          {node.isDir ? <IconFolder open={isOpen} /> : getFileIcon(node.name)}
           <span className={`flex-1 text-[11px] truncate transition-colors ${
             isSelected ? 'text-indigo-200' : 'text-slate-400 group-hover:text-slate-200'
           }`}>
@@ -340,7 +360,7 @@ const FileExplorer: React.FC<{
   return (
     <div className="flex h-full">
       {/* File Editor */}
-      {selectedFile && (
+      {selectedFile && !disableInlineEditor && (
         <div className="w-1/2 border-r border-white/10 flex flex-col">
           {/* Editor Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-[#0a0a0b]">

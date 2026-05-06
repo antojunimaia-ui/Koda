@@ -20,6 +20,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
     "@google/generative-ai": "^0.24.1",
+    "@monaco-editor/react": "^4.7.0",
     "ansi-to-html": "^0.7.2",
     "diff": "^8.0.4",
     "dotenv": "^16.4.7",
@@ -35,7 +36,9 @@
     "operantid.js": "^1.0.3",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-icons": "^5.6.0",
     "react-virtuoso": "^4.18.4",
+    "vscode-icons-js": "^11.6.1",
     "vscode-jsonrpc": "^8.2.1",
     "vscode-languageserver-protocol": "^3.17.5",
     "vscode-languageserver-types": "^3.17.5",
