@@ -9,17 +9,33 @@ import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
 import { clearTrackedFiles } from './services/file-tracker.js'
 import { sessionManager } from './services/session-manager.js'
 import { startWebhookServer, stopWebhookServer, getWebhookStatus } from './services/webhook-server.js'
+import { DiscordRPCManager } from './services/discord-rpc.js'
 import electronUpdater from 'electron-updater'
 const { autoUpdater } = electronUpdater
 import dotenv from 'dotenv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+// Suppress deprecation warnings
+process.removeAllListeners('warning')
+process.on('warning', (warning) => {
+  // Ignore punycode deprecation warning
+  if (warning.name === 'DeprecationWarning' && warning.message.includes('punycode')) {
+    return
+  }
+  console.warn(warning.name, warning.message)
+})
+
+// Disable GPU hardware acceleration warnings on AMD
+app.commandLine.appendSwitch('disable-gpu-sandbox')
+app.commandLine.appendSwitch('disable-software-rasterizer')
+
 // Load environment variables
 dotenv.config()
 
 let mainWindow: BrowserWindow | null = null
 const agents = new Map<string, Agent>()
+const discordRPC = new DiscordRPCManager()
 
 function getAgent(id: string): Agent | null {
   return agents.get(id) || null
@@ -38,11 +54,13 @@ function createWindow() {
     backgroundColor: '#0f172a',
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    webPreferences: {
+      webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,
       contextIsolation: true,
       webviewTag: true,
+      webSecurity: false, // Permitir carregamento de arquivos locais (Vídeos, etc)
+      enableWebSQL: false,
     },
   })
 
@@ -765,3 +783,41 @@ ipcMain.handle('mcp:save_configs', async (_event, configs) => {
     return { success: false, error: err.message }
   }
 })
+
+// Discord RPC Handlers
+ipcMain.handle('discord:enable', async () => {
+  try {
+    await discordRPC.enable()
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('discord:disable', () => {
+  discordRPC.disable()
+  return { success: true }
+})
+
+ipcMain.handle('discord:is_enabled', () => {
+  return { enabled: discordRPC.isEnabled() }
+})
+
+ipcMain.handle('discord:update_activity', async (_event, activity) => {
+  try {
+    await discordRPC.updateActivity(activity)
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('discord:clear_activity', async () => {
+  try {
+    await discordRPC.clearActivity()
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+

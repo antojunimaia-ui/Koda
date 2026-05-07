@@ -93,7 +93,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = memo(({ onClose, cwd, worksp
   }, [])
 
   return (
-    <div className="flex flex-col h-full bg-[#1a1a1a] border-r border-slate-700/50 animate-in slide-in-from-left duration-300">
+    <div className="flex flex-col h-full bg-[#141414] border-r border-slate-700/50 animate-in slide-in-from-left duration-300">
       <div className="flex items-center justify-between px-4 py-2 bg-slate-800/40 border-b border-slate-700/50">
         <div className="flex items-center gap-2">
           <span className="text-cyan text-xs">⌨️</span>

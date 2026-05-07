@@ -393,7 +393,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
     return (
       <div 
         style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }} 
-        className={`flex flex-col flex-shrink-0 min-w-[200px] relative h-full bg-[#1a1a1a] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
+        className={`flex flex-col flex-shrink-0 min-w-[200px] relative h-full bg-[#141414] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
       >
         {hasBrowser && (
           <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: (hasTerminal || hasExplorer) ? `${browserHeight}%` : '100%' }}>
@@ -433,7 +433,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
   const isIDEMode = kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel
 
   return (
-    <div className="flex flex-col h-screen bg-[#1a1a1a] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
+    <div className="flex flex-col h-screen bg-[#141414] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
       
       <TitleBar 
         mode={mode} 
@@ -495,7 +495,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
           <>
             <div 
               id="tour-iconbar"
-              className="w-12 bg-[#1a1a1a] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]"
+              className="w-12 bg-[#141414] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]"
               onMouseEnter={() => setShowChatHistory(true)}
               onMouseLeave={() => setShowChatHistory(false)}
             >
@@ -612,7 +612,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
               <div className="flex flex-col h-full">
                 <div className={`flex-1 flex flex-col ${isIDEMode && kodaSettings.showEditorPanel ? 'max-w-full' : 'max-w-5xl mx-auto'} w-full relative ${messages.length === 0 ? 'justify-center' : 'pt-4'}`}>
                   {/* Message List */}
-                  <div className={`min-h-0 px-4 ${messages.length === 0 ? 'hidden' : 'flex-1'}`}>
+                  <div className={`min-h-0 ${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-4'} ${messages.length === 0 ? 'hidden' : 'flex-1'}`}>
                     <Virtuoso
                       ref={virtuosoRef}
                       data={renderableMessages}
@@ -647,7 +647,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                   </div>
 
                   {/* Input Area */}
-                  <div className={`px-6 pb-6 ${messages.length === 0 ? 'pt-0' : 'pt-2'}`}>
+                  <div className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-4' : 'px-6'} pb-6 ${messages.length === 0 ? 'pt-0' : 'pt-2'}`}>
                     {messages.length === 0 && (
                       <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
                         What are we building today?

@@ -16,10 +16,13 @@ export function useSession({ setMessages, setPinnedFiles }: UseSessionOptions) {
     if (session) {
       setMessages(session.messages || [], workspaceId)
       setPinnedFiles(session.pinnedFiles || [], workspaceId)
+      // Retorna o sessionId para ser setado no ref
+      return session.id
     } else {
       setMessages([], workspaceId)
       setPinnedFiles([], workspaceId)
       if (workspaceId) window.koda.softReset(workspaceId)
+      return null
     }
   }, [setMessages, setPinnedFiles])
 

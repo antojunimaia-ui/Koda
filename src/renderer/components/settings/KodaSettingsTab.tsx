@@ -180,6 +180,34 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings, uiMode }: KodaSet
         </div>
       </section>
 
+      {/* Integrations Section */}
+      <section>
+        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
+          <span className="w-1.5 h-4 bg-purple-500 rounded-full"></span>
+          Integrations
+        </h3>
+        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">Connect Koda with external services and platforms.</p>
+        
+        <div className="flex flex-col gap-4 bg-slate-800/20 p-4 rounded-xl border border-slate-700/50">
+          <SettingToggle 
+            label="Discord Rich Presence" 
+            description="Show your current project and file in Discord activity status" 
+            enabled={kodaSettings.discordRPC || false} 
+            onChange={async (v: boolean) => {
+              if (v) {
+                const result = await window.koda.discordEnable()
+                if (result.success) {
+                  setKodaSettings(prev => ({ ...prev, discordRPC: true }))
+                }
+              } else {
+                await window.koda.discordDisable()
+                setKodaSettings(prev => ({ ...prev, discordRPC: false }))
+              }
+            }} 
+          />
+        </div>
+      </section>
+
       {/* Approved Commands Section */}
       <section>
         <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">

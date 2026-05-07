@@ -57,6 +57,7 @@ export interface KodaSettings {
   explorerTabPosition: 'panel' | 'iconbar' | 'titlebar'
   showExplorerPanel: boolean
   showEditorPanel: boolean
+  discordRPC?: boolean
 }
 
 export interface KodaTheme {

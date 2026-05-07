@@ -49,6 +49,12 @@ contextBridge.exposeInMainWorld('koda', {
   webhookStart: (config: { port: number; token: string }) => ipcRenderer.invoke('webhook:start', config),
   webhookStop: () => ipcRenderer.invoke('webhook:stop'),
   webhookStatus: () => ipcRenderer.invoke('webhook:status'),
+  // Discord RPC
+  discordEnable: () => ipcRenderer.invoke('discord:enable'),
+  discordDisable: () => ipcRenderer.invoke('discord:disable'),
+  discordIsEnabled: () => ipcRenderer.invoke('discord:is_enabled'),
+  discordUpdateActivity: (activity: { projectName: string; fileName?: string; fileType?: string; startTimestamp?: number }) => ipcRenderer.invoke('discord:update_activity', activity),
+  discordClearActivity: () => ipcRenderer.invoke('discord:clear_activity'),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),

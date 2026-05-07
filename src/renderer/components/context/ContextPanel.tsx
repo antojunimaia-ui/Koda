@@ -211,9 +211,10 @@ const FileExplorer: React.FC<{
   onInject: (path: string) => void
   onPin: (path: string) => void
   onAddToInput?: (path: string) => void
+  onOpenMarkdownPreview?: (path: string) => void
   pinnedFiles: string[]
   disableInlineEditor?: boolean
-}> = ({ cwd, onInject, onPin, onAddToInput, pinnedFiles, disableInlineEditor = false }) => {
+}> = ({ cwd, onInject, onPin, onAddToInput, onOpenMarkdownPreview, pinnedFiles, disableInlineEditor = false }) => {
   const [tree, setTree] = useState<FileNode[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -221,13 +222,27 @@ const FileExplorer: React.FC<{
   const [fileContent, setFileContent] = useState<string>('')
   const [isLoadingFile, setIsLoadingFile] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; path: string } | null>(null)
+  const contextMenuRef = React.useRef<HTMLDivElement>(null)
+
+  // Close context menu on outside click
+  React.useEffect(() => {
+    if (!contextMenu) return
+    const close = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [contextMenu])
 
   const loadFileContent = async (filePath: string) => {
     setIsLoadingFile(true)
     try {
       const result = await window.koda.readFile(filePath)
       if (result.success) {
-        setFileContent(result.content)
+        setFileContent(result.content || '')
         setSelectedFile(filePath)
         setHasUnsavedChanges(false)
       }
@@ -274,6 +289,9 @@ const FileExplorer: React.FC<{
     })
   }
 
+  const isMarkdown = (name: string) => name.toLowerCase().endsWith('.md') || name.toLowerCase().endsWith('.mdx')
+  const isVideo = (name: string) => ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'].includes(name.toLowerCase().split('.').pop() || '')
+
   const renderNode = (node: FileNode, depth = 0) => {
     const isPinned = pinnedFiles.includes(node.path)
     const isOpen = expanded.has(node.path)
@@ -295,6 +313,12 @@ const FileExplorer: React.FC<{
               } else {
                 loadFileContent(node.path)
               }
+            }
+          }}
+          onContextMenu={(e) => {
+            if (!node.isDir) {
+              e.preventDefault()
+              setContextMenu({ x: e.clientX, y: e.clientY, path: node.path })
             }
           }}
           title={node.path}
@@ -363,7 +387,7 @@ const FileExplorer: React.FC<{
       {selectedFile && !disableInlineEditor && (
         <div className="w-1/2 border-r border-white/10 flex flex-col">
           {/* Editor Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-[#1a1a1a]">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-[#141414]">
             <div className="flex items-center gap-2">
               <span className="text-slate-300 text-[10px] font-medium truncate" title={selectedFile}>
                 {selectedFile.split('/').pop()}
@@ -427,6 +451,78 @@ const FileExplorer: React.FC<{
       <div className={`${selectedFile ? 'w-1/2' : 'w-full'} transition-all duration-200 overflow-y-auto custom-scrollbar`}>
         <div className="px-1 py-1">{tree.map(n => renderNode(n))}</div>
       </div>
+
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-[9999] bg-[#1a1a1a] border border-white/10 rounded-md shadow-2xl py-1.5 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          {isMarkdown(contextMenu.path.split('/').pop() || '') && (
+            <>
+              {onOpenMarkdownPreview ? (
+                <button
+                  onClick={() => {
+                    onOpenMarkdownPreview(contextMenu.path)
+                    setContextMenu(null)
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Open Preview
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('koda:open-markdown-preview', { detail: { path: contextMenu.path } }))
+                    setContextMenu(null)
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Open Preview
+                </button>
+              )}
+              <div className="h-[1px] bg-white/5 my-1 mx-2" />
+            </>
+          )}
+          <button
+            onClick={() => {
+              if (disableInlineEditor) {
+                onInject(contextMenu.path)
+              } else {
+                loadFileContent(contextMenu.path)
+              }
+              setContextMenu(null)
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Open File
+          </button>
+          <button
+            onClick={() => {
+              onInject(contextMenu.path)
+              setContextMenu(null)
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400">
+              <path d="M3 6h18M3 12h12M3 18h8" />
+            </svg>
+            Add to Context
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -467,7 +563,7 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, onAdd
   }
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-[#1a1a1a]">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-[#141414]">
 
       {/* Header */}
       <div className="flex items-center gap-0.5 px-2 pt-2 pb-1.5 border-b border-white/5 flex-shrink-0">
@@ -580,7 +676,7 @@ interface ContextPanelOverlayProps extends ContextPanelProps {
 export const ContextPanelOverlay: React.FC<ContextPanelOverlayProps> = ({ width, isResizing, onStartResize, ...props }) => {
   return (
     <div
-      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex bg-[#1a1a1a] border-l border-white/5"
+      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex bg-[#141414] border-l border-white/5"
       style={{ width }}
     >
       <div
@@ -649,7 +745,7 @@ export const ExplorerPanelOverlay: React.FC<ExplorerPanelOverlayProps> = ({
   return (
     <div
       ref={containerRef}
-      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex flex-col bg-[#1a1a1a] border-l border-white/5"
+      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex flex-col bg-[#141414] border-l border-white/5"
       style={{ width }}
     >
       {/* Resize handle */}

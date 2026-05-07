@@ -85,7 +85,7 @@ const SettingsUI = memo(({
 
   return (
     <div className={`absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200 ${uiMode === 'modern' ? 'bg-black/60' : 'bg-black/80'}`}>
-      <div className={`flex w-[960px] h-[640px] border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#1a1a1a] border-white/8' : 'bg-slate-900 border-slate-700/50'}`}>
+      <div className={`flex w-[960px] h-[640px] border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#141414] border-white/8' : 'bg-slate-900 border-slate-700/50'}`}>
 
         {/* Sidebar */}
         <div className={`w-1/4 flex flex-col p-4 gap-2 ${uiMode === 'modern' ? 'bg-white/[0.02] border-r border-white/5' : 'bg-slate-800/30 border-r border-slate-700/50'}`}>

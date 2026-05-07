@@ -231,7 +231,11 @@ const App: React.FC = () => {
     const lastCwd = lastLoadedCwdPerWs.current.get(activeWorkspace.id)
     if (cwd === lastCwd) return   // same CWD — tab switch or re-render, skip
     lastLoadedCwdPerWs.current.set(activeWorkspace.id, cwd)
-    loadSession(cwd, activeWorkspace.id)
+    const sessionId = loadSession(cwd, activeWorkspace.id)
+    if (sessionId) {
+      sessionIdRef.current.set(activeWorkspace.id, sessionId)
+      updateWorkspace(activeWorkspace.id, { currentSessionId: sessionId })
+    }
   }, [activeWorkspace?.id, activeWorkspace?.agentInfo.cwd])
 
   // ── Auto-save (debounced 1s) ────────────────────────────────────────────────
@@ -248,9 +252,16 @@ const App: React.FC = () => {
       // Pega ou gera o sessionId via ref — não dispara re-render
       let sessionId = sessionIdRef.current.get(wsId)
       if (!sessionId) {
-        sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-        sessionIdRef.current.set(wsId, sessionId)
-        updateWorkspace(wsId, { currentSessionId: sessionId })
+        // Verifica se já existe um sessionId no workspace state
+        if (activeWorkspace.currentSessionId) {
+          sessionId = activeWorkspace.currentSessionId
+          sessionIdRef.current.set(wsId, sessionId)
+        } else {
+          // Só gera novo ID se realmente não existir
+          sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+          sessionIdRef.current.set(wsId, sessionId)
+          updateWorkspace(wsId, { currentSessionId: sessionId })
+        }
       }
 
       // Salva no localStorage — sem IPC, sem race condition
@@ -353,7 +364,11 @@ const App: React.FC = () => {
                 }
                 setWorkspaces([initialWs])
                 setActiveId(initialId)
-                loadSession(setupRes.info.cwd)
+                const sessionId = loadSession(setupRes.info.cwd, initialId)
+                if (sessionId) {
+                  sessionIdRef.current.set(initialId, sessionId)
+                  setWorkspaces(prev => prev.map(w => w.id === initialId ? { ...w, currentSessionId: sessionId } : w))
+                }
               }
             } catch { }
           } else {
@@ -378,7 +393,11 @@ const App: React.FC = () => {
               }
               setWorkspaces([initialWs])
               setActiveId(initialId)
-              loadSession(res.info.cwd)
+              const sessionId = loadSession(res.info.cwd, initialId)
+              if (sessionId) {
+                sessionIdRef.current.set(initialId, sessionId)
+                setWorkspaces(prev => prev.map(w => w.id === initialId ? { ...w, currentSessionId: sessionId } : w))
+              }
           }
         }
         setInitializing(false)
