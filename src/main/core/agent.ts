@@ -42,7 +42,7 @@ export class Agent {
     this.settings = getSettings();
     this.tools = new ToolRegistry(this.settings);
     
-    // Build initial robust system prompt
+    // Build initial system prompt (without project rules - those load in initialize)
     this.dynamicSystemPrompt = PromptBuilder.build(this.settings.systemPrompt);
     this.conversation = new Conversation(this.dynamicSystemPrompt);
   }
@@ -495,7 +495,7 @@ export class Agent {
   private async rebuildPrompt(): Promise<void> {
     // Load project rules from .agents/rules.md if trigger: always_on
     const { rulesManager } = await import('../services/rules-manager.js');
-    const projectRules = await rulesManager.getContent(this.cwd);
+    const projectRules = await rulesManager.getContent(process.cwd());
     
     this.dynamicSystemPrompt = PromptBuilder.build(
       this.settings.systemPrompt,
