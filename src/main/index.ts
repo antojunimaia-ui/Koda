@@ -197,7 +197,7 @@ ipcMain.handle('agent:reset', async (_event, workspaceId: string) => {
   const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   const info = agent.getInfo()
-  agent.resetConversation()
+  await agent.resetConversation()
   clearTrackedFiles()
   if (info.cwd) {
     await sessionManager.clearSession(info.cwd);
@@ -209,7 +209,7 @@ ipcMain.handle('agent:soft_reset', async (_event, workspaceId: string) => {
   const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   agent.abort()
-  agent.resetConversation()
+  await agent.resetConversation()
   clearTrackedFiles()
   return { success: true }
 })
@@ -231,7 +231,7 @@ ipcMain.handle('agent:cd', async (_event, workspaceId: string, targetPath: strin
   if (!agent) return { error: 'Agent not initialized' }
   try {
     process.chdir(targetPath)
-    agent.resetConversation()
+    await agent.resetConversation()
     await agent.initialize()
     agent.setProgressEmitter((event, toolName, data) => {
       mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event, toolName, ...data })

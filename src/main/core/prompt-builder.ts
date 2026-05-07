@@ -7,6 +7,7 @@ export interface SystemPromptContext {
   shell: string;
   workspaceName?: string;
   projectSummary?: string; // High-level architecture summary
+  projectRules?: string; // Project-specific rules from .agents/rules.md
   additionalDirectives?: string;
   toolsMetadata?: string; // List of available tool names/descriptions
 }
@@ -75,12 +76,14 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
     const toolsBlock = context.toolsMetadata ? `# AVAILABLE TOOLS\nYou have access to the following dynamic and core capabilities:\n${context.toolsMetadata}` : "";
 
     const projectBlock = context.projectSummary ? `# PROJECT ARCHITECTURE\n${context.projectSummary}` : "";
+    const rulesBlock = context.projectRules ? `# PROJECT RULES\n${context.projectRules}` : "";
 
     // Assemble modular blocks
     return [
       basePrompt,
       envBlock,
       projectBlock,
+      rulesBlock,
       coreBlock,
       toolsBlock,
       context.additionalDirectives || "",

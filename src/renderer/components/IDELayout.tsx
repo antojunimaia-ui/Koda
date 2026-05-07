@@ -370,7 +370,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                           },
                         }}
                         beforeMount={(monaco) => {
-                          // Disable all validation/diagnostics
+                          // Disable validation but keep syntax highlighting
                           monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
                             noSemanticValidation: true,
                             noSyntaxValidation: true,
@@ -378,15 +378,6 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                           monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
                             noSemanticValidation: true,
                             noSyntaxValidation: true,
-                          })
-                          monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-                            validate: false,
-                          })
-                          monaco.languages.html.htmlDefaults.setOptions({
-                            validate: false,
-                          })
-                          monaco.languages.css.cssDefaults.setOptions({
-                            validate: false,
                           })
                         }}
                         onMount={(editor, monaco) => {

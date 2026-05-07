@@ -241,7 +241,7 @@ export function startWebhookServer(
 
         try {
           process.chdir(body.path);
-          agent.resetConversation();
+          await agent.resetConversation();
           await agent.initialize();
           const info = agent.getInfo();
           mainWindow?.webContents.send('agent:update', { workspaceId, type: 'remote_cd', cwd: info.cwd });
@@ -257,7 +257,7 @@ export function startWebhookServer(
         const entry = getAgent();
         if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
         const { agent, workspaceId } = entry;
-        agent.resetConversation();
+        await agent.resetConversation();
         mainWindow?.webContents.send('agent:update', { workspaceId, type: 'remote_reset' });
         json(res, 200, { success: true });
         return;

@@ -98,7 +98,7 @@ export class Agent {
     await this.reloadMcpTools();
 
     // 4. Update system prompt with new context and tools
-    this.rebuildPrompt();
+    await this.rebuildPrompt();
 
     // 5. Inject project context: handled via System Prompt in rebuildPrompt()
   }
@@ -143,7 +143,7 @@ export class Agent {
     const commandText = userMessage.trim().toLowerCase();
     if (commandText.startsWith("/")) {
       if (commandText === "/clear" || commandText === "/reset") {
-        this.resetConversation();
+        await this.resetConversation();
         onText("✨ Conversation memory cleared. Starting fresh!");
         return;
       }
@@ -418,9 +418,9 @@ export class Agent {
     this.provider = await this.createProviderAsync();
   }
 
-  resetConversation(): void {
+  async resetConversation(): Promise<void> {
     // 1. Rebuild the system prompt to ensure it has latest context/mcp tools
-    this.rebuildPrompt();
+    await this.rebuildPrompt();
     // 2. Clear history (Conversation.clear preserves the system message)
     this.conversation.clear();
   }
@@ -480,7 +480,7 @@ export class Agent {
       }
 
       // Rebuild system prompt to include new tools awareness
-      this.rebuildPrompt();
+      await this.rebuildPrompt();
     } catch (err) {
       console.error('[Agent] Failed to load MCP tools:', err);
     }
@@ -492,12 +492,17 @@ export class Agent {
       .join('\n');
   }
 
-  private rebuildPrompt(): void {
+  private async rebuildPrompt(): Promise<void> {
+    // Load project rules from .agents/rules.md if trigger: always_on
+    const { rulesManager } = await import('../services/rules-manager.js');
+    const projectRules = await rulesManager.getContent(this.cwd);
+    
     this.dynamicSystemPrompt = PromptBuilder.build(
       this.settings.systemPrompt,
       { 
         workspaceName: this.projectContext?.name,
         projectSummary: this.projectContext?.summary,
+        projectRules: projectRules || undefined,
         toolsMetadata: this.getToolsMetadata()
       }
     );
