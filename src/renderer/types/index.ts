@@ -2,17 +2,18 @@
 
 export type Mode = 'fast' | 'planner' | 'colab' | 'teach'
 
-export interface AttachedImage {
+export interface AttachedFile {
   dataUrl: string
   mimeType: string
   name: string
+  isImage?: boolean
 }
 
 export interface MessageEntry {
   id: number
   type: 'user' | 'assistant' | 'system' | 'error' | 'tool' | 'pty'
   text?: string
-  images?: AttachedImage[]
+  images?: AttachedFile[]
   done?: boolean
   remote?: boolean
   tool?: {
@@ -151,8 +152,8 @@ export interface Workspace {
   mode: Mode
   trackedFiles: TrackedFile[]
   pinnedFiles: string[]
-  pendingImages: AttachedImage[]
-  taskQueue: { text: string; images: AttachedImage[] }[]
+  pendingImages: AttachedFile[]
+  taskQueue: { text: string; images: AttachedFile[] }[]
   pendingPlan: string | null
   pendingQuestions: Question[] | null
   pendingShell: { command: string; baseCommand: string; description?: string } | null

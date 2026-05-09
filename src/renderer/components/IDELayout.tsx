@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import Editor from '@monaco-editor/react'
 import { marked } from 'marked'
-import { MessageEntry, AttachedImage, AgentInfo, Mode, KodaTheme, KodaSettings, TrackedFile } from '../types/index.js'
+import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings, TrackedFile } from '../types/index.js'
 import { FileExplorer } from './context/ContextPanel.js'
 import { getIconForFile } from 'vscode-icons-js'
 import BrowserPreview from './BrowserPreview.js'
@@ -14,6 +14,7 @@ interface IDELayoutProps {
   pinnedFiles: string[]
   onPin: (path: string) => void
   onInject: (path: string) => void
+  onSend: (text: string, images: AttachedFile[], wsId: string) => void
   onAddToInput: (path: string) => void
   
   // Editor props
@@ -216,6 +217,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
   children
 }) => {
   const [tabs, setTabs] = useState<Tab[]>([])
+  const [pendingImages, setPendingImages] = useState<AttachedFile[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const [isLoadingFile, setIsLoadingFile] = useState(false)
 
@@ -1006,36 +1008,41 @@ const IDELayout: React.FC<IDELayoutProps> = ({
             </div>
           </div>
           
-          {/* Editor-Chat Resize Handle */}
-          <div
-            onMouseDown={(e) => {
-              e.preventDefault()
-              const startX = e.clientX
-              const startWidth = chatWidth
-              
-              const handleMouseMove = (moveEvent: MouseEvent) => {
-                const deltaX = startX - moveEvent.clientX // Inverted because chat is on the right
-                const newWidth = Math.max(300, Math.min(800, startWidth + deltaX))
-                setChatWidth(newWidth)
-              }
-              
-              const handleMouseUp = () => {
-                document.removeEventListener('mousemove', handleMouseMove)
-                document.removeEventListener('mouseup', handleMouseUp)
-              }
-              
-              document.addEventListener('mousemove', handleMouseMove)
-              document.addEventListener('mouseup', handleMouseUp)
-            }}
-            className="w-1 cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
-          >
-            <div className="h-8 w-[1px] bg-white/20 group-hover:bg-white/50 transition-colors" />
-          </div>
+          {/* Editor-Chat Resize Handle — only when Editor is visible */}
+          {showEditorPanel && (
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault()
+                const startX = e.clientX
+                const startWidth = chatWidth
+                
+                const handleMouseMove = (moveEvent: MouseEvent) => {
+                  const deltaX = startX - moveEvent.clientX // Inverted because chat is on the right
+                  const newWidth = Math.max(300, Math.min(800, startWidth + deltaX))
+                  setChatWidth(newWidth)
+                }
+                
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove)
+                  document.removeEventListener('mouseup', handleMouseUp)
+                }
+                
+                document.addEventListener('mousemove', handleMouseMove)
+                document.addEventListener('mouseup', handleMouseUp)
+              }}
+              className="w-1 cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
+            >
+              <div className="h-8 w-[1px] bg-white/20 group-hover:bg-white/50 transition-colors" />
+            </div>
+          )}
         </>
       )}
 
-      {/* Chat Panel */}
-      <div className={`flex-shrink-0`} style={{ width: showEditorPanel ? `${chatWidth}px` : '100%' }}>
+      {/* Chat Panel — fixed width when Editor is visible, flex-1 otherwise */}
+      <div
+        className={showEditorPanel ? 'flex-shrink-0' : 'flex-1 min-w-0'}
+        style={showEditorPanel ? { width: `${chatWidth}px` } : undefined}
+      >
         {children}
       </div>
     </div>

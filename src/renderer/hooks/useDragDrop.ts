@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
-import { AttachedImage } from '../types/index.js'
+import { AttachedFile } from '../types/index.js'
 
 interface UseDragDropOptions {
   setInput: React.Dispatch<React.SetStateAction<string>>
-  setPendingImages: React.Dispatch<React.SetStateAction<AttachedImage[]>>
+  setPendingImages: React.Dispatch<React.SetStateAction<AttachedFile[]>>
 }
 
 interface UseDragDropReturn {
@@ -47,7 +47,12 @@ export function useDragDrop({ setInput, setPendingImages }: UseDragDropOptions):
         reader.onload = () => {
           setPendingImages(prev => [
             ...prev,
-            { dataUrl: reader.result as string, mimeType: file.type, name: file.name }
+            { 
+              dataUrl: reader.result as string, 
+              mimeType: file.type, 
+              name: file.name,
+              isImage: true
+            }
           ])
         }
         reader.readAsDataURL(file)

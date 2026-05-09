@@ -1,9 +1,9 @@
 import React, { memo, useState } from 'react'
-import { AttachedImage } from '../../types/index.js'
+import { AttachedFile } from '../../types/index.js'
 
 interface UserMessageProps {
   text: string
-  images?: AttachedImage[]
+  images?: AttachedFile[]
   onRollback?: () => void
   remote?: boolean
   uiMode?: 'modern' | 'classic'
@@ -23,13 +23,26 @@ const UserMessage = memo(({ text, images, onRollback, remote, uiMode }: UserMess
         {images && images.length > 0 && (
           <div className="flex flex-wrap gap-2 justify-end">
             {images.map((img, i) => (
-              <img
-                key={i}
-                src={img.dataUrl}
-                alt={img.name}
-                className="h-24 rounded-xl border border-white/10 object-cover cursor-zoom-in hover:opacity-90 transition-opacity"
-                title={img.name}
-              />
+              img.isImage ? (
+                <img
+                  key={i}
+                  src={img.dataUrl}
+                  alt={img.name}
+                  className="h-24 rounded-xl border border-white/10 object-cover cursor-zoom-in hover:opacity-90 transition-opacity"
+                  title={img.name}
+                />
+              ) : (
+                <div key={i} className="h-16 w-32 bg-[#1e1e1e] border border-white/5 rounded-xl p-2.5 flex flex-col justify-between shadow-lg relative overflow-hidden group/file">
+                  <div className="text-[9px] text-slate-300 font-bold leading-tight break-all line-clamp-2 uppercase tracking-tight">
+                    {img.name}
+                  </div>
+                  <div className="flex items-center">
+                    <div className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                      {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
+                    </div>
+                  </div>
+                </div>
+              )
             ))}
           </div>
         )}
@@ -70,13 +83,24 @@ const UserMessage = memo(({ text, images, onRollback, remote, uiMode }: UserMess
       {images && images.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {images.map((img, i) => (
-            <img
-              key={i}
-              src={img.dataUrl}
-              alt={img.name}
-              className="h-24 rounded border border-slate-700 object-cover cursor-zoom-in hover:opacity-90 transition-opacity"
-              title={img.name}
-            />
+            img.isImage ? (
+              <img
+                key={i}
+                src={img.dataUrl}
+                alt={img.name}
+                className="h-24 rounded border border-slate-700 object-cover cursor-zoom-in hover:opacity-90 transition-opacity"
+                title={img.name}
+              />
+            ) : (
+              <div key={i} className="h-14 w-28 bg-[#1e1e1e] border border-slate-700 rounded p-2 flex flex-col justify-between shadow-sm">
+                <div className="text-[9px] text-slate-300 font-bold truncate">
+                  {img.name}
+                </div>
+                <div className="text-[8px] font-black text-slate-500 uppercase">
+                  {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
+                </div>
+              </div>
+            )
           ))}
         </div>
       )}

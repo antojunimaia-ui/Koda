@@ -4,7 +4,7 @@ import 'highlight.js/styles/tokyo-night-dark.css'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-import { MessageEntry, KodaSettings, KodaTheme, TrackedFile, AttachedImage, AgentInfo, Mode, SlashItem, Workspace } from './types/index.js'
+import { MessageEntry, KodaSettings, KodaTheme, TrackedFile, AttachedFile, AgentInfo, Mode, SlashItem, Workspace } from './types/index.js'
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 import { useResizable } from './hooks/useResizable.js'
@@ -179,7 +179,7 @@ const App: React.FC = () => {
   } = useResizable()
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } = useDragDrop({ 
     setInput, 
-    setPendingImages: (imgs: AttachedImage[] | ((p: AttachedImage[]) => AttachedImage[])) => {
+    setPendingImages: (imgs: AttachedFile[] | ((p: AttachedFile[]) => AttachedFile[])) => {
       if (!activeId) return
       updateWorkspace(activeId, (prev: Workspace) => ({
         ...prev,
@@ -265,7 +265,12 @@ const App: React.FC = () => {
       }
 
       // Salva no localStorage — sem IPC, sem race condition
-      kodaSessionStorage.save(cwd, { id: sessionId, messages, pinnedFiles })
+      kodaSessionStorage.save(cwd, { 
+        id: sessionId, 
+        messages, 
+        pinnedFiles, 
+        timestamp: Date.now() 
+      })
     }, 1000)
     return () => clearTimeout(timer)
   }, [activeWorkspace?.messages, activeWorkspace?.pinnedFiles, activeWorkspace?.agentInfo.cwd, initializing])
@@ -494,7 +499,7 @@ const App: React.FC = () => {
   }, [activeWorkspace?.isProcessing])
 
   // ── handleSend (workspace-targeted) ─────────────────────────────────────────
-  const handleSendForWs = useCallback(async (overrideText?: string, overrideImages?: AttachedImage[], wsId?: string) => {
+  const handleSendForWs = useCallback(async (overrideText?: string, overrideImages?: AttachedFile[], wsId?: string) => {
     const targetId = wsId || activeId
     const ws = workspaces.find(w => w.id === targetId)
     if (!ws) return
@@ -663,7 +668,7 @@ const App: React.FC = () => {
   }, [activeId, workspaces, input, updateWorkspace, scheduleScroll, chunkBuffersRef, rafRefs, taskStartsRef])
 
   // Legacy wrapper — used by ClassicUI/ModernUI which don't pass wsId
-  const handleSend = useCallback((overrideText?: string, overrideImages?: AttachedImage[]) => {
+  const handleSend = useCallback((overrideText?: string, overrideImages?: AttachedFile[]) => {
     return handleSendForWs(overrideText, overrideImages, undefined)
   }, [handleSendForWs])
 
@@ -676,6 +681,7 @@ const App: React.FC = () => {
       setInitializing(true)
       const res = await window.koda.cd(activeWorkspace.id, newPath)
       if (res.success) {
+        setAllFiles([]) // Limpa o cache de arquivos para o novo projeto
         updateWorkspace(activeWorkspace.id, { agentInfo: res.info, cwd: res.info.cwd })
         updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
           ...prev,
@@ -755,7 +761,12 @@ const App: React.FC = () => {
           const reader = new FileReader()
           reader.onload = () => updateWorkspace(activeId, (prev: Workspace) => ({
             ...prev,
-            pendingImages: [...prev.pendingImages, { dataUrl: reader.result as string, mimeType: file.type, name: file.name || 'pasted.png' }]
+            pendingImages: [...prev.pendingImages, { 
+                dataUrl: reader.result as string, 
+                mimeType: file.type, 
+                name: file.name || 'pasted.png',
+                isImage: file.type.startsWith('image/')
+            }]
           }))
           reader.readAsDataURL(file)
         }

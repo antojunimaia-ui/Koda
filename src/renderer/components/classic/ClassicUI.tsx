@@ -1,6 +1,6 @@
 import React from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
-import { MessageEntry, AttachedImage, AgentInfo, Mode, KodaTheme, KodaSettings, SlashItem, Workspace } from '../../types/index.js'
+import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings, SlashItem, Workspace } from '../../types/index.js'
 import TitleBar from '../TitleBar.js'
 import { BrailleSpinner } from '../BrailleSpinner.js'
 import MessageRow from '../messages/MessageRow.js'
@@ -23,11 +23,11 @@ interface ClassicUIProps {
   agentInfo: AgentInfo
   mode: Mode
   setMode: (m: Mode) => void
-  pendingImages: AttachedImage[]
-  setPendingImages: (imgs: AttachedImage[] | ((p: AttachedImage[]) => AttachedImage[])) => void
-  taskQueue: { text: string; images: AttachedImage[] }[]
-  setTaskQueue: (queue: { text: string; images: AttachedImage[] }[] | ((p: { text: string; images: AttachedImage[] }[]) => { text: string; images: AttachedImage[] }[])) => void
-  handleSend: (overrideText?: string, overrideImages?: AttachedImage[]) => void
+  pendingImages: AttachedFile[]
+  setPendingImages: (imgs: AttachedFile[] | ((p: AttachedFile[]) => AttachedFile[])) => void
+  taskQueue: { text: string; images: AttachedFile[] }[]
+  setTaskQueue: (queue: { text: string; images: AttachedFile[] }[] | ((p: { text: string; images: AttachedFile[] }[]) => { text: string; images: AttachedFile[] }[])) => void
+  handleSend: (overrideText?: string, overrideImages?: AttachedFile[]) => void
   handlePathClick: () => void
   handleInputChange: (val: string) => void
   handleRollback: (msgId: number) => void
@@ -82,7 +82,7 @@ interface ClassicUIProps {
   onCloseWorkspace: (id: string) => void
   splitViewIds?: [string, string] | null
   onSplitWith?: (id: string) => void
-  handleSendForWs?: (text: string, images: any[], wsId: string) => void
+  handleSendForWs?: (text: string, images: AttachedFile[], wsId: string) => void
   handleRollbackForWs?: (msgId: number, wsId: string) => void
   pendingQuestions?: import('../../types/index.js').Question[] | null
   onQuestionsSubmit?: (answers: import('../../types/index.js').QuestionAnswer[]) => void
@@ -371,7 +371,14 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   <div className="flex flex-wrap gap-2 px-3 mb-1 pt-1">
                     {pendingImages.map((img, i) => (
                       <div key={i} className="relative group">
-                        <img src={img.dataUrl} alt={img.name} className="h-16 rounded border border-slate-700 object-cover" />
+                        {img.isImage ? (
+                          <img src={img.dataUrl} alt={img.name} className="h-16 rounded border border-slate-700 object-cover" />
+                        ) : (
+                          <div className="h-14 w-28 bg-[#1e1e1e] border border-slate-700 rounded p-2 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                            <div className="text-[9px] text-slate-300 font-bold truncate">{img.name}</div>
+                            <div className="text-[8px] font-black text-slate-500 uppercase">{img.name.split('.').pop()?.toUpperCase() || 'FILE'}</div>
+                          </div>
+                        )}
                         <button
                           onClick={() => setPendingImages((prev: any) => typeof prev === 'function' ? prev.filter((_: any, idx: number) => idx !== i) : prev.filter((_: any, idx: number) => idx !== i))}
                           className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -410,7 +417,6 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                       <ShellApprovalPanel
                         command={pendingShell.command}
                         baseCommand={pendingShell.baseCommand}
-                        description={pendingShell.description}
                         variant="classic"
                       />
                     </div>

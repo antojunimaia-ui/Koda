@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import CompactToolView from './messages/CompactToolView.js'
-import { Workspace, AttachedImage, KodaSettings, KodaTheme, Mode } from '../types/index.js'
+import { Workspace, AttachedFile, KodaSettings, KodaTheme, Mode } from '../types/index.js'
 import MessageRow from './messages/MessageRow.js'
 import { BrailleSpinner } from './BrailleSpinner.js'
 import { Paperclip, ArrowUpIcon } from 'lucide-react'
@@ -12,7 +12,7 @@ interface SplitPanelProps {
   theme: KodaTheme
   isFocused: boolean
   onFocus: () => void
-  onSend: (text: string, images: AttachedImage[], wsId: string) => void
+  onSend: (text: string, images: AttachedFile[], wsId: string) => void
   onRollback: (msgId: number, wsId: string) => void
   onClose: () => void
   handleStop: () => void
@@ -24,7 +24,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
   workspace, kodaSettings, theme, isFocused, onFocus, onSend, onRollback, onClose, handleStop, uiMode
 }) => {
   const [input, setInput] = useState('')
-  const [pendingImages, setPendingImages] = useState<AttachedImage[]>([])
+  const [pendingImages, setPendingImages] = useState<AttachedFile[]>([])
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -35,10 +35,6 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
   useEffect(() => {
     if (isFocused) textareaRef.current?.focus()
   }, [isFocused])
-
-  useEffect(() => {
-    // Removed manual scrollToIndex - let Virtuoso's followOutput handle it
-  }, [workspace.messages.length])
 
   const adjustHeight = (reset?: boolean) => {
     const textarea = textareaRef.current
@@ -78,7 +74,8 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
             setPendingImages(prev => [...prev, { 
               dataUrl: reader.result as string, 
               mimeType: file.type, 
-              name: file.name || 'pasted.png' 
+              name: file.name || 'pasted.png',
+              isImage: true
             }])
           }
           reader.readAsDataURL(file)
@@ -97,10 +94,12 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
       Array.from(files as FileList).forEach(file => {
         const reader = new FileReader()
         reader.onload = () => {
+          const isImage = file.type.startsWith('image/')
           setPendingImages(prev => [...prev, { 
             dataUrl: reader.result as string, 
             mimeType: file.type, 
-            name: file.name 
+            name: file.name,
+            isImage
           }])
         }
         reader.readAsDataURL(file)
@@ -148,13 +147,26 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
     <div className="px-4 pb-4 pt-2">
       <div className={`relative rounded-2xl border backdrop-blur-xl transition-all shadow-2xl ${isFocused ? 'bg-neutral-900/80 border-neutral-700' : 'bg-neutral-900/40 border-neutral-800 opacity-80'}`}>
         {pendingImages.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
+          <div className="flex flex-wrap gap-3 p-3 border-b border-white/5 bg-black/20">
             {pendingImages.map((img, i) => (
               <div key={i} className="relative group">
-                <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
+                {img.isImage ? (
+                  <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
+                ) : (
+                  <div className="h-20 w-32 bg-[#1e1e1e] border border-white/10 rounded-lg p-2.5 flex flex-col justify-between shadow-xl relative overflow-hidden group-hover:border-white/20 transition-all">
+                    <div className="text-[10px] text-zinc-300 font-bold leading-tight break-all line-clamp-2 pr-1 uppercase tracking-tight">
+                      {img.name}
+                    </div>
+                    <div className="flex items-center">
+                      <div className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                        {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <button 
                   onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
-                  className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-neutral-900"
+                  className="absolute -top-2 -right-2 bg-[#ff4b4b] text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-[#141414] opacity-0 group-hover:opacity-100 transition-opacity z-10"
                 >✕</button>
               </div>
             ))}
@@ -217,6 +229,26 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
 
   const renderClassicInput = () => (
     <div className="px-2 pb-2 pt-1 mt-auto">
+      {pendingImages.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-1 mb-2">
+          {pendingImages.map((img, i) => (
+            <div key={i} className="relative group">
+              {img.isImage ? (
+                <img src={img.dataUrl} alt={img.name} className="h-14 rounded border border-slate-700 object-cover" />
+              ) : (
+                <div className="h-14 w-28 bg-[#1e1e1e] border border-slate-700 rounded p-2 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                  <div className="text-[9px] text-slate-300 font-bold truncate">{img.name}</div>
+                  <div className="text-[8px] font-black text-slate-500 uppercase">{img.name.split('.').pop()?.toUpperCase() || 'FILE'}</div>
+                </div>
+              )}
+              <button
+                onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >✕</button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className={`terminal-input-container items-start transition-all ${isFocused ? 'bg-slate-900/95' : 'bg-slate-900/40 opacity-70'} backdrop-blur-sm z-20 border-t border-white/5`}>
         <span className={`font-bold mt-[6px] ${isProcessing ? 'text-amber-400' : 'text-cyan-400'}`}>❯</span>
         <textarea
@@ -322,7 +354,7 @@ interface SplitViewProps {
   focusedId: string
   onFocus: (id: string) => void
   onCloseSplit: () => void
-  onSend: (text: string, images: AttachedImage[], wsId: string) => void
+  onSend: (text: string, images: AttachedFile[], wsId: string) => void
   onRollback: (msgId: number, wsId: string) => void
   kodaSettings: KodaSettings
   theme: KodaTheme

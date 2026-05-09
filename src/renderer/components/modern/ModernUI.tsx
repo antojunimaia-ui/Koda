@@ -4,7 +4,8 @@ import {
   Paperclip, 
   ArrowUpIcon,
 } from "lucide-react"
-import { MessageEntry, AttachedImage, AgentInfo, Mode, KodaTheme, KodaSettings } from '../../types/index.js'
+import { getIconForFile } from 'vscode-icons-js'
+import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings } from '../../types/index.js'
 
 import TitleBar from '../TitleBar.js'
 import { BrailleSpinner } from '../BrailleSpinner.js'
@@ -116,9 +117,9 @@ interface ModernUIProps {
   agentInfo: AgentInfo
   mode: Mode
   setMode: (m: Mode) => void
-  pendingImages: AttachedImage[]
-  setPendingImages: React.Dispatch<React.SetStateAction<AttachedImage[]>>
-  handleSend: (overrideText?: string, overrideImages?: AttachedImage[]) => void
+  pendingImages: AttachedFile[]
+  setPendingImages: React.Dispatch<React.SetStateAction<AttachedFile[]>>
+  handleSend: (overrideText?: string, overrideImages?: AttachedFile[]) => void
   handleStop: () => void
   handlePathClick: () => void
   handleInputChange: (val: string) => void
@@ -172,7 +173,7 @@ interface ModernUIProps {
   onCloseWorkspace?: (id: string) => void
   splitViewIds?: [string, string] | null
   onSplitWith?: (id: string) => void
-  handleSendForWs?: (text: string, images: any[], wsId: string) => void
+  handleSendForWs?: (text: string, images: AttachedFile[], wsId: string) => void
   onNewSession?: () => void
   onLoadSession?: (sessionId: string) => void
   handleRollbackForWs?: (msgId: number, wsId: string) => void
@@ -367,10 +368,12 @@ const ModernUI: React.FC<ModernUIProps> = ({
       Array.from(files as FileList).forEach(file => {
         const reader = new FileReader()
         reader.onload = () => {
+            const isImage = file.type.startsWith('image/')
             setPendingImages(prev => [...prev, { 
                 dataUrl: reader.result as string, 
                 mimeType: file.type, 
-                name: file.name 
+                name: file.name,
+                isImage
             }])
         }
         reader.readAsDataURL(file)
@@ -602,6 +605,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
               onPin={onPin}
               onInject={onInject || (() => {})}
               onAddToInput={onAddToInput || (() => {})}
+              onSend={handleSendForWs || (() => {})}
               showEditorPanel={kodaSettings.showEditorPanel || false}
               showBrowser={showBrowser}
               showTerminal={showTerminal}
@@ -944,7 +948,13 @@ const ModernUI: React.FC<ModernUIProps> = ({
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === suggestionIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
                             onClick={() => selectSuggestion(file)}
                           >
-                            <span className="text-sm flex-shrink-0">📄</span>
+                            <img 
+                              src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${getIconForFile(file.split(/[/\\]/).pop() || '')}`}
+                              width="16" 
+                              height="16" 
+                              className="flex-shrink-0 object-contain"
+                              alt="file icon"
+                            />
                             <span className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
                               {file}
                             </span>
@@ -956,13 +966,28 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
                   <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
                     {pendingImages.length > 0 && (
-                      <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
+                      <div className="flex flex-wrap gap-3 p-3 border-b border-white/5 bg-black/20">
                         {pendingImages.map((img, i) => (
                           <div key={i} className="relative group">
-                            <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
+                            {img.isImage ? (
+                              <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
+                            ) : (
+                              <div className="h-20 w-32 bg-[#1e1e1e] border border-white/10 rounded-lg p-2.5 flex flex-col justify-between shadow-xl relative overflow-hidden group-hover:border-white/20 transition-all">
+                                <div className="text-[10px] text-slate-200 font-bold leading-tight break-all line-clamp-2 pr-1 uppercase tracking-tight">
+                                  {img.name}
+                                </div>
+                                <div className="flex items-center">
+                                  <div className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                    {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
+                                  </div>
+                                </div>
+                                {/* Subtle decorative pattern */}
+                                <div className="absolute top-0 right-0 w-12 h-12 bg-white/[0.02] -mr-6 -mt-6 rotate-45 pointer-events-none" />
+                              </div>
+                            )}
                             <button 
                               onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
-                              className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-neutral-900"
+                              className="absolute -top-2 -right-2 bg-[#ff4b4b] text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-[#141414] opacity-0 group-hover:opacity-100 transition-opacity z-10"
                             >✕</button>
                           </div>
                         ))}

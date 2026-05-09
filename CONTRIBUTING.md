@@ -1,58 +1,27 @@
 # Contributing to Koda
 
-Obrigado pelo interesse em contribuir. Leia as diretrizes abaixo antes de abrir PRs.
+Thanks for your interest in contributing! A few things to keep in mind:
 
----
-
-## Princípios
-
-- **TypeScript rigoroso** — evite `any`. Se precisar contornar o tipo, deixe um comentário explicando o porquê.
-- **UI consistente** — use as classes Tailwind já existentes. Não invente padrões novos sem discussão.
-- **Mudanças focadas** — um PR deve resolver uma coisa. PRs gigantes dificultam review e aumentam chance de conflito.
-
----
+- **TypeScript only** — avoid `any`. If you must, leave a comment explaining why.
+- **One thing per PR** — keep changes focused. Large PRs are hard to review.
+- **No placeholders** — deliver complete, working code. No `// TODO` stubs.
+- **Never commit secrets** — `.env` is gitignored, keep it that way.
+- **Read the code first** — the project is well-structured; find the right place before adding new files.
 
 ## Setup
 
 ```bash
-git clone <https://github.com/antojunimaia-ui/Koda.git>
+git clone https://github.com/antojunimaia-ui/Koda.git
 cd Koda
 npm install
-cp .env.example .env   # preencha suas chaves
+cp .env.example .env
 npm run dev
 ```
 
----
+## Commits
 
-## Convenções de commit
+Follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+## Questions
 
-feat: descrição curta
-fix: descrição curta
-chore: descrição curta
-docs: descrição curta
-
----
-
-## Adicionando ferramentas ao agente
-
-Novas ferramentas precisam:
-
-1. Estar integradas ao sistema de planos do agente
-2. Tratar erros explicitamente — nunca deixar falhar silenciosamente
-3. Ser documentadas no próprio código (JSDoc mínimo)
-
----
-
-## Segurança
-
-- **Nunca** commite chaves de API ou secrets — verifique se `.env` está no `.gitignore`
-- Ferramentas que acessam o filesystem ou rede precisam de validação de input
-- Em caso de dúvida, abre uma issue antes de implementar
-
----
-
-## Dúvidas
-
-Abra uma [issue](https://github.com/antojunimaia-ui/Koda/issues) ou discuta na PR diretamente.
+Open an [issue](https://github.com/antojunimaia-ui/Koda/issues) or discuss on the PR directly.
