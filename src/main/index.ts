@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, net } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Agent } from './core/agent.js'
@@ -8,8 +8,8 @@ import { sendCtrlC, killPty, ShellTool, startInteractiveTerminal, writeToPty, re
 import { createSnapshot, restoreSnapshot } from './services/snapshot.js'
 import { clearTrackedFiles } from './services/file-tracker.js'
 import { sessionManager } from './services/session-manager.js'
-import { startWebhookServer, stopWebhookServer, getWebhookStatus } from './services/webhook-server.js'
 import { DiscordRPCManager } from './services/discord-rpc.js'
+import { fileWatcher } from './services/file-watcher.js'
 import electronUpdater from 'electron-updater'
 const { autoUpdater } = electronUpdater
 import dotenv from 'dotenv'
@@ -36,6 +36,9 @@ dotenv.config()
 let mainWindow: BrowserWindow | null = null
 const agents = new Map<string, Agent>()
 const discordRPC = new DiscordRPCManager()
+
+// Use Electron's net.fetch which uses Chromium's network stack (avoids Node.js TLS issues)
+const efetch: typeof fetch = (input: any, init?: any) => net.fetch(input, init) as any
 
 function getAgent(id: string): Agent | null {
   return agents.get(id) || null
@@ -94,6 +97,11 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow()
+  
+  // Set main window for file watcher
+  if (mainWindow) {
+    fileWatcher.setMainWindow(mainWindow)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -139,6 +147,16 @@ ipcMain.handle('window:close', () => {
   mainWindow?.close()
 })
 
+ipcMain.handle('window:open_external', async (_event, url: string) => {
+  try {
+    await shell.openExternal(url)
+    return { success: true }
+  } catch (error) {
+    console.error('[Main] Error opening external URL:', error)
+    return { success: false, error: (error as Error).message }
+  }
+})
+
 ipcMain.handle('updater:install', () => {
   autoUpdater.quitAndInstall()
 })
@@ -165,6 +183,12 @@ ipcMain.handle('agent:init', async (_event, workspaceId: string) => {
       agent.setProgressEmitter((event, toolName, data) => {
         mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event, toolName, ...data })
       })
+      
+      // Start watching the current directory
+      const cwd = agent.getInfo().cwd
+      if (cwd) {
+        fileWatcher.watch(cwd)
+      }
     }
     return { success: true, info: agent.getInfo() }
   } catch (error) {
@@ -254,6 +278,10 @@ ipcMain.handle('agent:cd', async (_event, workspaceId: string, targetPath: strin
     agent.setProgressEmitter((event, toolName, data) => {
       mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event, toolName, ...data })
     })
+    
+    // Start watching the new directory
+    fileWatcher.watch(targetPath)
+    
     return { success: true, info: agent.getInfo() }
   } catch (error) {
     return { success: false, error: (error as Error).message }
@@ -360,27 +388,27 @@ ipcMain.handle('agent:update_approved_commands', async (_event, lists) => {
 })
 
 ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string) => {
+  console.log(`[Main] getModels called with provider: ${provider}, apiKey length: ${apiKey?.length || 0}`)
   try {
     if (provider === 'openrouter') {
-      const res = await fetch('https://openrouter.ai/api/v1/models')
+      const res = await efetch('https://openrouter.ai/api/v1/models')
       if (!res.ok) throw new Error('Failed to fetch models from OpenRouter')
       const data = await res.json()
       return { success: true, models: data.data.map((m: any) => m.id) }
     }
     
     if (provider === 'openai') {
-      const res = await fetch('https://api.openai.com/v1/models', {
+      const res = await efetch('https://api.openai.com/v1/models', {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       if (!res.ok) throw new Error('OpenAI: Invalid API key or API error')
       const data = await res.json()
-      // Filter out non-chat models
       const models = data.data.map((m: any) => m.id).filter((id: string) => id.includes('gpt') || id.includes('o1') || id.includes('o3'))
       return { success: true, models }
     }
 
     if (provider === 'anthropic') {
-      const res = await fetch('https://api.anthropic.com/v1/models', {
+      const res = await efetch('https://api.anthropic.com/v1/models', {
         headers: {
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
@@ -391,14 +419,18 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
         const data = await res.json()
         return { success: true, models: data.data.map((m: any) => m.id) }
       } else {
-        // Fallback for Anthropic if API key lacks permissions or format changes
         return { success: true, models: ['claude-3-7-sonnet-20250219', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'] }
       }
     }
 
     if (provider === 'google') {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
-      if (!res.ok) throw new Error('Google: Invalid API key or API error')
+      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      const res = await efetch(url)
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('[Main] Google API error response:', errorText)
+        throw new Error(`Google: Invalid API key or API error (${res.status})`)
+      }
       const data = await res.json()
       const models = data.models.map((m: any) => m.name.replace('models/', '')).filter((id: string) => id.includes('gemini'))
       return { success: true, models }
@@ -406,13 +438,12 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
 
     if (provider === 'ollama') {
       try {
-        const res = await fetch('http://localhost:11434/v1/models')
+        const res = await efetch('http://localhost:11434/v1/models')
         if (res.ok) {
           const data = await res.json()
           return { success: true, models: data.data.map((m: any) => m.id) }
         }
-        // Fallback to legacy API if v1/models is missing
-        const legacyRes = await fetch('http://localhost:11434/api/tags')
+        const legacyRes = await efetch('http://localhost:11434/api/tags')
         if (legacyRes.ok) {
           const data = await legacyRes.json()
           return { success: true, models: data.models.map((m: any) => m.name) }
@@ -425,7 +456,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
 
     if (provider === 'llamacpp') {
       try {
-        const res = await fetch('http://localhost:8080/v1/models')
+        const res = await efetch('http://localhost:8080/v1/models')
         if (res.ok) {
           const data = await res.json()
           return { success: true, models: data.data.map((m: any) => m.id) }
@@ -437,7 +468,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
     }
 
     if (provider === 'groq') {
-      const res = await fetch('https://api.groq.com/openai/v1/models', {
+      const res = await efetch('https://api.groq.com/openai/v1/models', {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       if (!res.ok) throw new Error('Groq: Invalid API key or API error')
@@ -446,7 +477,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
     }
 
     if (provider === 'deepseek') {
-      const res = await fetch('https://api.deepseek.com/models', {
+      const res = await efetch('https://api.deepseek.com/models', {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       if (!res.ok) throw new Error('DeepSeek: Invalid API key or API error')
@@ -455,7 +486,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
     }
 
     if (provider === 'mistral') {
-      const res = await fetch('https://api.mistral.ai/v1/models', {
+      const res = await efetch('https://api.mistral.ai/v1/models', {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       if (!res.ok) throw new Error('Mistral: Invalid API key or API error')
@@ -464,7 +495,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
     }
 
     if (provider === 'together') {
-      const res = await fetch('https://api.together.xyz/v1/models', {
+      const res = await efetch('https://api.together.xyz/v1/models', {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       if (!res.ok) throw new Error('Together AI: Invalid API key or API error')
@@ -473,7 +504,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
     }
 
     if (provider === 'xai') {
-      const res = await fetch('https://api.x.ai/v1/models', {
+      const res = await efetch('https://api.x.ai/v1/models', {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       if (!res.ok) throw new Error('xAI: Invalid API key or API error')
@@ -483,7 +514,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
 
     if (provider === 'zhipu') {
       try {
-        const res = await fetch('https://api.z.ai/api/paas/v4/models', {
+        const res = await efetch('https://api.z.ai/api/paas/v4/models', {
           headers: { Authorization: `Bearer ${apiKey}` }
         })
         if (res.ok) {
@@ -492,12 +523,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
             return { success: true, models: data.data.map((m: any) => m.id) }
           }
         }
-        // Robust fallback list for Z.AI (Zhipu) models
-        const zhipuModels = [
-          'glm-5', 'glm-5-turbo', 'glm-4.7', 'glm-4.6', 'glm-4.5',
-          'glm-4-plus', 'glm-4-air', 'glm-4-flash', 'glm-4v-plus'
-        ]
-        return { success: true, models: zhipuModels }
+        return { success: true, models: ['glm-5', 'glm-5-turbo', 'glm-4.7', 'glm-4.6', 'glm-4.5', 'glm-4-plus', 'glm-4-air', 'glm-4-flash', 'glm-4v-plus'] }
       } catch (err) {
         return { success: true, models: ['glm-5', 'glm-4.7', 'glm-4-air'] }
       }
@@ -505,7 +531,7 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
 
     if (provider === 'maritaca') {
       try {
-        const res = await fetch('https://chat.maritaca.ai/api/chat/models', {
+        const res = await efetch('https://chat.maritaca.ai/api/chat/models', {
           headers: { Authorization: `Key ${apiKey}` }
         })
         if (res.ok) {
@@ -514,7 +540,6 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
             return { success: true, models: data.models.map((m: any) => m.name) }
           }
         }
-        // Robust fallback for Maritaca models
         return { success: true, models: ['sabia-4', 'sabia-3', 'sabiazinho-4', 'sabiazinho-s8'] }
       } catch (err) {
         return { success: true, models: ['sabia-4', 'sabia-3', 'sabiazinho-4'] }
@@ -523,12 +548,11 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
 
     if (provider === 'koda-cloud') {
       try {
-        const res = await fetch('http://cn-01.hostzera.com.br:2137/v1/models')
+        const res = await efetch('http://cn-01.hostzera.com.br:2137/v1/models')
         if (res.ok) {
           const data = await res.json()
           return { success: true, models: data.models || data.data.map((m: any) => m.id) }
         }
-        // Fallback while proxy is being updated
         return { success: true, models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'] }
       } catch (err) {
         return { success: true, models: ['gemini-1.5-flash', 'gemini-1.5-pro'] }
@@ -536,17 +560,17 @@ ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string
     }
 
     if (provider === 'fireworks') {
-      const res = await fetch('https://api.fireworks.ai/inference/v1/models', {
+      const res = await efetch('https://api.fireworks.ai/inference/v1/models', {
         headers: { Authorization: `Bearer ${apiKey}` }
       })
       if (!res.ok) throw new Error('Fireworks AI: Invalid API key or API error')
       const data = await res.json()
-      // Filter for chat-capable models if possible, or just return all
       return { success: true, models: data.data.map((m: any) => m.id) }
     }
 
     return { success: false, error: 'Unknown provider' }
   } catch (err: any) {
+    console.error(`[Main] Error in getModels for provider ${provider}:`, err)
     return { success: false, error: err.message }
   }
 })
@@ -638,6 +662,75 @@ ipcMain.handle('project:write_file', async (_, filePath: string, content: string
   }
 })
 
+ipcMain.handle('project:delete_file', async (_, filePath: string) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    
+    // Security: ensure the file is within the current working directory
+    const resolvedPath = path.resolve(filePath)
+    const cwd = process.cwd()
+    if (!resolvedPath.startsWith(cwd)) {
+      throw new Error('Access denied: file outside project directory')
+    }
+    
+    // Check if it's a file or directory
+    const stats = await fs.stat(resolvedPath)
+    if (stats.isDirectory()) {
+      await fs.rm(resolvedPath, { recursive: true, force: true })
+    } else {
+      await fs.unlink(resolvedPath)
+    }
+    
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('project:rename_file', async (_, oldPath: string, newPath: string) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    
+    // Security: ensure both paths are within the current working directory
+    const resolvedOldPath = path.resolve(oldPath)
+    const resolvedNewPath = path.resolve(newPath)
+    const cwd = process.cwd()
+    
+    if (!resolvedOldPath.startsWith(cwd) || !resolvedNewPath.startsWith(cwd)) {
+      throw new Error('Access denied: file outside project directory')
+    }
+    
+    // Ensure target directory exists
+    await fs.mkdir(path.dirname(resolvedNewPath), { recursive: true })
+    
+    await fs.rename(resolvedOldPath, resolvedNewPath)
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('project:create_folder', async (_, folderPath: string) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    
+    // Security: ensure the folder is within the current working directory
+    const resolvedPath = path.resolve(folderPath)
+    const cwd = process.cwd()
+    if (!resolvedPath.startsWith(cwd)) {
+      throw new Error('Access denied: folder outside project directory')
+    }
+    
+    await fs.mkdir(resolvedPath, { recursive: true })
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
 // Skills
 ipcMain.handle('skills:list', async () => {
   try {
@@ -655,7 +748,7 @@ const MARKETPLACE_RAW_BASE  = 'https://raw.githubusercontent.com/antojunimaia-ui
 
 ipcMain.handle('marketplace:fetch', async () => {
   try {
-    const res = await fetch(MARKETPLACE_INDEX_URL)
+    const res = await efetch(MARKETPLACE_INDEX_URL)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const skills = await res.json()
     return { success: true, skills }
@@ -670,7 +763,7 @@ ipcMain.handle('marketplace:install', async (_event, skillName: string, version?
     const os = await import('os')
 
     // Fetch skill.md
-    const mdRes = await fetch(`${MARKETPLACE_RAW_BASE}/${skillName}/skill.md`)
+    const mdRes = await efetch(`${MARKETPLACE_RAW_BASE}/${skillName}/skill.md`)
     if (!mdRes.ok) throw new Error(`skill.md not found for "${skillName}"`)
     let mdContent = await mdRes.text()
 
@@ -723,28 +816,31 @@ ipcMain.handle('marketplace:uninstall', async (_event, skillName: string) => {
   }
 })
 
-// Webhook / Remote Control
-ipcMain.handle('webhook:start', async (_event, config: { port: number; token: string }) => {
+// KoClaw Discord Bot
+ipcMain.handle('koclaw:start', async (_event, config: { token: string; channelId?: string }) => {
   try {
+    const { startKoClawBot } = await import('./services/koclaw-bot.js')
     const getAgentWithId = () => {
       const entry = agents.entries().next().value
       if (!entry) return null
       return { agent: entry[1], workspaceId: entry[0] }
     }
-    await startWebhookServer({ ...config, enabled: true }, getAgentWithId, mainWindow)
+    await startKoClawBot({ ...config, enabled: true }, getAgentWithId, mainWindow)
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
   }
 })
 
-ipcMain.handle('webhook:stop', async () => {
-  await stopWebhookServer()
+ipcMain.handle('koclaw:stop', async () => {
+  const { stopKoClawBot } = await import('./services/koclaw-bot.js')
+  await stopKoClawBot()
   return { success: true }
 })
 
-ipcMain.handle('webhook:status', () => {
-  return getWebhookStatus()
+ipcMain.handle('koclaw:status', async () => {
+  const { getKoClawStatus } = await import('./services/koclaw-bot.js')
+  return getKoClawStatus()
 })
 
 // MCP Configuration Store

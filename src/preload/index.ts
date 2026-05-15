@@ -22,6 +22,11 @@ contextBridge.exposeInMainWorld('koda', {
   removeUpdateListener: () => {
     ipcRenderer.removeAllListeners('agent:update')
   },
+  onFileSystemChange: (callback: (change: { type: string; path: string; directory: string }) => void) => {
+    const listener = (_event: any, change: any) => callback(change)
+    ipcRenderer.on('file-system:change', listener)
+    return () => ipcRenderer.removeListener('file-system:change', listener)
+  },
   planResponse: (approved: boolean) => ipcRenderer.invoke('agent:plan_response', approved),
   questionsResponse: (answers: any[]) => ipcRenderer.invoke('agent:questions_response', answers),
   shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => ipcRenderer.invoke('agent:shell_response', approved, alwaysAllowBase, alwaysAllowFull),
@@ -35,6 +40,9 @@ contextBridge.exposeInMainWorld('koda', {
   getFiles: () => ipcRenderer.invoke('project:get_files'),
   readFile: (filePath: string) => ipcRenderer.invoke('project:read_file', filePath),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('project:write_file', filePath, content),
+  deleteFile: (filePath: string) => ipcRenderer.invoke('project:delete_file', filePath),
+  renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('project:rename_file', oldPath, newPath),
+  createFolder: (folderPath: string) => ipcRenderer.invoke('project:create_folder', folderPath),
   getMcpConfigs: () => ipcRenderer.invoke('mcp:get_configs'),
   saveMcpConfigs: (configs: any[]) => ipcRenderer.invoke('mcp:save_configs', configs),
   getProjectSession: (projectPath: string) => ipcRenderer.invoke('agent:get_session', projectPath),
@@ -46,9 +54,9 @@ contextBridge.exposeInMainWorld('koda', {
   marketplaceFetch: () => ipcRenderer.invoke('marketplace:fetch'),
   marketplaceInstall: (skillName: string, version?: string) => ipcRenderer.invoke('marketplace:install', skillName, version),
   marketplaceUninstall: (skillName: string) => ipcRenderer.invoke('marketplace:uninstall', skillName),
-  webhookStart: (config: { port: number; token: string }) => ipcRenderer.invoke('webhook:start', config),
-  webhookStop: () => ipcRenderer.invoke('webhook:stop'),
-  webhookStatus: () => ipcRenderer.invoke('webhook:status'),
+  koClawStart: (config: { token: string; channelId?: string }) => ipcRenderer.invoke('koclaw:start', config),
+  koClawStop: () => ipcRenderer.invoke('koclaw:stop'),
+  koClawStatus: () => ipcRenderer.invoke('koclaw:status'),
   // Discord RPC
   discordEnable: () => ipcRenderer.invoke('discord:enable'),
   discordDisable: () => ipcRenderer.invoke('discord:disable'),
@@ -60,6 +68,7 @@ contextBridge.exposeInMainWorld('koda', {
   maximize: () => ipcRenderer.invoke('window:maximize'),
   close: () => ipcRenderer.invoke('window:close'),
   selectDirectory: () => ipcRenderer.invoke('window:open_directory'),
+  openExternal: (url: string) => ipcRenderer.invoke('window:open_external', url),
   updaterInstall: () => ipcRenderer.invoke('updater:install'),
   onUpdaterEvent: (callback: (event: string, data?: any) => void) => {
     const available = (_e: any, data: any) => callback('update-available', data)

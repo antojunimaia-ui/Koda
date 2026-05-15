@@ -15,7 +15,7 @@ declare global {
       cd: (workspaceId: string, path: string) => Promise<{ success: boolean; info?: any; error?: string }>
       setApiKey: (workspaceId: string, key: string) => Promise<{ success: boolean; info?: any; error?: string }>
       setModel: (workspaceId: string, model: string) => Promise<{ success: boolean; info?: any; error?: string }>
-      getModels: (workspaceId: string, provider: string, apiKey: string) => Promise<{ success: boolean; models?: string[]; error?: string }>
+      getModels: (provider: string, apiKey: string) => Promise<{ success: boolean; models?: string[]; error?: string }>
       setup: (workspaceId: string, config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
       openFile: (workspaceId: string, filePath: string, line?: number) => Promise<{ success: boolean; error?: string }>
       onUpdate: (callback: (update: any) => void) => (() => void)
@@ -33,6 +33,10 @@ declare global {
       getFiles: () => Promise<{ success: boolean; files: string[]; error?: string }>
       readFile: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string }>
       writeFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>
+      deleteFile: (filePath: string) => Promise<{ success: boolean; error?: string }>
+      renameFile: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>
+      createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>
+      onFileSystemChange: (callback: (change: { type: string; path: string; directory: string }) => void) => () => void
       getMcpConfigs: () => Promise<any[]>
       saveMcpConfigs: (configs: any[]) => Promise<{ success: boolean; error?: string }>
       getProjectSession: (projectPath: string) => Promise<any>
@@ -44,9 +48,11 @@ declare global {
       marketplaceFetch: () => Promise<{ success: boolean; skills: any[]; error?: string }>
       marketplaceInstall: (skillName: string, version?: string) => Promise<{ success: boolean; error?: string }>
       marketplaceUninstall: (skillName: string) => Promise<{ success: boolean; error?: string }>
-      webhookStart: (config: { port: number; token: string }) => Promise<{ success: boolean; error?: string }>
-      webhookStop: () => Promise<{ success: boolean }>
-      webhookStatus: () => Promise<{ running: boolean; port: number | null }>
+      koClawStart: (config: { token: string; channelId?: string }) => Promise<{ success: boolean; error?: string }>
+      koClawStop: () => Promise<{ success: boolean }>
+      koClawStatus: () => Promise<{ running: boolean; ready: boolean; username: string | null }>
+      discordEnable: () => Promise<{ success: boolean; error?: string }>
+      discordDisable: () => Promise<{ success: boolean }>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>

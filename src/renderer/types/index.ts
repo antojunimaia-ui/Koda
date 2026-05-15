@@ -153,6 +153,7 @@ export interface Workspace {
   trackedFiles: TrackedFile[]
   pinnedFiles: string[]
   pendingImages: AttachedFile[]
+  inputFiles: string[]
   taskQueue: { text: string; images: AttachedFile[] }[]
   pendingPlan: string | null
   pendingQuestions: Question[] | null

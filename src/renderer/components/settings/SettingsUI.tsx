@@ -52,13 +52,18 @@ const SettingsUI = memo(({
     setIsLoadingModels(true)
     const timer = setTimeout(async () => {
       try {
+        console.log(`[Settings] Fetching models for provider: ${provider}`)
         const res = await window.koda.getModels(provider, apiKey)
+        console.log(`[Settings] Models response:`, res)
         if (res.success && res.models) {
           setModels(res.models)
+          console.log(`[Settings] Loaded ${res.models.length} models`)
         } else {
+          console.warn(`[Settings] Failed to load models:`, res.error)
           setModels([])
         }
-      } catch {
+      } catch (err) {
+        console.error(`[Settings] Error fetching models:`, err)
         setModels([])
       } finally {
         setIsLoadingModels(false)
@@ -103,7 +108,7 @@ const SettingsUI = memo(({
             <span>🤖</span> Koda Settings
           </button>
           <button id="stour-remote" onClick={() => setActiveTab('remote')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'remote' ? (uiMode === 'modern' ? 'bg-white/5 text-white border-r-2 border-white/30' : 'bg-emerald-400/10 text-emerald-400 border-r-2 border-emerald-400') : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-            <span>🌐</span> Remote Control
+            <span>🤖</span> KoClaw
           </button>
           <button id="stour-skills" onClick={() => setActiveTab('skills')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'skills' ? (uiMode === 'modern' ? 'bg-white/5 text-white border-r-2 border-white/30' : 'bg-indigo-400/10 text-indigo-400 border-r-2 border-indigo-400') : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
             <span>🎯</span> Skills

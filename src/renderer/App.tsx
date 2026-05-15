@@ -128,6 +128,7 @@ const App: React.FC = () => {
       mode: 'fast',
       trackedFiles: [],
       pinnedFiles: [],
+      inputFiles: [],
       pendingImages: [],
       taskQueue: [],
       pendingPlan: null,
@@ -358,6 +359,7 @@ const App: React.FC = () => {
                   mode: 'fast',
                   trackedFiles: [],
                   pinnedFiles: [],
+                  inputFiles: [],
                   pendingImages: [],
                   taskQueue: [],
                   pendingPlan: null,
@@ -387,6 +389,7 @@ const App: React.FC = () => {
                 mode: 'fast',
                 trackedFiles: [],
                 pinnedFiles: [],
+                inputFiles: [],
                 pendingImages: [],
                 taskQueue: [],
                 pendingPlan: null,
@@ -466,6 +469,7 @@ const App: React.FC = () => {
     updateWorkspace(activeId, { 
       messages: [], 
       pinnedFiles: [],
+      inputFiles: [],
       currentSessionId: null
     })
     window.koda.softReset(activeId)
@@ -480,6 +484,7 @@ const App: React.FC = () => {
         updateWorkspace(activeId, {
           messages: session.messages || [],
           pinnedFiles: session.pinnedFiles || [],
+          inputFiles: [],
           currentSessionId: sessionId
         })
         await window.koda.softReset(activeId)
@@ -503,7 +508,14 @@ const App: React.FC = () => {
     const targetId = wsId || activeId
     const ws = workspaces.find(w => w.id === targetId)
     if (!ws) return
-    const userMsg = overrideText ?? input
+    
+    // Append inputFiles to the message
+    let userMsg = overrideText ?? input
+    if ((ws.inputFiles || []).length > 0 && !overrideText) {
+      const filesText = ws.inputFiles.map(f => ` @[${f}]`).join('')
+      userMsg = userMsg + filesText
+    }
+    
     const currentImages = overrideImages ?? ws.pendingImages
     if (!userMsg.trim()) return
 
@@ -518,7 +530,7 @@ const App: React.FC = () => {
 
     if (!overrideText && !wsId) {
       setInput('')
-      updateWorkspace(ws.id, { pendingImages: [] })
+      updateWorkspace(ws.id, { pendingImages: [], inputFiles: [] })
       setShowSlashMenu(false)
       setShowSuggestions(false)
       setHistory((prev: string[]) => prev[0] === userMsg ? prev : [userMsg, ...prev])
@@ -721,7 +733,14 @@ const App: React.FC = () => {
   }, [activeWorkspace, updateWorkspace])
 
   const handleInjectFile = (path: string) => setInput((prev: string) => prev + ` @[${path}] `)
-  const handleAddToInput = (path: string) => setInput((prev: string) => prev + ` @[${path}] `)
+  const handleAddToInput = (path: string) => {
+    // Add file as a pill instead of text
+    if (!activeId) return
+    updateWorkspace(activeId, (prev: Workspace) => ({
+      ...prev,
+      inputFiles: [...(prev.inputFiles || []), path]
+    }))
+  }
   const handlePinFile = (path: string) => {
     if (!activeId) return
     updateWorkspace(activeId, (prev: Workspace) => ({
@@ -986,6 +1005,14 @@ const App: React.FC = () => {
           onInject={handleInjectFile}
           pinnedFiles={activeWorkspace.pinnedFiles}
           onPin={handlePinFile}
+          inputFiles={activeWorkspace.inputFiles || []}
+          onRemoveInputFile={(path) => {
+            if (!activeId) return
+            updateWorkspace(activeId, (prev: Workspace) => ({
+              ...prev,
+              inputFiles: (prev.inputFiles || []).filter(f => f !== path)
+            }))
+          }}
         />
       ) : (
         <ClassicUI

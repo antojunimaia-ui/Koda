@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: file:;">
+  <title>Markdown Preview</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/tokyo-night-dark.min.css">
+  <style>
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
+    
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background: #141414;
+      color: #D4D4D4;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.7;
+      font-size: 14px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    
+    #content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 2.5rem;
+      min-height: 100%;
+      box-sizing: border-box;
+    }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #3a3a3a;
+      border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4a4a4a;
+    }
+    
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+      color: #E2E8F0;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-top: 1.5em;
+      margin-bottom: 0.6em;
+    }
+    
+    h1 { 
+      font-size: 2em; 
+      border-bottom: 1px solid rgba(255,255,255,0.1); 
+      padding-bottom: 0.3em; 
+    }
+    
+    h2 { 
+      font-size: 1.5em; 
+      border-bottom: 1px solid rgba(255,255,255,0.07); 
+      padding-bottom: 0.2em; 
+    }
+    
+    h3 { font-size: 1.25em; }
+    h4 { font-size: 1.05em; }
+    
+    p { 
+      margin: 0.75em 0; 
+      line-height: 1.6;
+    }
+    
+    /* Links */
+    a { 
+      color: #818CF8; 
+      text-decoration: none; 
+      transition: color 0.2s;
+    }
+    
+    a:hover { 
+      text-decoration: underline; 
+      color: #A5B4FC;
+    }
+    
+    /* Text formatting */
+    strong { 
+      color: #F1F5F9; 
+      font-weight: 700; 
+    }
+    
+    em { 
+      color: #CBD5E1; 
+      font-style: italic; 
+    }
+    
+    /* Lists */
+    ul, ol { 
+      padding-left: 1.6em; 
+      margin: 0.5em 0; 
+    }
+    
+    li { 
+      margin: 0.3em 0; 
+    }
+    
+    li::marker { 
+      color: #6366F1; 
+    }
+    
+    /* Blockquotes */
+    blockquote {
+      border-left: 3px solid #6366F1;
+      margin: 1em 0;
+      padding: 0.5em 1em;
+      background: rgba(99,102,241,0.08);
+      border-radius: 0 6px 6px 0;
+      color: #94A3B8;
+    }
+    
+    blockquote p {
+      margin: 0.3em 0;
+    }
+    
+    /* Code */
+    code {
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      padding: 0.15em 0.4em;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.88em;
+      color: #CE9178;
+    }
+    
+    pre {
+      background: #1E1E1E;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 1.1em 1.3em;
+      overflow-x: auto;
+      margin: 1em 0;
+    }
+    
+    pre code {
+      background: transparent;
+      padding: 0;
+      font-size: 0.85em;
+      color: #D4D4D4;
+    }
+    
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+      font-size: 0.92em;
+    }
+    
+    th {
+      background: rgba(99,102,241,0.12);
+      color: #E2E8F0;
+      font-weight: 600;
+      padding: 0.55em 0.9em;
+      border: 1px solid rgba(255,255,255,0.1);
+      text-align: left;
+    }
+    
+    td {
+      padding: 0.5em 0.9em;
+      border: 1px solid rgba(255,255,255,0.07);
+      color: #CBD5E1;
+    }
+    
+    tr:nth-child(even) td { 
+      background: rgba(255,255,255,0.02); 
+    }
+    
+    /* Horizontal rule */
+    hr {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      margin: 1.5em 0;
+    }
+    
+    /* Images */
+    img {
+      max-width: 100%;
+      height: auto;
+      vertical-align: middle;
+      margin: 0.5em 0;
+      display: block;
+      border-radius: 4px;
+    }
+    
+    /* Centered content (common in READMEs) */
+    [align="center"] {
+      text-align: center;
+      display: block;
+      width: 100%;
+    }
+    
+    [align="center"] img {
+      display: inline-block;
+      margin: 0.2em 0.3em;
+    }
+    
+    /* Checkboxes */
+    input[type="checkbox"] {
+      accent-color: #6366F1;
+      margin-right: 0.4em;
+    }
+    
+    /* Task lists */
+    .task-list-item {
+      list-style-type: none;
+      margin-left: -1.6em;
+    }
+    
+    .task-list-item input[type="checkbox"] {
+      margin-right: 0.5em;
+    }
+    
+    /* Loading state */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      color: #6366F1;
+      font-size: 0.9em;
+    }
+    
+    /* Error state */
+    .error {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      padding: 1em;
+      margin: 1em 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="content" class="loading">Loading preview...</div>
+  
+  <!-- Marked.js for Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  
+  <!-- Highlight.js for syntax highlighting -->
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/java.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/cpp.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/csharp.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/rust.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/ruby.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/php.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/shell.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/xml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/sql.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/markdown.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/scss.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/dockerfile.min.js"></script>
+  
+  <script>
+    const contentDiv = document.getElementById('content');
+    let isReady = false;
+    
+    // Configure marked with GFM and syntax highlighting
+    marked.setOptions({
+      gfm: true,
+      breaks: false,
+      headerIds: true,
+      mangle: false,
+      highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          try {
+            return hljs.highlight(code, { language: lang }).value;
+          } catch (err) {
+            console.error('Highlight error:', err);
+          }
+        }
+        try {
+          return hljs.highlightAuto(code).value;
+        } catch (err) {
+          console.error('Auto-highlight error:', err);
+          return code;
+        }
+      }
+    });
+    
+    // Render markdown content - exposed globally for executeJavaScript
+    window.renderMarkdown = function(content) {
+      console.log('[Markdown Viewer] Rendering content, length:', content ? content.length : 0);
+      try {
+        const html = marked.parse(content);
+        contentDiv.innerHTML = html;
+        contentDiv.classList.remove('loading');
+        
+        // Make external links open in default browser
+        const links = contentDiv.querySelectorAll('a[href^="http"]');
+        links.forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('[Markdown Viewer] External link clicked:', link.href);
+            // Try to open via window.open (will be intercepted by parent)
+            window.open(link.href, '_blank');
+          });
+        });
+        
+        console.log('[Markdown Viewer] Rendering complete');
+      } catch (error) {
+        console.error('Markdown render error:', error);
+        contentDiv.innerHTML = `<div class="error"><strong>Error rendering markdown:</strong><br>${error.message}</div>`;
+        contentDiv.classList.remove('loading');
+      }
+    };
+    
+    // Listen for content from parent (alternative method)
+    window.addEventListener('message', (event) => {
+      const { type, content } = event.data;
+      
+      if (type === 'render' && content) {
+        window.renderMarkdown(content);
+      }
+    });
+    
+    // Notify that webview is ready
+    window.addEventListener('DOMContentLoaded', () => {
+      isReady = true;
+      console.log('[Markdown Viewer] DOM Ready, renderMarkdown available:', typeof window.renderMarkdown);
+    });
+    
+    // Also try on load
+    window.addEventListener('load', () => {
+      console.log('[Markdown Viewer] Window loaded');
+    });
+  </script>
+</body>
+</html>

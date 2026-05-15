@@ -11,32 +11,32 @@ interface TourStep {
 const MAIN_STEPS: TourStep[] = [
   {
     targetId: 'tour-cwd',
-    title: 'Diretório de trabalho',
-    description: 'Clique aqui para escolher a pasta do seu projeto. O Koda vai trabalhar dentro dela — lendo, editando e criando arquivos.',
+    title: 'Working Directory',
+    description: 'Click here to choose your project folder. Koda will work inside it — reading, editing and creating files.',
     arrowDir: 'down',
   },
   {
     targetId: 'tour-input',
-    title: 'Fale com o Koda',
-    description: 'Digite aqui o que você quer fazer. Pode ser uma tarefa, uma pergunta ou um comando. Use / para ver atalhos disponíveis.',
+    title: 'Talk to Koda',
+    description: 'Type what you want to do here. It can be a task, a question or a command. Use / to see available shortcuts.',
     arrowDir: 'down',
   },
   {
     targetId: 'tour-mode',
-    title: 'Modos de operação',
-    description: 'Fast Mode executa direto. Planner Mode cria um plano antes de agir. Teach Mode explica cada passo enquanto trabalha.',
+    title: 'Operation Modes',
+    description: 'Fast Mode executes directly. Planner Mode creates a plan before acting. Teach Mode explains each step while working.',
     arrowDir: 'down',
   },
   {
     targetId: 'tour-workspaces',
     title: 'Workspaces',
-    description: 'Clique aqui para dividir a tela em dois workspaces lado a lado. Útil para trabalhar em dois projetos ao mesmo tempo.',
+    description: 'Click here to split the screen into two side-by-side workspaces. Useful for working on two projects at the same time.',
     arrowDir: 'down',
   },
   {
     targetId: 'tour-iconbar',
-    title: 'Barra lateral',
-    description: 'Acesse o terminal integrado, o navegador embutido, o painel de contexto e as configurações. Passe o mouse para ver o histórico de chats.',
+    title: 'Sidebar',
+    description: 'Access the integrated terminal, embedded browser, context panel and settings. Hover to see chat history.',
     arrowDir: 'right',
   },
 ]
@@ -62,8 +62,8 @@ const SETTINGS_STEPS: TourStep[] = [
   },
   {
     targetId: 'stour-remote',
-    title: 'Remote Control',
-    description: 'Ative um servidor HTTP local para controlar o Koda remotamente via API. Útil para automações, scripts e integração com outras ferramentas.',
+    title: 'KoClaw — Discord Bot',
+    description: 'Control Koda directly from Discord. Send messages to the bot and it will execute tasks and respond with results in real-time.',
     arrowDir: 'right',
   },
   {
@@ -208,9 +208,9 @@ function TourOverlay({
           <div className="text-white font-semibold text-sm mb-1">{current.title}</div>
           <div className="text-slate-500 text-xs leading-relaxed mb-4">{current.description}</div>
           <div className="flex items-center justify-between">
-            <button onClick={onDismiss} className="text-slate-600 hover:text-slate-400 text-xs transition-colors">Pular</button>
+            <button onClick={onDismiss} className="text-slate-600 hover:text-slate-400 text-xs transition-colors">Skip</button>
             <button onClick={onNext} className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-zinc-200 transition-colors">
-              {step < steps.length - 1 ? 'Próximo →' : 'Entendido!'}
+              {step < steps.length - 1 ? 'Next →' : 'Got it!'}
             </button>
           </div>
         </div>

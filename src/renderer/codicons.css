@@ -1,0 +1,196 @@
+/*---------------------------------------------------------------------------------------------
+ *  Codicons - Icon font from VS Code
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License.
+ *--------------------------------------------------------------------------------------------*/
+
+@font-face {
+  font-family: "codicon";
+  font-display: block;
+  src: url("/codicon.ttf") format("truetype");
+}
+
+.codicon {
+  font: normal normal normal 16px/1 codicon;
+  display: inline-block;
+  text-decoration: none;
+  text-rendering: auto;
+  text-align: center;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Modifiers */
+.codicon-wrench-subaction {
+  opacity: 0.5;
+}
+
+@keyframes codicon-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.codicon-sync.codicon-modifier-spin,
+.codicon-loading.codicon-modifier-spin,
+.codicon-gear.codicon-modifier-spin,
+.codicon-notebook-state-executing.codicon-modifier-spin,
+.codicon-loading,
+.codicon-tree-item-loading::before {
+  animation: codicon-spin 1.5s steps(30) infinite;
+}
+
+.codicon-modifier-disabled {
+  opacity: 0.4;
+}
+
+/* Icon definitions - most common ones */
+.codicon-add:before { content: "\ea60"; }
+.codicon-plus:before { content: "\ea60"; }
+.codicon-folder:before { content: "\ea83"; }
+.codicon-file:before { content: "\ea7b"; }
+.codicon-file-directory:before { content: "\ea83"; }
+.codicon-chevron-right:before { content: "\eab4"; }
+.codicon-chevron-down:before { content: "\eab4"; }
+.codicon-close:before { content: "\ea76"; }
+.codicon-search:before { content: "\ea6d"; }
+.codicon-edit:before { content: "\ea73"; }
+.codicon-trash:before { content: "\ea81"; }
+.codicon-refresh:before { content: "\eb37"; }
+.codicon-settings:before { content: "\eb51"; }
+.codicon-terminal:before { content: "\ea85"; }
+.codicon-globe:before { content: "\eb3a"; }
+.codicon-pin:before { content: "\eb2b"; }
+.codicon-pinned:before { content: "\eba0"; }
+.codicon-sync:before { content: "\ea77"; }
+.codicon-check:before { content: "\eab2"; }
+.codicon-error:before { content: "\ea87"; }
+.codicon-warning:before { content: "\ea6c"; }
+.codicon-info:before { content: "\ea74"; }
+.codicon-git-commit:before { content: "\eafc"; }
+.codicon-git-branch:before { content: "\eafc"; }
+.codicon-git-merge:before { content: "\eb30"; }
+.codicon-github:before { content: "\ea84"; }
+.codicon-arrow-right:before { content: "\ea9c"; }
+.codicon-arrow-left:before { content: "\ea9b"; }
+.codicon-arrow-up:before { content: "\eaa1"; }
+.codicon-arrow-down:before { content: "\ea9a"; }
+.codicon-new-file:before { content: "\ea7f"; }
+.codicon-new-folder:before { content: "\ea80"; }
+.codicon-save:before { content: "\eb4b"; }
+.codicon-save-all:before { content: "\eb4c"; }
+.codicon-split-horizontal:before { content: "\eb56"; }
+.codicon-split-vertical:before { content: "\eb57"; }
+.codicon-extensions:before { content: "\eb27"; }
+.codicon-debug:before { content: "\eadf"; }
+.codicon-run:before { content: "\eb44"; }
+.codicon-stop:before { content: "\ea87"; }
+.codicon-play:before { content: "\eb44"; }
+.codicon-pause:before { content: "\eb4d"; }
+.codicon-menu:before { content: "\eb94"; }
+.codicon-more:before { content: "\ea7c"; }
+.codicon-ellipsis:before { content: "\ea7c"; }
+.codicon-home:before { content: "\eb3b"; }
+.codicon-account:before { content: "\eb99"; }
+.codicon-bell:before { content: "\eaa2"; }
+.codicon-book:before { content: "\eab1"; }
+.codicon-bookmark:before { content: "\eab0"; }
+.codicon-code:before { content: "\eac2"; }
+.codicon-comment:before { content: "\ea6b"; }
+.codicon-database:before { content: "\ead1"; }
+.codicon-desktop-download:before { content: "\ea78"; }
+.codicon-device-desktop:before { content: "\ea7a"; }
+.codicon-filter:before { content: "\eb83"; }
+.codicon-flame:before { content: "\eb29"; }
+.codicon-fold:before { content: "\eb2c"; }
+.codicon-unfold:before { content: "\eb2d"; }
+.codicon-gear:before { content: "\eb51"; }
+.codicon-heart:before { content: "\eb37"; }
+.codicon-history:before { content: "\ea82"; }
+.codicon-inbox:before { content: "\eb3f"; }
+.codicon-key:before { content: "\eb46"; }
+.codicon-law:before { content: "\eb48"; }
+.codicon-lightbulb:before { content: "\ea61"; }
+.codicon-link:before { content: "\eb4a"; }
+.codicon-list-ordered:before { content: "\eb4e"; }
+.codicon-list-unordered:before { content: "\eb4f"; }
+.codicon-lock:before { content: "\ea75"; }
+.codicon-mail:before { content: "\eb50"; }
+.codicon-markdown:before { content: "\eb52"; }
+.codicon-megaphone:before { content: "\eb53"; }
+.codicon-mention:before { content: "\eb54"; }
+.codicon-milestone:before { content: "\eb55"; }
+.codicon-git-pull-request:before { content: "\ea64"; }
+.codicon-organization:before { content: "\ea7e"; }
+.codicon-package:before { content: "\eb91"; }
+.codicon-paintcan:before { content: "\eb92"; }
+.codicon-person:before { content: "\ea67"; }
+.codicon-preview:before { content: "\eb97"; }
+.codicon-project:before { content: "\eb98"; }
+.codicon-pulse:before { content: "\eb9a"; }
+.codicon-question:before { content: "\eb9b"; }
+.codicon-quote:before { content: "\eb9c"; }
+.codicon-radio-tower:before { content: "\eb9d"; }
+.codicon-reactions:before { content: "\eb9e"; }
+.codicon-references:before { content: "\eb9f"; }
+.codicon-repo:before { content: "\ea62"; }
+.codicon-rocket:before { content: "\eba4"; }
+.codicon-rss:before { content: "\eba5"; }
+.codicon-ruby:before { content: "\eba6"; }
+.codicon-server:before { content: "\ebaa"; }
+.codicon-sign-in:before { content: "\ea6f"; }
+.codicon-sign-out:before { content: "\ea6e"; }
+.codicon-smiley:before { content: "\ebac"; }
+.codicon-sort-precedence:before { content: "\ebad"; }
+.codicon-squirrel:before { content: "\ebaf"; }
+.codicon-star:before { content: "\ea6a"; }
+.codicon-star-empty:before { content: "\ea6a"; }
+.codicon-symbol-class:before { content: "\eb5b"; }
+.codicon-symbol-color:before { content: "\eb5c"; }
+.codicon-symbol-constant:before { content: "\eb5d"; }
+.codicon-symbol-enum:before { content: "\ea95"; }
+.codicon-symbol-field:before { content: "\eb5e"; }
+.codicon-symbol-file:before { content: "\eb5f"; }
+.codicon-symbol-interface:before { content: "\eb61"; }
+.codicon-symbol-keyword:before { content: "\eb62"; }
+.codicon-symbol-method:before { content: "\ea8c"; }
+.codicon-symbol-namespace:before { content: "\ea8b"; }
+.codicon-symbol-numeric:before { content: "\ea90"; }
+.codicon-symbol-operator:before { content: "\eb64"; }
+.codicon-symbol-parameter:before { content: "\ea92"; }
+.codicon-symbol-property:before { content: "\eb65"; }
+.codicon-symbol-ruler:before { content: "\ea96"; }
+.codicon-symbol-snippet:before { content: "\eb66"; }
+.codicon-symbol-string:before { content: "\eb8d"; }
+.codicon-symbol-structure:before { content: "\ea91"; }
+.codicon-symbol-variable:before { content: "\ea88"; }
+.codicon-tag:before { content: "\ea66"; }
+.codicon-tasklist:before { content: "\ebb2"; }
+.codicon-telescope:before { content: "\ebb3"; }
+.codicon-text-size:before { content: "\ebb4"; }
+.codicon-three-bars:before { content: "\ebb5"; }
+.codicon-thumbsdown:before { content: "\ebb6"; }
+.codicon-thumbsup:before { content: "\ebb7"; }
+.codicon-tools:before { content: "\ebb8"; }
+.codicon-triangle-down:before { content: "\ebb9"; }
+.codicon-triangle-left:before { content: "\ebba"; }
+.codicon-triangle-right:before { content: "\ebbb"; }
+.codicon-triangle-up:before { content: "\ebbc"; }
+.codicon-twitter:before { content: "\ebbd"; }
+.codicon-unfold:before { content: "\eb2d"; }
+.codicon-unlock:before { content: "\ebbf"; }
+.codicon-unmute:before { content: "\ebc0"; }
+.codicon-unverified:before { content: "\ebc1"; }
+.codicon-verified:before { content: "\ebc3"; }
+.codicon-versions:before { content: "\ebc4"; }
+.codicon-vm:before { content: "\ea7a"; }
+.codicon-watch:before { content: "\ebc9"; }
+.codicon-whitespace:before { content: "\ebca"; }
+.codicon-whole-word:before { content: "\ebcb"; }
+.codicon-window:before { content: "\ebcc"; }
+.codicon-word-wrap:before { content: "\ebcd"; }
+.codicon-zoom-in:before { content: "\ebce"; }
+.codicon-zoom-out:before { content: "\ebcf"; }

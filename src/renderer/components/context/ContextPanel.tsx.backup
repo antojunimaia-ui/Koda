@@ -1,8 +1,7 @@
 import React, { memo, useState, useEffect } from 'react'
 import { TrackedFile } from '../../types/index.js'
 import { getIconForFile, getIconForFolder, getIconForOpenFolder } from 'vscode-icons-js'
-import { ContextMenu, ContextMenuItem } from '../ContextMenu.js'
-import { Codicon } from '../Codicon.js'
+import { VSCodeTree } from '../VSCodeTree.js'
 
 interface ContextPanelProps {
   files: TrackedFile[]
@@ -217,312 +216,37 @@ const FileExplorer: React.FC<{
   pinnedFiles: string[]
   disableInlineEditor?: boolean
 }> = ({ cwd, onInject, onPin, onAddToInput, onOpenMarkdownPreview, pinnedFiles, disableInlineEditor = false }) => {
-  const [tree, setTree] = useState<FileNode[]>([])
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [fileContent, setFileContent] = useState<string>('')
-  const [isLoadingFile, setIsLoadingFile] = useState(false)
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; path: string; isDir?: boolean } | null>(null)
-  const [renamingPath, setRenamingPath] = useState<string | null>(null)
-  const [newName, setNewName] = useState('')
-  const [creatingNew, setCreatingNew] = useState<{ type: 'file' | 'folder'; parentPath: string } | null>(null)
-  const [draggedItem, setDraggedItem] = useState<string | null>(null)
-  const [dropTarget, setDropTarget] = useState<string | null>(null)
-  const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'inside' | null>(null)
-
-  const isMarkdown = (name: string) => name.toLowerCase().endsWith('.md') || name.toLowerCase().endsWith('.mdx')
-  const isVideo = (name: string) => ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'].includes(name.toLowerCase().split('.').pop() || '')
-
-  const reloadTree = () => {
-    window.koda.getFiles().then((res: any) => {
-      if (res.success) {
-        const normalCwd = cwd.replace(/\\/g, '/')
-        const absPaths = res.files.map((f: string) => normalCwd + '/' + f.replace(/\\/g, '/'))
-        setTree(buildTree(absPaths, normalCwd))
-      }
-    })
-  }
-
-  const handleCreateFile = async (parentPath: string, fileName: string) => {
+  
+  const handleRename = async (oldPath: string, newPath: string) => {
     try {
-      const filePath = `${parentPath}/${fileName}`
-      await window.koda.writeFile(filePath, '')
-      reloadTree()
-      setCreatingNew(null)
+      // TODO: Implement file rename via IPC
+      console.log('Rename:', oldPath, '->', newPath)
     } catch (error) {
-      console.error('Error creating file:', error)
+      console.error('Error renaming file:', error)
     }
   }
 
-  const handleCreateFolder = async (parentPath: string, folderName: string) => {
+  const handleDelete = async (path: string) => {
     try {
-      const folderPath = `${parentPath}/${folderName}`
-      await window.koda.createFolder?.(folderPath)
-      reloadTree()
-      setCreatingNew(null)
+      // TODO: Implement file delete via IPC
+      console.log('Delete:', path)
     } catch (error) {
-      console.error('Error creating folder:', error)
+      console.error('Error deleting file:', error)
     }
   }
 
-  const handleRename = async (oldPath: string, newFileName: string) => {
-    try {
-      const parentPath = oldPath.substring(0, oldPath.lastIndexOf('/'))
-      const newPath = `${parentPath}/${newFileName}`
-      await window.koda.renameFile?.(oldPath, newPath)
-      reloadTree()
-      setRenamingPath(null)
-      setNewName('')
-    } catch (error) {
-      console.error('Error renaming:', error)
-    }
-  }
-
-  const handleDelete = async (filePath: string) => {
-    try {
-      await window.koda.deleteFile?.(filePath)
-      reloadTree()
-    } catch (error) {
-      console.error('Error deleting:', error)
-    }
-  }
-
-  const handleMove = async (sourcePath: string, targetFolderPath: string) => {
-    try {
-      const fileName = sourcePath.split('/').pop()
-      const newPath = `${targetFolderPath}/${fileName}`
-      
-      // Check if target already exists
-      if (sourcePath === newPath) return
-      
-      await window.koda.renameFile?.(sourcePath, newPath)
-      reloadTree()
-    } catch (error) {
-      console.error('Error moving:', error)
-    }
-  }
-
-  const handleDragStart = (e: React.DragEvent, path: string) => {
-    setDraggedItem(path)
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', path)
-  }
-
-  const handleDragOver = (e: React.DragEvent, path: string, isDir: boolean) => {
-    if (!draggedItem) return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    const mouseY = e.clientY - rect.top
-    const height = rect.height
-    
-    // Determine position based on mouse Y position
-    if (isDir) {
-      // For folders: top 25% = before, middle 50% = inside, bottom 25% = after
-      if (mouseY < height * 0.25) {
-        setDropPosition('before')
-      } else if (mouseY > height * 0.75) {
-        setDropPosition('after')
-      } else {
-        setDropPosition('inside')
-      }
-    } else {
-      // For files: top 50% = before, bottom 50% = after
-      if (mouseY < height * 0.5) {
-        setDropPosition('before')
-      } else {
-        setDropPosition('after')
-      }
-    }
-    
-    setDropTarget(path)
-  }
-
-  const handleDragLeave = () => {
-    setDropTarget(null)
-    setDropPosition(null)
-  }
-
-  const handleDrop = (e: React.DragEvent, targetPath: string, isDir: boolean) => {
-    e.preventDefault()
-    if (!draggedItem || draggedItem === targetPath) {
-      setDraggedItem(null)
-      setDropTarget(null)
-      setDropPosition(null)
-      return
-    }
-
-    // Don't allow dropping into itself or its children
-    if (targetPath.startsWith(draggedItem + '/')) {
-      setDraggedItem(null)
-      setDropTarget(null)
-      setDropPosition(null)
-      return
-    }
-
-    if (dropPosition === 'inside' && isDir) {
-      // Move into folder
-      handleMove(draggedItem, targetPath)
-    } else if (dropPosition === 'before' || dropPosition === 'after') {
-      // Reorder: move to same parent as target
-      const targetParent = targetPath.substring(0, targetPath.lastIndexOf('/'))
-      const draggedParent = draggedItem.substring(0, draggedItem.lastIndexOf('/'))
-      
-      if (targetParent === draggedParent) {
-        // Same parent - just reordering (visual only for now, file system doesn't support order)
-        console.log(`Reorder: ${draggedItem} ${dropPosition} ${targetPath}`)
-        // Note: File systems don't have inherent order, so this is visual feedback only
-        // The actual order is determined by the file system's listing
-      } else {
-        // Different parent - move to target's parent
-        handleMove(draggedItem, targetParent)
-      }
-    }
-    
-    setDraggedItem(null)
-    setDropTarget(null)
-    setDropPosition(null)
-  }
-
-  const handleDragEnd = () => {
-    setDraggedItem(null)
-    setDropTarget(null)
-    setDropPosition(null)
-  }
-
-  const getContextMenuItems = (filePath: string, isDir: boolean = false): ContextMenuItem[] => {
-    const fileName = filePath.split('/').pop() || ''
-    const items: ContextMenuItem[] = []
-
-    // Folder-specific options
-    if (isDir) {
-      items.push({
-        id: 'new-file',
-        label: 'New File',
-        icon: 'new-file',
-        onClick: () => {
-          setExpanded(prev => new Set(prev).add(filePath))
-          setCreatingNew({ type: 'file', parentPath: filePath })
-        }
-      })
-      items.push({
-        id: 'new-folder',
-        label: 'New Folder',
-        icon: 'new-folder',
-        onClick: () => {
-          setExpanded(prev => new Set(prev).add(filePath))
-          setCreatingNew({ type: 'folder', parentPath: filePath })
-        }
-      })
-      items.push({ id: 'sep0', label: '', separator: true })
-    }
-
-    // File-specific options
-    if (!isDir) {
-      // Markdown preview option
-      if (isMarkdown(fileName)) {
-        items.push({
-          id: 'preview',
-          label: 'Open Preview',
-          icon: 'preview',
-          onClick: () => {
-            if (onOpenMarkdownPreview) {
-              onOpenMarkdownPreview(filePath)
-            } else {
-              window.dispatchEvent(new CustomEvent('koda:open-markdown-preview', { detail: { path: filePath } }))
-            }
-          }
-        })
-        items.push({ id: 'sep1', label: '', separator: true })
-      }
-
-      // Open file
-      items.push({
-        id: 'open',
-        label: 'Open File',
-        icon: 'file',
-        onClick: () => {
-          if (disableInlineEditor) {
-            onInject(filePath)
-          } else {
-            loadFileContent(filePath)
-          }
-        }
-      })
-
-      // Add to context
-      items.push({
-        id: 'inject',
-        label: 'Add to Context',
-        icon: 'add',
-        onClick: () => onInject(filePath)
-      })
-
-      // Add to input
-      if (onAddToInput) {
-        items.push({
-          id: 'add-input',
-          label: 'Add to Input',
-          icon: 'mention',
-          onClick: () => onAddToInput(filePath)
-        })
-      }
-
-      items.push({ id: 'sep2', label: '', separator: true })
-
-      // Pin/Unpin
-      const isPinned = pinnedFiles.includes(filePath)
-      items.push({
-        id: 'pin',
-        label: isPinned ? 'Unpin' : 'Pin',
-        icon: 'pin',
-        onClick: () => onPin(filePath)
-      })
-
-      items.push({ id: 'sep3', label: '', separator: true })
-    }
-
-    // Rename
-    items.push({
-      id: 'rename',
-      label: 'Rename',
-      icon: 'edit',
-      keybinding: 'F2',
-      onClick: () => {
-        setRenamingPath(filePath)
-        setNewName(fileName)
-      }
-    })
-
-    // Delete
-    items.push({
-      id: 'delete',
-      label: 'Delete',
-      icon: 'trash',
-      keybinding: 'Del',
-      onClick: () => {
-        if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
-          handleDelete(filePath)
-        }
-      }
-    })
-
-    return items
-  }
-
-  const loadFileContent = async (filePath: string) => {
-    setIsLoadingFile(true)
-    try {
-      const result = await window.koda.readFile(filePath)
-      if (result.success) {
-        setFileContent(result.content || '')
-        setSelectedFile(filePath)
-        setHasUnsavedChanges(false)
-      }
-    } catch (error) {
+  return (
+    <VSCodeTree
+      cwd={cwd}
+      onFileClick={disableInlineEditor ? onInject : onInject}
+      onFileDoubleClick={onOpenMarkdownPreview}
+      onRename={handleRename}
+      onDelete={handleDelete}
+      pinnedFiles={pinnedFiles}
+      onPin={onPin}
+    />
+  )
+}
       console.error('Error loading file:', error)
     } finally {
       setIsLoadingFile(false)
@@ -557,33 +281,6 @@ const FileExplorer: React.FC<{
     })
   }, [cwd])
 
-  // Listen for custom events from header buttons
-  useEffect(() => {
-    const handleCreateFile = (e: Event) => {
-      const detail = (e as CustomEvent).detail
-      setCreatingNew({ type: 'file', parentPath: detail.parentPath || cwd })
-    }
-
-    const handleCreateFolder = (e: Event) => {
-      const detail = (e as CustomEvent).detail
-      setCreatingNew({ type: 'folder', parentPath: detail.parentPath || cwd })
-    }
-
-    const handleRefresh = () => {
-      reloadTree()
-    }
-
-    window.addEventListener('koda:create-file', handleCreateFile)
-    window.addEventListener('koda:create-folder', handleCreateFolder)
-    window.addEventListener('koda:refresh-tree', handleRefresh)
-
-    return () => {
-      window.removeEventListener('koda:create-file', handleCreateFile)
-      window.removeEventListener('koda:create-folder', handleCreateFolder)
-      window.removeEventListener('koda:refresh-tree', handleRefresh)
-    }
-  }, [cwd])
-
   // Listen for file system changes
   useEffect(() => {
     if (!cwd || cwd === '...') return
@@ -615,43 +312,21 @@ const FileExplorer: React.FC<{
     })
   }
 
+  const isMarkdown = (name: string) => name.toLowerCase().endsWith('.md') || name.toLowerCase().endsWith('.mdx')
+  const isVideo = (name: string) => ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'].includes(name.toLowerCase().split('.').pop() || '')
+
   const renderNode = (node: FileNode, depth = 0) => {
     const isPinned = pinnedFiles.includes(node.path)
     const isOpen = expanded.has(node.path)
     const isSelected = selectedFile === node.path
-    const isDragging = draggedItem === node.path
-    const isDropTarget = dropTarget === node.path
-    const showBeforeLine = isDropTarget && dropPosition === 'before'
-    const showAfterLine = isDropTarget && dropPosition === 'after'
-    const showInsideHighlight = isDropTarget && dropPosition === 'inside'
 
     return (
-      <div key={node.path} className="relative">
-        {/* Drop indicator line - BEFORE */}
-        {showBeforeLine && (
-          <div 
-            className="absolute left-0 right-0 h-[2px] bg-cyan-400 z-10"
-            style={{ 
-              top: '-1px',
-              marginLeft: `${6 + depth * 14}px`
-            }}
-          />
-        )}
-        
+      <div key={node.path}>
         <div
           className={`group flex items-center gap-1.5 py-[3px] pr-2 rounded-md cursor-pointer transition-colors ${
-            isSelected ? 'bg-indigo-500/20 text-indigo-300' : 
-            isDragging ? 'opacity-50' :
-            showInsideHighlight ? 'bg-cyan-500/20 border border-cyan-500/50' :
-            'hover:bg-white/5'
+            isSelected ? 'bg-indigo-500/20 text-indigo-300' : 'hover:bg-white/5'
           }`}
           style={{ paddingLeft: `${6 + depth * 14}px` }}
-          draggable={!renamingPath}
-          onDragStart={(e) => handleDragStart(e, node.path)}
-          onDragOver={(e) => handleDragOver(e, node.path, node.isDir)}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, node.path, node.isDir)}
-          onDragEnd={handleDragEnd}
           onClick={() => {
             if (node.isDir) {
               toggle(node.path)
@@ -664,8 +339,10 @@ const FileExplorer: React.FC<{
             }
           }}
           onContextMenu={(e) => {
-            e.preventDefault()
-            setContextMenu({ x: e.clientX, y: e.clientY, path: node.path, isDir: node.isDir })
+            if (!node.isDir) {
+              e.preventDefault()
+              setContextMenu({ x: e.clientX, y: e.clientY, path: node.path })
+            }
           }}
           title={node.path}
         >
@@ -674,44 +351,12 @@ const FileExplorer: React.FC<{
             : <span className="w-[10px] flex-shrink-0" />
           }
           {node.isDir ? <IconFolder open={isOpen} /> : getFileIcon(node.name)}
-          {renamingPath === node.path ? (
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onBlur={() => {
-                if (newName && newName !== node.name) {
-                  handleRename(node.path, newName)
-                } else {
-                  setRenamingPath(null)
-                  setNewName('')
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (newName && newName !== node.name) {
-                    handleRename(node.path, newName)
-                  } else {
-                    setRenamingPath(null)
-                    setNewName('')
-                  }
-                } else if (e.key === 'Escape') {
-                  setRenamingPath(null)
-                  setNewName('')
-                }
-              }}
-              onClick={(e) => e.stopPropagation()}
-              autoFocus
-              className="flex-1 text-[11px] bg-slate-800 text-slate-200 px-1 py-0.5 rounded outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          ) : (
-            <span className={`flex-1 text-[11px] truncate transition-colors ${
-              isSelected ? 'text-indigo-200' : 'text-slate-400 group-hover:text-slate-200'
-            }`}>
-              {node.name}
-            </span>
-          )}
-          {!node.isDir && !disableInlineEditor && (
+          <span className={`flex-1 text-[11px] truncate transition-colors ${
+            isSelected ? 'text-indigo-200' : 'text-slate-400 group-hover:text-slate-200'
+          }`}>
+            {node.name}
+          </span>
+          {!node.isDir && (
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {onAddToInput && (
                 <button
@@ -742,18 +387,6 @@ const FileExplorer: React.FC<{
             </div>
           )}
         </div>
-        
-        {/* Drop indicator line - AFTER */}
-        {showAfterLine && (
-          <div 
-            className="absolute left-0 right-0 h-[2px] bg-cyan-400 z-10"
-            style={{ 
-              bottom: '-1px',
-              marginLeft: `${6 + depth * 14}px`
-            }}
-          />
-        )}
-        
         {node.isDir && isOpen && node.children?.map(child => renderNode(child, depth + 1))}
       </div>
     )
@@ -838,57 +471,80 @@ const FileExplorer: React.FC<{
       )}
 
       {/* File Tree */}
-      <div className={`${selectedFile ? 'w-1/2' : 'w-full'} transition-all duration-200 flex flex-col overflow-y-auto custom-scrollbar`}>
-        <div className="px-1 py-1">
-          {creatingNew && creatingNew.parentPath === cwd && (
-            <div className="flex items-center gap-1.5 py-[3px] pr-2 rounded-md mb-1" style={{ paddingLeft: '6px' }}>
-              {creatingNew.type === 'folder' ? <IconFolder open={false} /> : <Codicon icon="file" size={14} className="text-slate-400" />}
-              <input
-                type="text"
-                placeholder={creatingNew.type === 'file' ? 'filename.txt' : 'foldername'}
-                onBlur={(e) => {
-                  const name = e.target.value.trim()
-                  if (name) {
-                    if (creatingNew.type === 'file') {
-                      handleCreateFile(creatingNew.parentPath, name)
-                    } else {
-                      handleCreateFolder(creatingNew.parentPath, name)
-                    }
-                  } else {
-                    setCreatingNew(null)
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const name = (e.target as HTMLInputElement).value.trim()
-                    if (name) {
-                      if (creatingNew.type === 'file') {
-                        handleCreateFile(creatingNew.parentPath, name)
-                      } else {
-                        handleCreateFolder(creatingNew.parentPath, name)
-                      }
-                    } else {
-                      setCreatingNew(null)
-                    }
-                  } else if (e.key === 'Escape') {
-                    setCreatingNew(null)
-                  }
-                }}
-                autoFocus
-                className="flex-1 text-[11px] bg-slate-800 text-slate-200 px-1 py-0.5 rounded outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-          )}
-          {tree.map(n => renderNode(n))}
-        </div>
+      <div className={`${selectedFile ? 'w-1/2' : 'w-full'} transition-all duration-200 overflow-y-auto custom-scrollbar`}>
+        <div className="px-1 py-1">{tree.map(n => renderNode(n))}</div>
       </div>
 
       {contextMenu && (
-        <ContextMenu
-          items={getContextMenuItems(contextMenu.path, contextMenu.isDir || false)}
-          position={{ x: contextMenu.x, y: contextMenu.y }}
-          onClose={() => setContextMenu(null)}
-        />
+        <div
+          ref={contextMenuRef}
+          className="fixed z-[9999] bg-[#1a1a1a] border border-white/10 rounded-md shadow-2xl py-1.5 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          {isMarkdown(contextMenu.path.split('/').pop() || '') && (
+            <>
+              {onOpenMarkdownPreview ? (
+                <button
+                  onClick={() => {
+                    onOpenMarkdownPreview(contextMenu.path)
+                    setContextMenu(null)
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Open Preview
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('koda:open-markdown-preview', { detail: { path: contextMenu.path } }))
+                    setContextMenu(null)
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Open Preview
+                </button>
+              )}
+              <div className="h-[1px] bg-white/5 my-1 mx-2" />
+            </>
+          )}
+          <button
+            onClick={() => {
+              if (disableInlineEditor) {
+                onInject(contextMenu.path)
+              } else {
+                loadFileContent(contextMenu.path)
+              }
+              setContextMenu(null)
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Open File
+          </button>
+          <button
+            onClick={() => {
+              onInject(contextMenu.path)
+              setContextMenu(null)
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400">
+              <path d="M3 6h18M3 12h12M3 18h8" />
+            </svg>
+            Add to Context
+          </button>
+        </div>
       )}
     </div>
   )

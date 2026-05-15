@@ -24,26 +24,24 @@ const AssistantMessage = memo(({ text, done, uiMode = 'classic' }: AssistantMess
       {/* Koda Avatar - sempre no topo */}
       <div className="flex items-center gap-2 mb-2">
         <div className="flex-shrink-0">
-          {!done && !text ? (
-            // Loading animation quando está pensando
-            <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-800/50 border border-slate-700/50 flex items-center justify-center">
-              <video 
-                src="/Loading.webm" 
-                autoPlay 
-                loop 
-                muted 
-                className="w-full h-full object-cover"
-              />
-            </div>
+          {!done ? (
+            // Loading animation quando está processando
+            <video 
+              src="/Loading.webm" 
+              autoPlay 
+              loop 
+              muted 
+              className="w-7 h-7 object-contain border-0 outline-0"
+              style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+            />
           ) : (
-            // Ícone estático do Koda
-            <div className="w-7 h-7 rounded-lg overflow-hidden bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 border border-indigo-500/30 flex items-center justify-center">
-              <img 
-                src="/icon.png" 
-                alt="Koda" 
-                className="w-5 h-5 object-contain"
-              />
-            </div>
+            // Ícone estático do Koda quando terminou
+            <img 
+              src="/icon.png" 
+              alt="Koda" 
+              className="w-7 h-7 object-contain border-0 outline-0"
+              style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+            />
           )}
         </div>
         {uiMode === 'classic' && (

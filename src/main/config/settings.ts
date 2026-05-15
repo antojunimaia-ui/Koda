@@ -61,7 +61,7 @@ const DEFAULT_MODELS: Record<LLMProvider, string> = {
   xai: "grok-beta",
   zhipu: "glm-5",
   maritaca: "sabia-4",
-  "koda-cloud": "gemini-3-flash-preview",
+  "koda-cloud": "gemini-2.0-flash-exp",
   fireworks: "accounts/fireworks/models/llama-v3p1-405b-instruct",
 };
 

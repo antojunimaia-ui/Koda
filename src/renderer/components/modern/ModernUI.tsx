@@ -185,6 +185,8 @@ interface ModernUIProps {
   onInject?: (path: string) => void
   pinnedFiles: string[]
   onPin: (path: string) => void
+  inputFiles: string[]
+  onRemoveInputFile: (path: string) => void
   updateInfo?: { version?: string; downloaded: boolean } | null
   onUpdateDismiss?: () => void
 }
@@ -257,13 +259,15 @@ const ModernUI: React.FC<ModernUIProps> = ({
   pendingShell, onShellDismiss,
   updateInfo, onUpdateDismiss,
   onNewSession, onLoadSession, onAddToInput, onInject, pinnedFiles, onPin,
+  inputFiles, onRemoveInputFile,
 }) => {
   
   const [showChatHistory, setShowChatHistory] = useState(false)
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
   
   const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
-    minHeight: 60,
-    maxHeight: 300,
+    minHeight: kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel ? 40 : 60,  // Smaller in IDE mode
+    maxHeight: kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel ? 200 : 300,  // Also reduce max height in IDE mode
   })
 
   // Sync refs: we need both the one from App.tsx (for focus/etc) and the local one for resizing
@@ -340,11 +344,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
   const VirtuosoFooter = useCallback(() => (
     <div className="pb-8">
-      {isProcessing && thinkingLabel && (
-        <div className="flex ml-4 items-center gap-3">
-          <BrailleSpinner label={thinkingLabel} color="indigo" />
-        </div>
-      )}
+      {/* Removed "Composing..." spinner - avatar handles loading state now */}
     </div>
   ), [isProcessing, thinkingLabel]);
 
@@ -380,6 +380,30 @@ const ModernUI: React.FC<ModernUIProps> = ({
       })
     }
     inputChild.click()
+  }
+
+  // Drag & Drop handlers for PromptBox
+  const handlePromptBoxDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(true)
+  }
+
+  const handlePromptBoxDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(false)
+  }
+
+  const handlePromptBoxDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(false)
+
+    const filePath = e.dataTransfer.getData('text/plain')
+    if (filePath && onAddToInput) {
+      onAddToInput(filePath)
+    }
   }
 
   // Layout Logic
@@ -651,7 +675,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                   </div>
 
                   {/* Input Area */}
-                  <div className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-4' : 'px-6'} pb-6 ${messages.length === 0 ? 'pt-0' : 'pt-2'}`}>
+                  <div className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-6'} ${messages.length === 0 ? 'pt-0 pb-6' : 'pt-2 pb-2'}`}>
                     {messages.length === 0 && (
                       <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
                         What are we building today?
@@ -732,7 +756,16 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       </div>
                     )}
 
-                    <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
+                    <div 
+                      className={`relative bg-neutral-900/80 rounded-2xl border transition-all ${
+                        isDraggingOver 
+                          ? 'border-white bg-white/5' 
+                          : 'border-neutral-800'
+                      } shadow-2xl backdrop-blur-xl focus-within:border-neutral-700`}
+                      onDragOver={handlePromptBoxDragOver}
+                      onDragLeave={handlePromptBoxDragLeave}
+                      onDrop={handlePromptBoxDrop}
+                    >
                       {pendingImages.length > 0 && (
                         <div className="flex flex-wrap gap-2 p-3 border-b border-white/5">
                           {pendingImages.map((img, i) => (
@@ -747,7 +780,33 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         </div>
                       )}
 
-                      <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
+                      <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0 flex flex-wrap items-start gap-1">
+                        {/* Render file pills inline with text */}
+                        {inputFiles.map((filePath, i) => {
+                          const fileName = filePath.split(/[/\\]/).pop() || filePath
+                          const iconName = getIconForFile(fileName)
+                          return (
+                            <div key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#1e1e1e] border border-white/10 rounded text-[11px] font-medium text-slate-300 hover:bg-[#252525] transition-all self-start">
+                              <img 
+                                src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${iconName}`}
+                                width="12" 
+                                height="12" 
+                                className="flex-shrink-0 object-contain"
+                                alt={fileName}
+                              />
+                              <span className="max-w-[150px] truncate">{fileName}</span>
+                              <button
+                                onClick={() => onRemoveInputFile(filePath)}
+                                className="flex-shrink-0 w-3 h-3 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                                title="Remove"
+                              >
+                                <svg width="6" height="6" viewBox="0 0 10 10" fill="none">
+                                  <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-slate-400"/>
+                                </svg>
+                              </button>
+                            </div>
+                          )
+                        })}
                         <textarea
                           ref={textareaRef}
                           value={input}
@@ -758,8 +817,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
                           onKeyDown={handleKeyDown}
                           onPaste={handlePaste}
                           id="tour-input"
-                          placeholder="Ask Koda anything..."
-                          className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
+                          placeholder={inputFiles.length === 0 ? "Ask Koda anything..." : ""}
+                          className="flex-1 min-w-[200px] bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug align-top"
                           style={{ overflow: "hidden" }}
                         />
                       </div>
@@ -964,7 +1023,16 @@ const ModernUI: React.FC<ModernUIProps> = ({
                     </div>
                   )}
 
-                  <div className="relative bg-neutral-900/80 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-xl focus-within:border-neutral-700 transition-all">
+                  <div 
+                    className={`relative bg-neutral-900/80 rounded-2xl border transition-all ${
+                      isDraggingOver 
+                        ? 'border-white bg-white/5' 
+                        : 'border-neutral-800'
+                    } shadow-2xl backdrop-blur-xl focus-within:border-neutral-700`}
+                    onDragOver={handlePromptBoxDragOver}
+                    onDragLeave={handlePromptBoxDragLeave}
+                    onDrop={handlePromptBoxDrop}
+                  >
                     {pendingImages.length > 0 && (
                       <div className="flex flex-wrap gap-3 p-3 border-b border-white/5 bg-black/20">
                         {pendingImages.map((img, i) => (
@@ -994,7 +1062,33 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       </div>
                     )}
 
-                    <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0">
+                    <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0 flex flex-wrap items-start gap-1">
+                      {/* Render file pills inline with text */}
+                      {inputFiles.map((filePath, i) => {
+                        const fileName = filePath.split(/[/\\]/).pop() || filePath
+                        const iconName = getIconForFile(fileName)
+                        return (
+                          <div key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#1e1e1e] border border-white/10 rounded text-[11px] font-medium text-slate-300 hover:bg-[#252525] transition-all self-start">
+                            <img 
+                              src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${iconName}`}
+                              width="12" 
+                              height="12" 
+                              className="flex-shrink-0 object-contain"
+                              alt={fileName}
+                            />
+                            <span className="max-w-[150px] truncate">{fileName}</span>
+                            <button
+                              onClick={() => onRemoveInputFile(filePath)}
+                              className="flex-shrink-0 w-3 h-3 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                              title="Remove"
+                            >
+                              <svg width="6" height="6" viewBox="0 0 10 10" fill="none">
+                                <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-slate-400"/>
+                              </svg>
+                            </button>
+                          </div>
+                        )
+                      })}
                       <textarea
                         ref={textareaRef}
                         value={input}
@@ -1005,8 +1099,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         onKeyDown={handleKeyDown}
                         onPaste={handlePaste}
                         id="tour-input"
-                        placeholder="Ask Koda anything..."
-                        className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
+                        placeholder={inputFiles.length === 0 ? "Ask Koda anything..." : ""}
+                        className="flex-1 min-w-[200px] bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug align-top"
                         style={{ overflow: "hidden" }}
                       />
                     </div>

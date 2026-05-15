@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import Editor from '@monaco-editor/react'
-import { marked } from 'marked'
 import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings, TrackedFile } from '../types/index.js'
 import { FileExplorer } from './context/ContextPanel.js'
+import { Codicon } from './Codicon.js'
 import { getIconForFile } from 'vscode-icons-js'
 import BrowserPreview from './BrowserPreview.js'
 import TerminalPanel from './TerminalPanel.js'
+import MarkdownWebview from './MarkdownWebview.js'
 
 interface IDELayoutProps {
   // Explorer props
@@ -34,6 +35,7 @@ interface OpenFile {
   path: string
   content: string
   hasUnsavedChanges: boolean
+  isDeleted?: boolean  // Track if file was deleted from disk
 }
 
 type TabType = 'file' | 'browser' | 'terminal' | 'markdown-preview' | 'video' | 'image'
@@ -79,128 +81,7 @@ const VideoPlayer: React.FC<{ path: string }> = ({ path }) => {
 }
 
 // ─── Markdown Preview Component ───────────────────────────────────────────────
-
-const MarkdownPreview: React.FC<{ content: string }> = ({ content }) => {
-  const html = useMemo(() => {
-    marked.setOptions({ gfm: true, breaks: false })
-    return marked.parse(content) as string
-  }, [content])
-
-  return (
-    <div className="h-full overflow-y-auto custom-scrollbar bg-[#141414]">
-      <div
-        className="mx-auto px-10 py-8 max-w-4xl"
-        style={{ color: '#D4D4D4', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif', lineHeight: '1.7', fontSize: '14px' }}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-      <style>{`
-        /* Markdown Preview Styles — scoped via parent wrapper */
-        .mx-auto h1, .mx-auto h2, .mx-auto h3,
-        .mx-auto h4, .mx-auto h5, .mx-auto h6 {
-          color: #E2E8F0;
-          font-weight: 700;
-          line-height: 1.3;
-          margin-top: 1.5em;
-          margin-bottom: 0.6em;
-        }
-        .mx-auto h1 { font-size: 2em; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.3em; }
-        .mx-auto h2 { font-size: 1.5em; border-bottom: 1px solid rgba(255,255,255,0.07); padding-bottom: 0.2em; }
-        .mx-auto h3 { font-size: 1.25em; }
-        .mx-auto h4 { font-size: 1.05em; }
-        .mx-auto p  { margin: 0.75em 0; }
-        .mx-auto a  { color: #818CF8; text-decoration: none; }
-        .mx-auto a:hover { text-decoration: underline; }
-        .mx-auto strong { color: #F1F5F9; font-weight: 700; }
-        .mx-auto em { color: #CBD5E1; font-style: italic; }
-        .mx-auto ul, .mx-auto ol { padding-left: 1.6em; margin: 0.5em 0; }
-        .mx-auto li { margin: 0.3em 0; }
-        .mx-auto li::marker { color: #6366F1; }
-        .mx-auto blockquote {
-          border-left: 3px solid #6366F1;
-          margin: 1em 0;
-          padding: 0.5em 1em;
-          background: rgba(99,102,241,0.08);
-          border-radius: 0 6px 6px 0;
-          color: #94A3B8;
-        }
-        .mx-auto code {
-          background: rgba(255,255,255,0.08);
-          border-radius: 4px;
-          padding: 0.15em 0.4em;
-          font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
-          font-size: 0.88em;
-          color: #CE9178;
-        }
-        .mx-auto pre {
-          background: #1E1E1E;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 8px;
-          padding: 1.1em 1.3em;
-          overflow-x: auto;
-          margin: 1em 0;
-        }
-        .mx-auto pre code {
-          background: transparent;
-          padding: 0;
-          font-size: 0.85em;
-          color: #D4D4D4;
-        }
-        .mx-auto table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 1em 0;
-          font-size: 0.92em;
-        }
-        .mx-auto th {
-          background: rgba(99,102,241,0.12);
-          color: #E2E8F0;
-          font-weight: 600;
-          padding: 0.55em 0.9em;
-          border: 1px solid rgba(255,255,255,0.1);
-          text-align: left;
-        }
-        .mx-auto td {
-          padding: 0.5em 0.9em;
-          border: 1px solid rgba(255,255,255,0.07);
-          color: #CBD5E1;
-        }
-        .mx-auto tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
-        .mx-auto hr {
-          border: none;
-          border-top: 1px solid rgba(255,255,255,0.1);
-          margin: 1.5em 0;
-        }
-        .mx-auto img {
-          max-width: 100%;
-          height: auto;
-          vertical-align: middle;
-          margin: 0.1em 0.2em;
-          display: inline-block;
-        }
-        .mx-auto p {
-          margin: 0.75em 0;
-          line-height: 1.6;
-        }
-        .mx-auto a > img {
-          display: inline-block;
-        }
-        /* Handle centered content from READMEs */
-        .mx-auto [align="center"] {
-          text-align: center;
-          display: block;
-          width: 100%;
-        }
-        .mx-auto [align="center"] img {
-          margin: 0.2em 0.3em;
-        }
-        .mx-auto input[type="checkbox"] {
-          accent-color: #6366F1;
-          margin-right: 0.4em;
-        }
-      `}</style>
-    </div>
-  )
-}
+// Moved to MarkdownWebview.tsx (webview-based for security isolation)
 
 const IDELayout: React.FC<IDELayoutProps> = ({
   showExplorerPanel,
@@ -299,6 +180,37 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       }
     }
   }, [showBrowser, showEditorPanel])
+
+  // Listen for file system changes to mark deleted files
+  useEffect(() => {
+    const unsubscribe = window.koda.onFileSystemChange?.((change) => {
+      if (change.type === 'rename' || change.type === 'change') {
+        // Check if any open tab's file was deleted
+        setTabs(prev => prev.map(tab => {
+          if (tab.type === 'file' && tab.file) {
+            const normalizedTabPath = tab.file.path.replace(/\\/g, '/')
+            const normalizedChangePath = change.path.replace(/\\/g, '/')
+            
+            if (normalizedTabPath === normalizedChangePath) {
+              // File was deleted or renamed, mark as deleted
+              return {
+                ...tab,
+                file: {
+                  ...tab.file,
+                  isDeleted: true
+                }
+              }
+            }
+          }
+          return tab
+        }))
+      }
+    })
+    
+    return () => {
+      unsubscribe?.()
+    }
+  }, [])
 
   const isVideo = (filename: string) => {
     const ext = filename.split('.').pop()?.toLowerCase() || ''
@@ -628,8 +540,40 @@ const IDELayout: React.FC<IDELayoutProps> = ({
         <>
           <div className="flex-shrink-0 border-r border-white/10 bg-[#141414]" style={{ width: `${explorerWidth}px` }}>
             <div className="h-full overflow-y-auto custom-scrollbar">
-              <div className="p-3 border-b border-white/5">
-                <h3 className="text-slate-300 text-[11px] font-bold uppercase tracking-wider">Explorer</h3>
+              <div className="px-2 pt-1 pb-0.5 flex items-center justify-between">
+                <h3 className="text-slate-300 text-[9px] font-bold uppercase tracking-wider">Explorer</h3>
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => {
+                      // Trigger new file creation in FileExplorer
+                      window.dispatchEvent(new CustomEvent('koda:create-file', { detail: { parentPath: cwd } }))
+                    }}
+                    className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
+                    title="New File"
+                  >
+                    <Codicon icon="new-file" size={14} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Trigger new folder creation in FileExplorer
+                      window.dispatchEvent(new CustomEvent('koda:create-folder', { detail: { parentPath: cwd } }))
+                    }}
+                    className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
+                    title="New Folder"
+                  >
+                    <Codicon icon="new-folder" size={14} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Trigger refresh in FileExplorer
+                      window.dispatchEvent(new CustomEvent('koda:refresh-tree'))
+                    }}
+                    className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
+                    title="Refresh"
+                  >
+                    <Codicon icon="refresh" size={14} />
+                  </button>
+                </div>
               </div>
               <FileExplorer 
                 cwd={cwd} 
@@ -680,6 +624,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
               <div className="flex items-center bg-[#252525] border-b border-white/10 overflow-x-auto custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTabId
+                  const isDeleted = tab.type === 'file' && tab.file?.isDeleted
                   
                   // Determine icon based on tab type
                   let iconElement: React.ReactNode
@@ -733,38 +678,50 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                     <div
                       key={tab.id}
                       className={`group relative flex items-center gap-2 px-3 py-1.5 border-r border-white/5 cursor-pointer transition-all min-w-[120px] max-w-[200px] ${
-                        isActive 
-                          ? 'bg-[#141414] text-slate-200 border-t-2 border-t-indigo-500' 
-                          : 'bg-[#252525] text-slate-400 hover:text-slate-200 hover:bg-[#2d2d2d] border-t-2 border-t-transparent'
+                        isDeleted
+                          ? 'bg-red-900/20 text-red-400 border-t-2 border-t-red-500'
+                          : isActive 
+                            ? 'bg-[#141414] text-slate-200 border-t-2 border-t-indigo-500' 
+                            : 'bg-[#252525] text-slate-400 hover:text-slate-200 hover:bg-[#2d2d2d] border-t-2 border-t-transparent'
                       }`}
                       onClick={() => setActiveTabId(tab.id)}
-                      title={tab.type === 'file' ? tab.file?.path : tab.title}
+                      title={tab.type === 'file' ? (isDeleted ? `${tab.file?.path} (deleted)` : tab.file?.path) : tab.title}
                     >
                       {/* Icon */}
                       {iconElement}
                       
                       {/* Tab Title */}
-                      <span className={`flex-1 text-[10px] truncate font-medium ${isActive ? 'text-slate-100' : ''}`}>
+                      <span className={`flex-1 text-[10px] truncate font-medium ${
+                        isDeleted 
+                          ? 'line-through text-red-400' 
+                          : isActive ? 'text-slate-100' : ''
+                      }`}>
                         {tab.title}
                       </span>
                       
-                      {/* Unsaved Indicator or Close Button */}
-                      {tab.type === 'file' && tab.file?.hasUnsavedChanges ? (
+                      {/* Deleted indicator or Unsaved Indicator or Close Button */}
+                      {tab.type === 'file' && tab.file?.hasUnsavedChanges && !isDeleted ? (
                         <span className="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0" title="Unsaved changes" />
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            closeTab(tab.id)
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-white/10 rounded transition-all flex-shrink-0"
-                          title="Close (Ctrl+W)"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                            <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                          </svg>
-                        </button>
+                      ) : null}
+                      
+                      {isDeleted && (
+                        <span className="text-[9px] text-red-400 flex-shrink-0 mr-1" title="File deleted from disk">
+                          ⚠
+                        </span>
                       )}
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          closeTab(tab.id)
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-white/10 rounded transition-all flex-shrink-0"
+                        title="Close (Ctrl+W)"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                          <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      </button>
                     </div>
                   )
                 })}
@@ -948,8 +905,11 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                       )
                     ) : activeTab.type === 'browser' ? (
                       <BrowserPreview onClose={onBrowserClose || (() => {})} />
-                    ) : activeTab.type === 'markdown-preview' && activeTab.markdownPath ? (
-                      <MarkdownPreview content={activeTab.file?.content || ''} />
+                    ) : activeTab.type === 'markdown-preview' && activeTab.file ? (
+                      <MarkdownWebview 
+                        content={activeTab.file.content} 
+                        filePath={activeTab.file.path}
+                      />
                     ) : activeTab.type === 'video' && activeTab.videoPath ? (
                       <VideoPlayer path={activeTab.videoPath} />
                     ) : activeTab.type === 'image' && activeTab.imagePath ? (
