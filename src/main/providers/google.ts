@@ -1,18 +1,10 @@
-import {
-  GoogleGenerativeAI,
-  SchemaType,
-  Content,
-  Part,
-  FunctionDeclaration,
-  FunctionDeclarationSchema,
-  FunctionDeclarationSchemaProperty,
-} from "@google/generative-ai";
+import { net } from "electron";
 import { BaseProvider, Message, StreamChunk } from "./base.js";
 import { ToolRegistry } from "../tools/index.js";
 
-export class GoogleProvider extends BaseProvider {
-  private client: GoogleGenerativeAI;
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
+export class GoogleProvider extends BaseProvider {
   constructor(
     model: string,
     apiKey: string,
@@ -20,7 +12,6 @@ export class GoogleProvider extends BaseProvider {
     temperature: number
   ) {
     super(model, apiKey, maxTokens, temperature);
-    this.client = new GoogleGenerativeAI(apiKey);
   }
 
   get providerName() {
@@ -32,98 +23,108 @@ export class GoogleProvider extends BaseProvider {
     tools: ToolRegistry
   ): AsyncGenerator<StreamChunk> {
     const rawSystem = messages.find((m) => m.role === "system")?.content;
-    const systemMessage = Array.isArray(rawSystem) ? "" : (rawSystem || "");
-    const geminiContents = this.convertMessages(
-      messages.filter((m) => m.role !== "system")
-    );
+    const systemInstruction = Array.isArray(rawSystem) ? undefined : (rawSystem ? { parts: [{ text: rawSystem }] } : undefined);
+    const contents = this.convertMessages(messages.filter((m) => m.role !== "system"));
 
     const geminiTools = tools.toGoogleTools();
-    const functionDeclarations: FunctionDeclaration[] = geminiTools.map(
-      (t) => {
-        const properties: Record<string, FunctionDeclarationSchemaProperty> = {};
-        const rawProps = t.parameters.properties as Record<
-          string,
-          { type: string; description: string }
-        >;
-
-        for (const [key, value] of Object.entries(rawProps)) {
-          const type =
-            value.type === "NUMBER"
-              ? SchemaType.NUMBER
-              : value.type === "BOOLEAN"
-                ? SchemaType.BOOLEAN
-                : value.type === "ARRAY"
-                  ? SchemaType.ARRAY
-                  : SchemaType.STRING;
-
-          properties[key] = {
-            type,
-            description: value.description,
-            ...(type === SchemaType.ARRAY
-              ? { items: { type: SchemaType.STRING } }
-              : {}),
-          } as FunctionDeclarationSchemaProperty;
-        }
-
-        const schema: FunctionDeclarationSchema = {
-          type: SchemaType.OBJECT,
-          properties,
-          required: t.parameters.required as string[],
+    const functionDeclarations = geminiTools.map((t) => {
+      const properties: Record<string, any> = {};
+      const rawProps = t.parameters.properties as Record<string, { type: string; description: string }>;
+      for (const [key, value] of Object.entries(rawProps)) {
+        const typeMap: Record<string, string> = {
+          NUMBER: "NUMBER", BOOLEAN: "BOOLEAN", ARRAY: "ARRAY", STRING: "STRING",
         };
-
-        return {
-          name: t.name,
-          description: t.description,
-          parameters: schema,
+        const type = typeMap[value.type?.toUpperCase()] || "STRING";
+        properties[key] = {
+          type,
+          description: value.description,
+          ...(type === "ARRAY" ? { items: { type: "STRING" } } : {}),
         };
       }
-    );
+      return {
+        name: t.name,
+        description: t.description,
+        parameters: {
+          type: "OBJECT",
+          properties,
+          required: t.parameters.required as string[],
+        },
+      };
+    });
+
+    const body: any = {
+      contents,
+      generationConfig: {
+        maxOutputTokens: this.maxTokens,
+        temperature: this.temperature,
+      },
+    };
+
+    if (systemInstruction) body.systemInstruction = systemInstruction;
+    if (functionDeclarations.length > 0) body.tools = [{ functionDeclarations }];
+
+    const url = `${GEMINI_BASE}/${this.model}:streamGenerateContent?alt=sse&key=${this.apiKey}`;
 
     try {
-      const model = this.client.getGenerativeModel({
-        model: this.model,
-        systemInstruction: systemMessage,
-        tools: [{ functionDeclarations }],
-        generationConfig: {
-          maxOutputTokens: this.maxTokens,
-          temperature: this.temperature,
-        },
+      const res = await net.fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
-      const result = await model.generateContentStream({
-        contents: geminiContents,
-      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errText}`);
+      }
 
-      for await (const chunk of result.stream) {
-        const candidate = chunk.candidates?.[0];
-        if (!candidate?.content?.parts) continue;
+      if (!res.body) throw new Error("No response body");
 
-        for (const part of candidate.content.parts) {
-          if ((part as any).thought) {
-            yield { type: "thought", content: (part as any).thought, thoughtData: part };
-          }
-          if (part.text) {
-            yield { type: "text", content: part.text };
-          }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-          if (part.functionCall) {
-            const toolCallId = `google_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-            yield {
-              type: "tool_call_start",
-              toolCall: {
-                id: toolCallId,
-                name: part.functionCall.name,
-              },
-            };
-            yield {
-              type: "tool_call_end",
-              toolCall: {
-                id: toolCallId,
-                name: part.functionCall.name,
-                arguments: (part.functionCall.args || {}) as Record<string, unknown>,
-                _rawPart: part, // preserve thought_signature and any other fields
-              },
-            };
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr || jsonStr === "[DONE]") continue;
+
+          let chunk: any;
+          try { chunk = JSON.parse(jsonStr); } catch { continue; }
+
+          const candidate = chunk.candidates?.[0];
+          if (!candidate?.content?.parts) continue;
+
+          for (const part of candidate.content.parts) {
+            if (part.thought) {
+              yield { type: "thought", content: part.thought, thoughtData: part };
+            }
+            if (part.text) {
+              yield { type: "text", content: part.text };
+            }
+            if (part.functionCall) {
+              const toolCallId = `google_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+              yield {
+                type: "tool_call_start",
+                toolCall: { id: toolCallId, name: part.functionCall.name },
+              };
+              yield {
+                type: "tool_call_end",
+                toolCall: {
+                  id: toolCallId,
+                  name: part.functionCall.name,
+                  arguments: (part.functionCall.args || {}) as Record<string, unknown>,
+                  _rawPart: part,
+                },
+              };
+            }
           }
         }
       }
@@ -137,22 +138,17 @@ export class GoogleProvider extends BaseProvider {
     }
   }
 
-  private convertMessages(messages: Message[]): Content[] {
-    const contents: Content[] = [];
+  private convertMessages(messages: Message[]): any[] {
+    const contents: any[] = [];
 
     for (const msg of messages) {
       if (msg.role === "assistant") {
-        const parts: Part[] = [];
-        
+        const parts: any[] = [];
+
         if (msg.thought) {
-          // If thought is an object (part), add it. If it's an array, add all.
-          if (Array.isArray(msg.thought)) {
-            parts.push(...msg.thought);
-          } else if (typeof msg.thought === 'object') {
-            parts.push(msg.thought);
-          } else {
-            parts.push({ thought: msg.thought } as any);
-          }
+          if (Array.isArray(msg.thought)) parts.push(...msg.thought);
+          else if (typeof msg.thought === "object") parts.push(msg.thought);
+          else parts.push({ thought: msg.thought });
         }
 
         if (msg.content && !Array.isArray(msg.content)) {
@@ -162,15 +158,9 @@ export class GoogleProvider extends BaseProvider {
         if (msg.toolCalls) {
           for (const tc of msg.toolCalls) {
             if (tc._rawPart) {
-              // Use the original part verbatim to preserve thought_signature
-              parts.push(tc._rawPart as Part);
+              parts.push(tc._rawPart);
             } else {
-              parts.push({
-                functionCall: {
-                  name: tc.name,
-                  args: tc.arguments,
-                },
-              } as any);
+              parts.push({ functionCall: { name: tc.name, args: tc.arguments } });
             }
           }
         }
@@ -179,29 +169,26 @@ export class GoogleProvider extends BaseProvider {
       } else if (msg.role === "tool") {
         contents.push({
           role: "function",
-          parts: [
-            {
-              functionResponse: {
-                name: msg.toolCallId || "unknown",
-                response: { result: msg.content },
-              },
+          parts: [{
+            functionResponse: {
+              name: msg.toolCallId || "unknown",
+              response: { result: msg.content },
             },
-          ],
+          }],
         });
       } else {
-        // User message — may be rich multimodal
+        // user — may be multimodal
         if (Array.isArray(msg.content)) {
-          const parts: Part[] = msg.content.map(part => {
+          const parts = msg.content.map((part: any) => {
             if (part.type === "image" && part.image) {
-              const base64data = part.image.dataUrl.split(",")[1] || "";
               return {
                 inlineData: {
                   mimeType: part.image.mimeType,
-                  data: base64data,
+                  data: part.image.dataUrl.split(",")[1] || "",
                 },
-              } as Part;
+              };
             }
-            return { text: part.text || "" } as Part;
+            return { text: part.text || "" };
           });
           contents.push({ role: "user", parts });
         } else {
