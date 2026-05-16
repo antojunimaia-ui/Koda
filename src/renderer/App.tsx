@@ -230,14 +230,14 @@ const App: React.FC = () => {
     const cwd = activeWorkspace.agentInfo.cwd
     if (!cwd || cwd === '...') return
     const lastCwd = lastLoadedCwdPerWs.current.get(activeWorkspace.id)
-    if (cwd === lastCwd) return   // same CWD — tab switch or re-render, skip
+    if (cwd === lastCwd) return   // same CWD — tab switch, re-render, or boot
     lastLoadedCwdPerWs.current.set(activeWorkspace.id, cwd)
     const sessionId = loadSession(cwd, activeWorkspace.id)
     if (sessionId) {
       sessionIdRef.current.set(activeWorkspace.id, sessionId)
       updateWorkspace(activeWorkspace.id, { currentSessionId: sessionId })
     }
-  }, [activeWorkspace?.id, activeWorkspace?.agentInfo.cwd])
+  }, [activeWorkspace?.id, activeWorkspace?.agentInfo.cwd, initializing])
 
   // ── Auto-save (debounced 1s) ────────────────────────────────────────────────
   useEffect(() => {
@@ -369,13 +369,10 @@ const App: React.FC = () => {
                   terminalOutput: '',
                   currentSessionId: null
                 }
+                // Pre-populate so the session switch effect skips on boot
+                lastLoadedCwdPerWs.current.set(initialId, setupRes.info.cwd)
                 setWorkspaces([initialWs])
                 setActiveId(initialId)
-                const sessionId = loadSession(setupRes.info.cwd, initialId)
-                if (sessionId) {
-                  sessionIdRef.current.set(initialId, sessionId)
-                  setWorkspaces(prev => prev.map(w => w.id === initialId ? { ...w, currentSessionId: sessionId } : w))
-                }
               }
             } catch { }
           } else {
@@ -399,13 +396,10 @@ const App: React.FC = () => {
                 terminalOutput: '',
                 currentSessionId: null
               }
+              // Pre-populate so the session switch effect skips on boot
+              lastLoadedCwdPerWs.current.set(initialId, res.info.cwd)
               setWorkspaces([initialWs])
               setActiveId(initialId)
-              const sessionId = loadSession(res.info.cwd, initialId)
-              if (sessionId) {
-                sessionIdRef.current.set(initialId, sessionId)
-                setWorkspaces(prev => prev.map(w => w.id === initialId ? { ...w, currentSessionId: sessionId } : w))
-              }
           }
         }
         setInitializing(false)

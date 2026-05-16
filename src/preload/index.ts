@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('koda', {
   ptyResize: (pid: number, cols: number, rows: number) => ipcRenderer.invoke('pty:resize', pid, cols, rows),
   getFiles: () => ipcRenderer.invoke('project:get_files'),
   readFile: (filePath: string) => ipcRenderer.invoke('project:read_file', filePath),
+  readFileBase64: (filePath: string) => ipcRenderer.invoke('project:read_file_base64', filePath),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('project:write_file', filePath, content),
   deleteFile: (filePath: string) => ipcRenderer.invoke('project:delete_file', filePath),
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('project:rename_file', oldPath, newPath),

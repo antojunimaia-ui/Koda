@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: file:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: file: koda-asset:;">
   <title>Markdown Preview</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/tokyo-night-dark.min.css">
   <style>
@@ -201,7 +201,6 @@
     img {
       max-width: 100%;
       height: auto;
-      vertical-align: middle;
       margin: 0.5em 0;
       display: block;
       border-radius: 4px;
@@ -313,6 +312,7 @@
     });
     
     // Render markdown content - exposed globally for executeJavaScript
+    // Images are pre-resolved to data: URLs by MarkdownWebview.tsx before being sent here.
     window.renderMarkdown = function(content) {
       console.log('[Markdown Viewer] Rendering content, length:', content ? content.length : 0);
       try {
@@ -325,8 +325,6 @@
         links.forEach(link => {
           link.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('[Markdown Viewer] External link clicked:', link.href);
-            // Try to open via window.open (will be intercepted by parent)
             window.open(link.href, '_blank');
           });
         });

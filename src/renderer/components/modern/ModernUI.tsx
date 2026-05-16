@@ -342,11 +342,31 @@ const ModernUI: React.FC<ModernUIProps> = ({
     return label;
   }, [messages, isProcessing]);
 
-  const VirtuosoFooter = useCallback(() => (
-    <div className="pb-8">
-      {/* Removed "Composing..." spinner - avatar handles loading state now */}
-    </div>
-  ), [isProcessing, thinkingLabel]);
+  const VirtuosoFooter = useCallback(() => {
+    // Show the animated avatar in the footer whenever the agent is working
+    // and there's no completed assistant message at the end yet
+    const lastMsg = messages[messages.length - 1];
+    const lastIsDoneAssistant = lastMsg?.type === 'assistant' && lastMsg.done;
+    const showAvatar = isProcessing && !lastIsDoneAssistant;
+
+    return (
+      <div className="pb-8">
+        {showAvatar && (
+          <div className="flex items-center gap-2 ml-4 mt-2 animate-in fade-in duration-300">
+            <video
+              src="/Loading.webm"
+              autoPlay
+              loop
+              muted
+              className="w-7 h-7 object-contain"
+              style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+            />
+            <span className="font-bold text-slate-300 text-sm">Koda</span>
+          </div>
+        )}
+      </div>
+    );
+  }, [isProcessing, messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

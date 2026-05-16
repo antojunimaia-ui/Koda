@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, net } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, net, protocol } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Agent } from './core/agent.js'
@@ -33,6 +33,11 @@ app.commandLine.appendSwitch('disable-software-rasterizer')
 // Load environment variables
 dotenv.config()
 
+// Register koda-asset:// as a privileged scheme BEFORE app is ready
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'koda-asset', privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true } }
+])
+
 let mainWindow: BrowserWindow | null = null
 const agents = new Map<string, Agent>()
 const discordRPC = new DiscordRPCManager()
@@ -57,6 +62,7 @@ function createWindow() {
     backgroundColor: '#0f172a',
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
+    show: false, // Prevent flash before maximize
       webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,
@@ -74,6 +80,12 @@ function createWindow() {
     // __dirname is dist-electron/ when compiled, so we go up and into dist/
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
+
+  // Show maximized once ready to avoid resize flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize()
+    mainWindow?.show()
+  })
 
   // Intercept link navigation to open in external browser
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -96,6 +108,24 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Serve local files via koda-asset:// protocol (used by Markdown Preview webview)
+  protocol.handle('koda-asset', async (request) => {
+    try {
+      const url = new URL(request.url)
+      // URL format: koda-asset://local/C:/path/to/file.png
+      // The host is 'local', and the pathname is the file path
+      let filePath = decodeURIComponent(url.pathname)
+      // On Windows, pathname starts with /C:/... so strip the leading slash
+      if (filePath.match(/^\/[A-Za-z]:\//)) {
+        filePath = filePath.slice(1)
+      }
+      return net.fetch(`file:///${filePath.replace(/\\/g, '/')}`)
+    } catch (err) {
+      console.error('[koda-asset] Protocol error:', err)
+      return new Response('Not found', { status: 404 })
+    }
+  })
+
   createWindow()
   
   // Set main window for file watcher
@@ -635,6 +665,26 @@ ipcMain.handle('project:read_file', async (_, filePath: string) => {
     
     const content = await fs.readFile(resolvedPath, 'utf-8')
     return { success: true, content }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('project:read_file_base64', async (_, filePath: string) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    const resolvedPath = path.resolve(filePath)
+    const buffer = await fs.readFile(resolvedPath)
+    const base64 = buffer.toString('base64')
+    const ext = path.extname(resolvedPath).toLowerCase().slice(1)
+    const mimeMap: Record<string, string> = {
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+      bmp: 'image/bmp', ico: 'image/x-icon'
+    }
+    const mime = mimeMap[ext] || 'image/png'
+    return { success: true, dataUrl: `data:${mime};base64,${base64}` }
   } catch (err: any) {
     return { success: false, error: err.message }
   }

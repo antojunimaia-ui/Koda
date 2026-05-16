@@ -32,6 +32,7 @@ declare global {
       ptyResize: (pid: number, cols: number, rows: number) => Promise<{ success: boolean }>
       getFiles: () => Promise<{ success: boolean; files: string[]; error?: string }>
       readFile: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string }>
+      readFileBase64: (filePath: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>
       writeFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>
       deleteFile: (filePath: string) => Promise<{ success: boolean; error?: string }>
       renameFile: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>
