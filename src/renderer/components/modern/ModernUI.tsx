@@ -189,6 +189,9 @@ interface ModernUIProps {
   onRemoveInputFile: (path: string) => void
   updateInfo?: { version?: string; downloaded: boolean } | null
   onUpdateDismiss?: () => void
+  onSelectActiveModel?: (providerId: string, model: string, advisorModel: string, apiKey: string) => void
+  loadedModels?: Record<string, string[]>
+  fetchModelsForProvider?: (provId: string, apiKey: string) => Promise<void>
 }
 
 // ─── Auto Resize Hook ────────────────────────────────────────────────────────
@@ -275,11 +278,130 @@ const ModernUI: React.FC<ModernUIProps> = ({
   pendingShell, onShellDismiss,
   updateInfo, onUpdateDismiss,
   onNewSession, onLoadSession, onAddToInput, onInject, pinnedFiles, onPin,
-  inputFiles, onRemoveInputFile,
+  inputFiles, onRemoveInputFile, onSelectActiveModel, loadedModels = {},
+  fetchModelsForProvider,
 }) => {
   
   const [showChatHistory, setShowChatHistory] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
+
+  const PROVIDER_NAMES: Record<string, string> = {
+    openai: 'OpenAI',
+    anthropic: 'Anthropic',
+    google: 'Google Gemini',
+    openrouter: 'OpenRouter',
+    deepseek: 'DeepSeek',
+    groq: 'Groq',
+    ollama: 'Ollama',
+    llamacpp: 'Llama.cpp',
+    mistral: 'Mistral AI',
+    together: 'Together AI',
+    xai: 'xAI',
+    fireworks: 'Fireworks AI',
+    zhipu: 'Zhipu AI',
+    maritaca: 'Maritaca AI',
+    'koda-cloud': 'Koda Cloud',
+  }
+
+  const modelDropdownOptions = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('koda_providers_config')
+      if (saved) {
+        const config = JSON.parse(saved) as Record<string, { apiKey: string, model: string, advisorModel: string }>
+        return Object.entries(config)
+          .filter(([provId, data]) => {
+            const noKeyRequired = ['koda-cloud', 'ollama', 'llamacpp'].includes(provId)
+            return noKeyRequired || !!data.apiKey
+          })
+          .map(([provId, data]) => ({
+            providerId: provId,
+            providerName: PROVIDER_NAMES[provId] || provId,
+            model: data.model,
+            advisorModel: data.advisorModel,
+            apiKey: data.apiKey,
+            availableModels: loadedModels[provId] || [],
+          }))
+      }
+    } catch (e) {
+      console.error('Error parsing providers config for dropdown:', e)
+    }
+    return [{
+      providerId: agentInfo.providerId || agentInfo.provider || 'openai',
+      providerName: PROVIDER_NAMES[agentInfo.providerId || agentInfo.provider || 'openai'] || 'OpenAI',
+      model: agentInfo.model,
+      advisorModel: agentInfo.advisorModel || '',
+      apiKey: '',
+      availableModels: loadedModels[agentInfo.providerId || agentInfo.provider || 'openai'] || [],
+    }]
+  }, [agentInfo, loadedModels])
+
+  const renderModelDropdown = () => {
+    const currentProv = agentInfo.providerId || agentInfo.provider || 'openai'
+    const currentModel = agentInfo.model
+
+    const handleDropdownFocus = () => {
+      if (!fetchModelsForProvider) return
+      // Trigger fetch for the active provider
+      const activeOpt = modelDropdownOptions.find(o => o.providerId === currentProv)
+      if (activeOpt) {
+        fetchModelsForProvider(activeOpt.providerId, activeOpt.apiKey)
+      }
+    }
+
+    const selectValue = JSON.stringify({
+      providerId: currentProv,
+      model: currentModel,
+    })
+    
+    return (
+      <div className="relative flex items-center shrink-0">
+        <select
+          value={selectValue}
+          onFocus={handleDropdownFocus}
+          onChange={(e) => {
+            try {
+              const { providerId, model } = JSON.parse(e.target.value)
+              const opt = modelDropdownOptions.find(o => o.providerId === providerId)
+              if (opt && onSelectActiveModel) {
+                // If switching provider, use the new provider's advisor model and apiKey
+                onSelectActiveModel(providerId, model, opt.advisorModel, opt.apiKey)
+              }
+            } catch (err) {
+              console.error('Error selecting model/provider:', err)
+            }
+          }}
+          className="bg-neutral-950/40 border border-neutral-800/80 hover:border-neutral-700 text-zinc-400 hover:text-zinc-200 rounded px-2.5 py-1 text-[10px] font-bold font-mono tracking-wider outline-none cursor-pointer transition-all pr-5 appearance-none select-none max-w-[240px] truncate"
+        >
+          {modelDropdownOptions.map((opt) => {
+            const models = opt.availableModels && opt.availableModels.length > 0
+              ? opt.availableModels
+              : [opt.model]
+
+            // Ensure the currently configured model is always in the list
+            if (!models.includes(opt.model)) {
+              models.unshift(opt.model)
+            }
+
+            return (
+              <optgroup key={opt.providerId} label={opt.providerName} className="bg-neutral-900 text-zinc-400 font-mono text-[9px]">
+                {models.map(m => {
+                  const val = JSON.stringify({ providerId: opt.providerId, model: m })
+                  return (
+                    <option key={`${opt.providerId}-${m}`} value={val} className="bg-neutral-900 text-zinc-300 font-mono text-[10px]">
+                      {m}
+                    </option>
+                  )
+                })}
+              </optgroup>
+            )
+          })}
+        </select>
+        <div className="absolute right-1.5 pointer-events-none text-zinc-600 text-[8px]">
+          ▼
+        </div>
+      </div>
+    )
+  }
   
   const { localRef: textareaRef, textareaRef: rawTextareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: kodaSettings.showEditorPanel ? 40 : 60,  // Smaller when editor/full mode is active, normal in explorer-only or non-IDE mode
@@ -873,11 +995,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">
-                            {agentInfo.providerId === 'koda-cloud'
-                              ? `${agentInfo.model} / Koda Cloud`
-                              : agentInfo.model}
-                          </span>
+                          {renderModelDropdown()}
                           <button
                             type="button"
                             onClick={() => isProcessing ? handleStop() : handleSend()}
@@ -1155,11 +1273,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">
-                          {agentInfo.providerId === 'koda-cloud'
-                            ? `${agentInfo.model} / Koda Cloud`
-                            : agentInfo.model}
-                        </span>
+                        {renderModelDropdown()}
                         <button
                           type="button"
                           onClick={() => isProcessing ? handleStop() : handleSend()}

@@ -65,6 +65,7 @@ declare global {
 }
 
 declare module 'ansi-to-html';
+declare module 'discord-rpc';
 declare module '*.css';
 declare module '*.scss';
 declare module '*.sass';

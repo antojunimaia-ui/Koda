@@ -1,3 +1,4 @@
+// @ts-ignore
 import { Client as DiscordRPC } from 'discord-rpc'
 import path from 'path'
 

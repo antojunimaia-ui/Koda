@@ -58,6 +58,60 @@ const App: React.FC = () => {
   // Derived active workspace
   const activeWorkspace = workspaces.find(w => w.id === activeId) || null
 
+  const [loadedModels, setLoadedModels] = useState<Record<string, string[]>>({})
+  const [loadingState, setLoadingState] = useState<Record<string, boolean>>({})
+
+  // Shared UI states used by fetch effects
+  const [showSettings, setShowSettings] = useState(false)
+  const [showMcpSettings, setShowMcpSettings] = useState(false)
+  const [showBrowser, setShowBrowser] = useState(false)
+  const [updateInfo, setUpdateInfo] = useState<{ version?: string; downloaded: boolean } | null>(null)
+  const [showTerminal, setShowTerminal] = useState(false)
+  const [showPanel, setShowPanel] = useState(false)
+  const [contextPanelTab, setContextPanelTab] = useState<'context' | 'explorer'>('context')
+  const [showExplorer, setShowExplorer] = useState(false)
+
+  const fetchModelsForProvider = useCallback(async (provId: string, apiKey: string) => {
+    setLoadingState(prev => {
+      if (prev[provId]) return prev
+
+      ;(async () => {
+        try {
+          console.log(`[App] Fetching models for provider: ${provId}`)
+          const res = await window.koda.getModels(provId, apiKey)
+          if (res.success && res.models) {
+            setLoadedModels(prevModels => ({ ...prevModels, [provId]: res.models as string[] }))
+          } else {
+            console.warn(`[App] Failed to fetch models for ${provId}:`, res.error)
+          }
+        } catch (err) {
+          console.error(`[App] Error fetching models for ${provId}:`, err)
+        } finally {
+          setLoadingState(prevLoading => ({ ...prevLoading, [provId]: false }))
+        }
+      })()
+
+      return { ...prev, [provId]: true }
+    })
+  }, [])
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('koda_providers_config')
+      if (saved) {
+        const config = JSON.parse(saved) as Record<string, { apiKey: string, model: string, advisorModel: string }>
+        Object.entries(config).forEach(([provId, data]) => {
+          const noKeyRequired = ['koda-cloud', 'ollama', 'llamacpp'].includes(provId)
+          if (noKeyRequired || !!data.apiKey) {
+            fetchModelsForProvider(provId, data.apiKey)
+          }
+        })
+      }
+    } catch (e) {
+      console.error('Error auto-fetching models:', e)
+    }
+  }, [fetchModelsForProvider, showSettings])
+
   const updateWorkspace = useCallback((id: string, updates: Partial<Workspace> | ((prev: Workspace) => Workspace)) => {
     setWorkspaces(prev => prev.map(w => {
       if (w.id !== id) return w
@@ -66,18 +120,8 @@ const App: React.FC = () => {
     }))
   }, [])
 
-  // ── Shared UI state (non-workspace specific) ────────────────────────────────
   const [input, setInput] = useState('')
   const [initializing, setInitializing] = useState(true)
-  const [showSettings, setShowSettings] = useState(false)
-  const [showMcpSettings, setShowMcpSettings] = useState(false)
-  const [showBrowser, setShowBrowser] = useState(false)
-  // ── Auto-updater state ──────────────────────────────────────────────────────
-  const [updateInfo, setUpdateInfo] = useState<{ version?: string; downloaded: boolean } | null>(null)
-  const [showTerminal, setShowTerminal] = useState(false)
-  const [showPanel, setShowPanel] = useState(false)
-  const [contextPanelTab, setContextPanelTab] = useState<'context' | 'explorer'>('context')
-  const [showExplorer, setShowExplorer] = useState(false)
   
   // ── Suggestions state (shared) ──────────────────────────────────────────────
   const [allFiles, setAllFiles] = useState<string[]>([])
@@ -900,6 +944,9 @@ const App: React.FC = () => {
           kodaSettings={kodaSettings}
           setKodaSettings={setKodaSettings}
           uiMode={kodaSettings.uiMode ?? 'classic'}
+          loadedModels={loadedModels}
+          loadingState={loadingState}
+          fetchModelsForProvider={fetchModelsForProvider}
         />
       )}
 
@@ -927,6 +974,33 @@ const App: React.FC = () => {
           setInput={setInput}
           isProcessing={activeWorkspace.isProcessing}
           agentInfo={activeWorkspace.agentInfo}
+          loadedModels={loadedModels}
+          fetchModelsForProvider={fetchModelsForProvider}
+          onSelectActiveModel={async (providerId, model, advisorModel, apiKey) => {
+            const res = await window.koda.setup(activeWorkspace.id, { provider: providerId, model, advisorModel, apiKey })
+            if (res.success) {
+              updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
+              localStorage.setItem('koda_provider', providerId)
+              localStorage.setItem('koda_model', model)
+              localStorage.setItem('koda_api_key', apiKey)
+              if (advisorModel) localStorage.setItem('koda_advisor_model', advisorModel)
+
+              // Sync the active model to providers config too
+              try {
+                const saved = localStorage.getItem('koda_providers_config')
+                if (saved) {
+                  const config = JSON.parse(saved)
+                  if (config[providerId]) {
+                    config[providerId].model = model
+                    if (advisorModel) config[providerId].advisorModel = advisorModel
+                    localStorage.setItem('koda_providers_config', JSON.stringify(config))
+                  }
+                }
+              } catch (e) {
+                console.error('Error syncing provider model selection:', e)
+              }
+            }
+          }}
           mode={activeWorkspace.mode}
           setMode={(m) => updateWorkspace(activeWorkspace.id, { mode: m })}
           pendingImages={activeWorkspace.pendingImages}
