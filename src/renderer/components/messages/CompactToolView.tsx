@@ -117,6 +117,20 @@ const CompactToolView = memo(({ tools, settings, agentInfo, uiMode, isLastAndAct
 
   return (
     <div className={`flex flex-col ml-4 my-2 gap-1 ${isModern ? 'font-sans' : 'font-mono'} text-[12px]`}>
+      {/* Avatar do Koda — aparece acima das tools quando o grupo está ativo */}
+      {isLastAndActive && isModern && (
+        <div className="flex items-center gap-2 mb-1 animate-in fade-in duration-300">
+          <video
+            src="/Loading.webm"
+            autoPlay
+            loop
+            muted
+            className="w-7 h-7 object-contain"
+            style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+          />
+          <span className="font-bold text-slate-300 text-sm">Koda</span>
+        </div>
+      )}
       <div 
         className="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-slate-200 transition-colors group select-none"
         onClick={() => setIsExpanded(!isExpanded)}

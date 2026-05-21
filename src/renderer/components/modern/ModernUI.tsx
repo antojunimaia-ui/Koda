@@ -304,27 +304,68 @@ const ModernUI: React.FC<ModernUIProps> = ({
   }
 
   const modelDropdownOptions = useMemo(() => {
+    // Free providers that should always show in the dropdown list
+    const defaultFreeProviders = [
+      { id: 'koda-cloud', name: 'Koda Cloud', model: 'gemini-1.5-flash', advisorModel: 'gemini-1.5-flash', apiKey: '' },
+      { id: 'ollama', name: 'Ollama (Local)', model: 'llama3', advisorModel: 'llama3', apiKey: '' },
+      { id: 'llamacpp', name: 'Llama.cpp (Local)', model: 'local-model', advisorModel: 'local-model', apiKey: '' },
+    ]
+
     try {
       const saved = localStorage.getItem('koda_providers_config')
+      let config: Record<string, { apiKey: string, model: string, advisorModel: string }> = {}
       if (saved) {
-        const config = JSON.parse(saved) as Record<string, { apiKey: string, model: string, advisorModel: string }>
-        return Object.entries(config)
-          .filter(([provId, data]) => {
-            const noKeyRequired = ['koda-cloud', 'ollama', 'llamacpp'].includes(provId)
-            return noKeyRequired || !!data.apiKey
-          })
-          .map(([provId, data]) => ({
+        config = JSON.parse(saved)
+      }
+
+      // Merge using Map to ensure uniqueness
+      const optionsMap = new Map<string, { providerId: string, providerName: string, model: string, advisorModel: string, apiKey: string }>()
+
+      // 1. Add free/local providers
+      defaultFreeProviders.forEach(p => {
+        const savedData = config[p.id] || {}
+        optionsMap.set(p.id, {
+          providerId: p.id,
+          providerName: PROVIDER_NAMES[p.id] || p.name,
+          model: savedData.model || p.model,
+          advisorModel: savedData.advisorModel || p.advisorModel,
+          apiKey: savedData.apiKey || p.apiKey,
+        })
+      })
+
+      // 2. Add other providers that have an API key configured
+      Object.entries(config).forEach(([provId, data]) => {
+        if (!optionsMap.has(provId) && data.apiKey) {
+          optionsMap.set(provId, {
             providerId: provId,
             providerName: PROVIDER_NAMES[provId] || provId,
             model: data.model,
             advisorModel: data.advisorModel,
             apiKey: data.apiKey,
-            availableModels: loadedModels[provId] || [],
-          }))
+          })
+        }
+      })
+
+      // 3. Ensure currently active provider is present in the list
+      const activeProv = agentInfo.providerId || agentInfo.provider || 'openai'
+      if (!optionsMap.has(activeProv)) {
+        optionsMap.set(activeProv, {
+          providerId: activeProv,
+          providerName: PROVIDER_NAMES[activeProv] || activeProv,
+          model: agentInfo.model,
+          advisorModel: agentInfo.advisorModel || '',
+          apiKey: '',
+        })
       }
+
+      return Array.from(optionsMap.values()).map(opt => ({
+        ...opt,
+        availableModels: loadedModels[opt.providerId] || [],
+      }))
     } catch (e) {
       console.error('Error parsing providers config for dropdown:', e)
     }
+
     return [{
       providerId: agentInfo.providerId || agentInfo.provider || 'openai',
       providerName: PROVIDER_NAMES[agentInfo.providerId || agentInfo.provider || 'openai'] || 'OpenAI',
@@ -481,11 +522,12 @@ const ModernUI: React.FC<ModernUIProps> = ({
   }, [messages, isProcessing]);
 
   const VirtuosoFooter = useCallback(() => {
-    // Show the animated avatar in the footer whenever the agent is working
-    // and there's no completed assistant message at the end yet
+    // Show the animated avatar in the footer only when the agent is working
+    // but there are no tool messages at the end (avatar is shown inside CompactToolView in that case)
     const lastMsg = messages[messages.length - 1];
     const lastIsDoneAssistant = lastMsg?.type === 'assistant' && lastMsg.done;
-    const showAvatar = isProcessing && !lastIsDoneAssistant;
+    const lastIsTool = lastMsg?.type === 'tool';
+    const showAvatar = isProcessing && !lastIsDoneAssistant && !lastIsTool;
 
     return (
       <div className="pb-8">
