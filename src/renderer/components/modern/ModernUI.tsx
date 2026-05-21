@@ -201,11 +201,11 @@ function useAutoResizeTextarea({
   minHeight,
   maxHeight,
 }: UseAutoResizeTextareaProps) {
-  const localRef = useRef<HTMLTextAreaElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   const adjustHeight = useCallback(
     (reset?: boolean) => {
-      const textarea = localRef.current
+      const textarea = textareaRef.current
       if (!textarea) return
 
       if (reset) {
@@ -226,12 +226,28 @@ function useAutoResizeTextarea({
     [minHeight, maxHeight]
   )
 
+  // Use a callback ref to capture when the DOM node is mounted or unmounted
+  const setRef = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      textareaRef.current = node
+      if (node) {
+        node.style.height = `${minHeight}px`
+        // Force an adjustment in the next tick to fit any pre-existing content
+        setTimeout(() => {
+          if (textareaRef.current) {
+            adjustHeight()
+          }
+        }, 0)
+      }
+    },
+    [minHeight, adjustHeight]
+  )
+
   useEffect(() => {
-    const textarea = localRef.current
-    if (textarea) {
-      textarea.style.height = `${minHeight}px`
+    if (textareaRef.current) {
+      adjustHeight()
     }
-  }, [minHeight])
+  }, [minHeight, adjustHeight])
 
   useEffect(() => {
     const handleResize = () => adjustHeight()
@@ -239,7 +255,7 @@ function useAutoResizeTextarea({
     return () => window.removeEventListener("resize", handleResize)
   }, [adjustHeight])
 
-  return { localRef, adjustHeight }
+  return { localRef: setRef, textareaRef, adjustHeight }
 }
 
 const ModernUI: React.FC<ModernUIProps> = ({
@@ -265,17 +281,17 @@ const ModernUI: React.FC<ModernUIProps> = ({
   const [showChatHistory, setShowChatHistory] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   
-  const { localRef: textareaRef, adjustHeight } = useAutoResizeTextarea({
-    minHeight: kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel ? 40 : 60,  // Smaller in IDE mode
-    maxHeight: kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel ? 200 : 300,  // Also reduce max height in IDE mode
+  const { localRef: textareaRef, textareaRef: rawTextareaRef, adjustHeight } = useAutoResizeTextarea({
+    minHeight: kodaSettings.showEditorPanel ? 40 : 60,  // Smaller when editor/full mode is active, normal in explorer-only or non-IDE mode
+    maxHeight: kodaSettings.showEditorPanel ? 200 : 300,  // Also reduce max height when editor/full mode is active
   })
 
   // Sync refs: we need both the one from App.tsx (for focus/etc) and the local one for resizing
   useEffect(() => {
-    if (externalInputRef && textareaRef.current) {
-      (externalInputRef as any).current = textareaRef.current
+    if (externalInputRef && rawTextareaRef.current) {
+      (externalInputRef as any).current = rawTextareaRef.current
     }
-  }, [externalInputRef, textareaRef])
+  }, [externalInputRef, rawTextareaRef.current])
 
   const scheduleScroll = () => {
     // Removed manual scrollToIndex - let Virtuoso's followOutput handle it
