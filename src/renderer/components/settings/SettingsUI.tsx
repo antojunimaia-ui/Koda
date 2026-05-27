@@ -232,7 +232,7 @@ const SettingsUI = memo(({
                   Saved Provider API Keys, Defaults & Advisor Models
                 </h4>
 
-                <div className="flex flex-col gap-3 max-h-[460px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="flex flex-col gap-1.5 pr-1">
                   {PROVIDER_LIST.map(p => {
                     const isSelected = provider === p.id
                     const pModels = loadedModels[p.id]
@@ -241,20 +241,20 @@ const SettingsUI = memo(({
                     // Class names based on uiMode
                     const isModern = uiMode === 'modern'
                     const containerClass = isModern
-                      ? `grid grid-cols-12 gap-3 items-center p-2.5 rounded-lg border transition-all ${isSelected ? 'bg-white/[0.04] border-white/15 shadow-[inset_0_1px_rgba(255,255,255,0.05)]' : 'bg-white/[0.01] border-white/5 hover:border-white/10'}`
-                      : `grid grid-cols-12 gap-3 items-center p-2 rounded-lg border transition-all ${isSelected ? 'bg-cyan/5 border-cyan/20' : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'}`
+                      ? `grid grid-cols-12 gap-2 items-center px-2 py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-white/[0.04] border-white/15 shadow-[inset_0_1px_rgba(255,255,255,0.05)]' : 'bg-white/[0.01] border-white/5 hover:border-white/10'}`
+                      : `grid grid-cols-12 gap-2 items-center px-2 py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-cyan/5 border-cyan/20' : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'}`
 
                     const badgeClass = isModern
                       ? 'text-[9px] font-bold text-white bg-white/10 px-1.5 py-0.5 rounded border border-white/10'
                       : 'text-[9px] font-bold text-cyan bg-cyan/10 px-1 py-0.5 rounded border border-cyan/20'
 
                     const inputClass = isModern
-                      ? `w-full bg-neutral-950/40 border border-white/5 text-zinc-300 rounded-lg p-2 outline-none focus:border-white/20 focus:bg-neutral-950/60 transition-all font-mono text-[11px] ${p.id === 'koda-cloud' ? 'opacity-20 cursor-not-allowed' : ''}`
-                      : `w-full bg-slate-800 border border-slate-700 text-white rounded-lg p-2 outline-none focus:border-cyan transition-colors font-mono text-[11px] ${p.id === 'koda-cloud' ? 'opacity-30 cursor-not-allowed' : ''}`
+                      ? `w-full bg-neutral-950/40 border border-white/5 text-zinc-300 rounded-md px-2 py-1 outline-none focus:border-white/20 focus:bg-neutral-950/60 transition-all font-mono text-[11px] ${p.id === 'koda-cloud' ? 'opacity-20 cursor-not-allowed' : ''}`
+                      : `w-full bg-slate-800 border border-slate-700 text-white rounded-md px-2 py-1 outline-none focus:border-cyan transition-colors font-mono text-[11px] ${p.id === 'koda-cloud' ? 'opacity-30 cursor-not-allowed' : ''}`
 
                     const selectClass = isModern
-                      ? 'w-full bg-neutral-950/40 border border-white/5 text-zinc-300 rounded-lg p-2 outline-none focus:border-white/20 focus:bg-neutral-950/60 transition-all font-mono text-[11px] custom-scrollbar'
-                      : 'w-full bg-slate-800 border border-slate-700 text-white rounded-lg p-2 outline-none focus:border-magenta transition-colors font-mono text-[11px] custom-scrollbar'
+                      ? 'w-full bg-neutral-950/40 border border-white/5 text-zinc-300 rounded-md px-2 py-1 outline-none focus:border-white/20 focus:bg-neutral-950/60 transition-all font-mono text-[11px] custom-scrollbar'
+                      : 'w-full bg-slate-800 border border-slate-700 text-white rounded-md px-2 py-1 outline-none focus:border-magenta transition-colors font-mono text-[11px] custom-scrollbar'
 
                     const focusBorderClass = isModern ? 'focus:border-white/20' : 'focus:border-magenta'
 

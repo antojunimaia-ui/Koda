@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell, net, protocol } from 'electron'
 import path from 'node:path'
+import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { Agent } from './core/agent.js'
 import { resolvePlanApproval } from './tools/plan.js'
@@ -10,11 +11,19 @@ import { clearTrackedFiles } from './services/file-tracker.js'
 import { sessionManager } from './services/session-manager.js'
 import { DiscordRPCManager } from './services/discord-rpc.js'
 import { fileWatcher } from './services/file-watcher.js'
+import { selfInstallOnLinux } from './services/linux-installer.js'
 import electronUpdater from 'electron-updater'
 const { autoUpdater } = electronUpdater
 import dotenv from 'dotenv'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// Set working directory to user's home on startup so the agent
+// doesn't start inside the app's installation folder
+process.chdir(os.homedir())
+
+// On Linux AppImage: self-install on first run (chmod, .desktop entry, ~/.local/bin)
+selfInstallOnLinux()
 
 // Suppress deprecation warnings
 process.removeAllListeners('warning')

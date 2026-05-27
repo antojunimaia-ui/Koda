@@ -1,6 +1,8 @@
 import { watch, FSWatcher } from 'fs';
 import { BrowserWindow } from 'electron';
 import path from 'path';
+import os from 'os';
+
 
 class FileWatcherService {
   private watchers: Map<string, FSWatcher> = new Map();
@@ -11,6 +13,12 @@ class FileWatcherService {
   }
 
   watch(directory: string) {
+    // Don't watch the home directory — no project is open yet
+    if (directory === os.homedir()) {
+      console.log('[FileWatcher] Skipping watch: directory is home folder');
+      return;
+    }
+
     // Stop existing watcher for this directory
     this.unwatch(directory);
 
@@ -19,9 +27,7 @@ class FileWatcherService {
       
       const watcher = watch(directory, { recursive: true }, (eventType, filename) => {
         if (!filename) return;
-        
-        console.log('[FileWatcher] Change detected:', eventType, filename);
-        
+
         // Notify renderer about file system changes
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
           this.mainWindow.webContents.send('file-system:change', {

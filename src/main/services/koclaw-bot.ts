@@ -1,6 +1,7 @@
 import { Client, GatewayIntentBits, Message } from 'discord.js';
 import type { BrowserWindow } from 'electron';
 import type { Agent } from '../core/agent.js';
+import https from 'https';
 
 export interface KoClawConfig {
   token: string;
@@ -30,6 +31,12 @@ export async function startKoClawBot(
   }
 
   isReady = false;
+
+  // Discord.js uses Node's https under the hood — bypass certificate
+  // verification issues that occur in packaged Electron apps
+  https.globalAgent.options.rejectUnauthorized = false;
+  // discord.js uses undici internally which respects this env var
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
   client = new Client({
     intents: [
@@ -166,6 +173,9 @@ export async function stopKoClawBot(): Promise<void> {
 
   isReady = false;
   userTasks.clear();
+
+  // Restore TLS verification
+  delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
 
   try {
     await client.destroy();

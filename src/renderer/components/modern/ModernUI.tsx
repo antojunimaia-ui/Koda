@@ -382,7 +382,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
     const handleDropdownFocus = () => {
       if (!fetchModelsForProvider) return
-      // Trigger fetch for the active provider
       const activeOpt = modelDropdownOptions.find(o => o.providerId === currentProv)
       if (activeOpt) {
         fetchModelsForProvider(activeOpt.providerId, activeOpt.apiKey)
@@ -393,9 +392,21 @@ const ModernUI: React.FC<ModernUIProps> = ({
       providerId: currentProv,
       model: currentModel,
     })
+
+    // Measure text width using a hidden span so the select shrinks to fit
+    const rulerStyle: React.CSSProperties = {
+      position: 'absolute',
+      visibility: 'hidden',
+      whiteSpace: 'nowrap',
+      fontSize: '10px',
+      fontFamily: 'monospace',
+      pointerEvents: 'none',
+    }
     
     return (
       <div className="relative flex items-center shrink-0">
+        {/* Invisible ruler to measure the current model name width */}
+        <span id="model-ruler" style={rulerStyle}>{currentModel}</span>
         <select
           value={selectValue}
           onFocus={handleDropdownFocus}
@@ -404,21 +415,22 @@ const ModernUI: React.FC<ModernUIProps> = ({
               const { providerId, model } = JSON.parse(e.target.value)
               const opt = modelDropdownOptions.find(o => o.providerId === providerId)
               if (opt && onSelectActiveModel) {
-                // If switching provider, use the new provider's advisor model and apiKey
                 onSelectActiveModel(providerId, model, opt.advisorModel, opt.apiKey)
               }
             } catch (err) {
               console.error('Error selecting model/provider:', err)
             }
           }}
-          className="bg-neutral-950/40 border border-neutral-800/80 hover:border-neutral-700 text-zinc-400 hover:text-zinc-200 rounded px-2.5 py-1 text-[10px] font-bold font-mono tracking-wider outline-none cursor-pointer transition-all pr-5 appearance-none select-none max-w-[240px] truncate"
+          style={{
+            width: `calc(${currentModel.length}ch + 1.2rem)`,
+          }}
+          className="bg-transparent border-0 text-zinc-500 hover:text-zinc-300 text-[10px] font-mono outline-none cursor-pointer transition-colors appearance-none truncate"
         >
           {modelDropdownOptions.map((opt) => {
             const models = opt.availableModels && opt.availableModels.length > 0
               ? opt.availableModels
               : [opt.model]
 
-            // Ensure the currently configured model is always in the list
             if (!models.includes(opt.model)) {
               models.unshift(opt.model)
             }
@@ -437,7 +449,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
             )
           })}
         </select>
-        <div className="absolute right-1.5 pointer-events-none text-zinc-600 text-[8px]">
+        <div className="absolute right-0 pointer-events-none text-zinc-600 text-[8px]">
           ▼
         </div>
       </div>
