@@ -973,7 +973,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         isDraggingOver 
                           ? 'border-white bg-white/5' 
                           : 'border-neutral-800'
-                      } shadow-2xl backdrop-blur-xl focus-within:border-neutral-700`}
+                      } backdrop-blur-xl focus-within:border-neutral-700`}
                       onDragOver={handlePromptBoxDragOver}
                       onDragLeave={handlePromptBoxDragLeave}
                       onDrop={handlePromptBoxDrop}
@@ -1236,7 +1236,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       isDraggingOver 
                         ? 'border-white bg-white/5' 
                         : 'border-neutral-800'
-                    } shadow-2xl backdrop-blur-xl focus-within:border-neutral-700`}
+                    } backdrop-blur-xl focus-within:border-neutral-700`}
                     onDragOver={handlePromptBoxDragOver}
                     onDragLeave={handlePromptBoxDragLeave}
                     onDrop={handlePromptBoxDrop}

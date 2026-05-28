@@ -657,7 +657,14 @@ const App: React.FC = () => {
 
     let finalMsg = userMsg
     if (ws.mode === 'planner') {
-      finalMsg = `[PLANNER MODE PROTOCOL - MANDATORY]\n1. Use 'enter_plan_mode' IMMEDIATELY.\n2. Explore the codebase using read-only tools ONLY.\n3. DESIGN a complete implementation strategy.\n4. Call 'exit_plan_mode' with your Markdown plan to get my approval.\n5. DO NOT ATTEMPT TO EDIT ANY FILES OR RUN EVOLUTIVE SHELL COMMANDS UNTIL I APPROVE THE PLAN.\n\nYour current task is: ${userMsg}`
+      finalMsg = `[SPEC DEVELOPMENT MODE PROTOCOL - MANDATORY]
+1. Call the 'enter_plan_mode' tool IMMEDIATELY.
+2. Explore the codebase using read-only tools.
+3. WRITE your proposed specifications directly to 'specs.md' in the root directory.
+4. Call 'exit_plan_mode' with the Markdown specs content to submit it for my approval.
+5. DO NOT ATTEMPT TO EDIT OTHER FILES OR RUN EVOLUTIVE SHELL COMMANDS UNTIL I APPROVE THE SPEC.
+
+Your current task is: ${userMsg}`
     } else if (ws.mode === 'colab') {
       finalMsg = `[COLLABORATIVE MODE PROTOCOL - ACTIVE]\n1. You are working in COLLABORATIVE MODE.\n2. You have access to a suite of collaboration tools: 'start_collaboration', 'send_to_advisor', and 'end_collaboration'.\n3. Use 'start_collaboration' to initialize a discussion with an Elite Technical Advisor.\n4. Use 'send_to_advisor' to exchange ideas, ask follow-up questions, and refine your plan.\n5. Once you have a solid strategy approved by the advisor, use 'end_collaboration' and proceed to implementation.\n6. This mode is for COMPLEX architectural discussions. Use it to deliver superior engineering.\n\nYour current task is: ${userMsg}`
     } else if (ws.mode === 'teach') {

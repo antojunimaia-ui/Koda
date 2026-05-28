@@ -1,5 +1,7 @@
 import { BaseTool, ToolParameter, ToolResult } from "./base.js";
 import { BrowserWindow } from "electron";
+import { writeFile } from "fs/promises";
+import { resolve } from "path";
 
 // ─── Shared Plan State (singleton per session) ────────────────────────────────
 
@@ -49,8 +51,7 @@ function emitPlanState(type: string, payload: Record<string, unknown> = {}) {
 export class EnterPlanModeTool extends BaseTool {
   name = "enter_plan_mode";
   description = `Use this tool proactively when you're about to start a non-trivial implementation task.
-Getting user sign-off on your approach before writing code prevents wasted effort and ensures alignment.
-This tool transitions you into plan mode where you can explore the codebase and design an implementation approach.
+This tool transitions you into Spec Development mode where you can explore the codebase and draft a specifications file (specs.md) on the workspace.
 
 ## When to Use This Tool
 Use it when ANY of these conditions apply:
@@ -65,13 +66,13 @@ Use it when ANY of these conditions apply:
 - Tasks where the user gave very specific, detailed instructions
 - Pure research/exploration tasks
 
-Remember: DO NOT write or edit any files in plan mode. This is a read-only exploration and planning phase.`;
+Remember: In Spec Development mode, you may ONLY write or edit the "specs.md" file in the root of the project. No other file edits are allowed until the spec is approved.`;
 
   parameters: ToolParameter[] = [];
 
   async execute(_args: Record<string, unknown>): Promise<ToolResult> {
     if (state.mode === "plan") {
-      return this.success("Already in plan mode. Explore the codebase and design your approach. When ready, call exit_plan_mode with your plan.");
+      return this.success("Already in Spec Development mode. Explore the codebase and write your specifications to specs.md in the root directory. When ready, call exit_plan_mode.");
     }
 
     state.mode = "plan";
@@ -80,7 +81,7 @@ Remember: DO NOT write or edit any files in plan mode. This is a read-only explo
     emitPlanState("plan_mode_entered");
 
     return this.success(
-      `Entered plan mode.\n\nIn plan mode, you should:\n1. Thoroughly explore the codebase to understand existing patterns\n2. Identify similar features and architectural approaches\n3. Consider multiple approaches and their trade-offs\n4. Design a concrete implementation strategy\n5. When ready, use exit_plan_mode to present your plan for approval\n\nRemember: DO NOT write or edit any files yet. This is a read-only exploration and planning phase.`
+      `Entered Spec Development mode.\n\nIn this mode, you should:\n1. Thoroughly explore the codebase to understand existing patterns\n2. Design your implementation strategy\n3. Write your specifications into a "specs.md" file in the root directory\n4. When ready, call exit_plan_mode to present your plan for approval`
     );
   }
 }
@@ -89,18 +90,12 @@ Remember: DO NOT write or edit any files in plan mode. This is a read-only explo
 
 export class ExitPlanModeTool extends BaseTool {
   name = "exit_plan_mode";
-  description = `Use this tool when you are in plan mode and have finished designing your implementation approach and are ready for user approval.
+  description = `Use this tool when you are in Spec Development mode and have finished writing the specifications to "specs.md" and are ready for user approval.
 
 ## How This Tool Works
-- Write your complete plan as the 'plan' parameter
+- Write the complete plan/specs as the 'plan' parameter. If approved, it will be automatically written to "specs.md" in the root directory.
 - The user will review and either APPROVE (you can start coding) or REJECT (refine your approach)
-- If rejected, you stay in plan mode and should refine your plan
-
-## Before Using This Tool
-Ensure your plan is complete and unambiguous:
-- List every file you will create or modify
-- Describe the approach for each change
-- Note any dependencies or trade-offs
+- If rejected, you stay in Spec Development mode and should refine your specs.md
 
 Only use this tool when planning the implementation steps of a coding task — NOT for research tasks.`;
 
@@ -108,7 +103,7 @@ Only use this tool when planning the implementation steps of a coding task — N
     {
       name: "plan",
       type: "string",
-      description: "The complete implementation plan in Markdown. Must include: what you will do, which files will be touched, and why you chose this approach.",
+      description: "The complete implementation specifications in Markdown. This content will be written to specs.md upon approval.",
       required: true,
     },
   ];
@@ -116,13 +111,13 @@ Only use this tool when planning the implementation steps of a coding task — N
   async execute(args: Record<string, unknown>): Promise<ToolResult> {
     if (state.mode !== "plan") {
       return this.failure(
-        "You are not in plan mode. This tool is only for exiting plan mode after writing a plan. If you want to plan first, call enter_plan_mode."
+        "You are not in Spec Development mode. This tool is only for exiting Spec Development mode after writing specifications. If you want to plan first, call enter_plan_mode."
       );
     }
 
     const plan = args.plan as string;
     if (!plan || plan.trim() === "") {
-      return this.failure("Plan cannot be empty. Write a complete implementation plan before calling exit_plan_mode.");
+      return this.failure("Plan/Specification content cannot be empty. Write your specifications first.");
     }
 
     state.currentPlan = plan;
@@ -136,18 +131,25 @@ Only use this tool when planning the implementation steps of a coding task — N
     });
 
     if (approved) {
-      state.mode = "normal";
-      state.currentPlan = null;
-      emitPlanState("plan_mode_exited", { approved: true });
+      try {
+        const specsPath = resolve(process.cwd(), "specs.md");
+        await writeFile(specsPath, plan, "utf-8");
+        
+        state.mode = "normal";
+        state.currentPlan = null;
+        emitPlanState("plan_mode_exited", { approved: true });
 
-      return this.success(
-        `User has approved your plan. You can now start coding.\n\n## Approved Plan:\n${plan}`
-      );
+        return this.success(
+          `User has approved your specification. It has been successfully written to ${specsPath}. You can now start coding!\n\n## Approved Specs:\n${plan}`
+        );
+      } catch (err) {
+        return this.failure(`Plan approved but failed to write specs.md: ${(err as Error).message}`);
+      }
     } else {
-      // Stay in plan mode
+      // Stay in Spec Development mode
       emitPlanState("plan_mode_exited", { approved: false });
       return this.failure(
-        `User rejected the plan. Stay in plan mode, refine your approach based on their feedback, and call exit_plan_mode again with an improved plan.`
+        `User rejected the specifications. Stay in Spec Development mode, refine your specifications in specs.md, and call exit_plan_mode again.`
       );
     }
   }

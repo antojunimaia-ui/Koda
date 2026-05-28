@@ -132,11 +132,16 @@ export class ToolRegistry {
     if (getPlanMode() === "plan") {
       const destructiveTools = ["file_write", "file_edit", "shell", "file_move", "file_delete"];
       if (destructiveTools.includes(name)) {
-        return {
-          success: false,
-          output: "",
-          error: `[RESTRICTION] You are currently in PLAN MODE. You are FORBIDDEN from using destructive tools like '${name}' until the user approves your plan. Please finish your analysis and call 'exit_plan_mode' to present your strategy for approval.`,
-        };
+        // Allow writing/editing to specs.md specifically
+        const pathArg = args.path as string | undefined;
+        const isSpecsMd = pathArg && (pathArg === "specs.md" || pathArg.endsWith("/specs.md") || pathArg.endsWith("\\specs.md"));
+        if (!isSpecsMd) {
+          return {
+            success: false,
+            output: "",
+            error: `[RESTRICTION] You are currently in Spec Development mode. You are FORBIDDEN from using destructive tools like '${name}' on any file other than 'specs.md' until the user approves your plan. Please write your specifications to 'specs.md' and call 'exit_plan_mode' to present your strategy for approval.`,
+          };
+        }
       }
     }
 

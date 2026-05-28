@@ -16,7 +16,13 @@ marked.use(markedHighlight({
  * `koda-open://` links that the global click handler in App.tsx intercepts.
  */
 export const processMessageLinks = (text: string): string => {
-  return text.replace(
+  // First convert @[path] mentions to clickable links
+  let processed = text.replace(/@\[(.*?)\]/g, (match, filePath) => {
+    return `[📄 ${filePath}](koda-open://${filePath})`;
+  });
+
+  // Then convert file path references (e.g. src/main.ts:45)
+  return processed.replace(
     /(([a-zA-Z]:[\\/][^: \n\r`"']+)|([^: \n\r`"']+)):(\d+)/g,
     (match, _full, absPath, relPath, line) => {
       const finalPath = absPath || relPath

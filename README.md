@@ -71,9 +71,9 @@ Switchable from the TitleBar via a dropdown selector.
 
 Immediate autonomous execution. The agent acts on your request without any planning step.
 
-### 📋 Planner
+### 📋 Spec Development
 
-Before writing any code, Koda enters a read-only exploration cycle, then presents a complete Markdown plan. A modal appears for you to **Approve** or **Reject**. Destructive tools are blocked until approval is granted.
+Before writing any code, Koda enters a read-only exploration cycle and drafts a full specification file (`specs.md`) at the root of your project. A modal appears for you to **Approve** or **Reject** the spec. No files are modified until approval is granted.
 
 ### 👥 Colab
 
