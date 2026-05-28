@@ -19,6 +19,35 @@ const AssistantMessage = memo(({ text, done, uiMode = 'classic' }: AssistantMess
     }
   }
 
+  const handleMessageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    const copyBtn = target.closest('.copy-code-btn')
+    if (copyBtn) {
+      const codeText = copyBtn.getAttribute('data-code')
+      if (codeText) {
+        const decoded = decodeURIComponent(codeText)
+        navigator.clipboard.writeText(decoded).then(() => {
+          const textSpan = copyBtn.querySelector('span')
+          const iconEl = copyBtn.querySelector('.codicon')
+          if (textSpan) {
+            textSpan.textContent = 'Copied!'
+            if (iconEl) {
+              iconEl.className = 'codicon codicon-check text-emerald-400 pointer-events-none'
+            }
+            setTimeout(() => {
+              textSpan.textContent = 'Copy'
+              if (iconEl) {
+                iconEl.className = 'codicon codicon-copy text-[10px] pointer-events-none'
+              }
+            }, 2000)
+          }
+        }).catch(err => {
+          console.error('Failed to copy text: ', err)
+        })
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col ml-4">
       {/* Koda Avatar - sempre no topo */}
@@ -64,6 +93,7 @@ const AssistantMessage = memo(({ text, done, uiMode = 'classic' }: AssistantMess
             <div
               className="markdown-body text-slate-300 leading-relaxed overflow-x-auto w-full"
               dangerouslySetInnerHTML={{ __html: html }}
+              onClick={handleMessageClick}
             />
             {!done && (
               <span className="inline-block mt-2">
