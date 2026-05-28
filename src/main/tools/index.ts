@@ -2,6 +2,8 @@ import { BaseTool, ToolDefinition } from "./base.js";
 import { FileReadTool } from "./file-read.js";
 import { FileWriteTool } from "./file-write.js";
 import { FileEditTool } from "./file-edit.js";
+import { FileMoveTool } from "./file-move.js";
+import { FileDeleteTool } from "./file-delete.js";
 import { ShellTool, KillPtyTool, ListPtyTool, ShellInputTool, ShellWaitTool } from "./shell.js";
 import { SearchTool } from "./search.js";
 import { ListDirTool } from "./list-dir.js";
@@ -31,6 +33,8 @@ export class ToolRegistry {
     this.register(new FileReadTool());
     this.register(new FileWriteTool());
     this.register(new FileEditTool());
+    this.register(new FileMoveTool());
+    this.register(new FileDeleteTool());
     this.register(new ShellTool());
     this.register(new SearchTool());
     this.register(new ListDirTool());
@@ -54,7 +58,7 @@ export class ToolRegistry {
   }
 
   clearNonCoreTools(): void {
-    const coreTools = ["file_read", "file_write", "file_edit", "shell", "search", "list_dir", "file_find", "browser", "lsp", "enter_plan_mode", "exit_plan_mode", "kill_pty", "list_pty", "shell_input", "shell_wait", "start_collaboration", "send_to_advisor", "end_collaboration", "load_skill", "get_diagnostics", "web_search", "web_fetch", "questions"];
+    const coreTools = ["file_read", "file_write", "file_edit", "shell", "search", "list_dir", "file_find", "browser", "lsp", "enter_plan_mode", "exit_plan_mode", "kill_pty", "list_pty", "shell_input", "shell_wait", "start_collaboration", "send_to_advisor", "end_collaboration", "load_skill", "get_diagnostics", "web_search", "web_fetch", "questions", "file_move", "file_delete"];
     for (const name of this.tools.keys()) {
       if (!coreTools.includes(name)) {
         this.tools.delete(name);
@@ -126,7 +130,7 @@ export class ToolRegistry {
     // Hard-enforce Plan Mode restrictions
     const { getPlanMode } = await import("./plan.js");
     if (getPlanMode() === "plan") {
-      const destructiveTools = ["file_write", "file_edit", "shell"];
+      const destructiveTools = ["file_write", "file_edit", "shell", "file_move", "file_delete"];
       if (destructiveTools.includes(name)) {
         return {
           success: false,
@@ -149,8 +153,8 @@ export class ToolRegistry {
   private afterExecute(name: string, args: Record<string, unknown>, success: boolean): void {
     if (!success) return;
     const FILE_READ_TOOLS = new Set(["file_read"]);
-    const FILE_WRITE_TOOLS = new Set(["file_write", "file_edit"]);
-    const pathArg = args.path as string | undefined;
+    const FILE_WRITE_TOOLS = new Set(["file_write", "file_edit", "file_move", "file_delete"]);
+    const pathArg = args.path as string | undefined || args.sourcePath as string | undefined;
     if (!pathArg) return;
     const absPath = resolve(process.cwd(), pathArg);
     if (FILE_WRITE_TOOLS.has(name)) {
