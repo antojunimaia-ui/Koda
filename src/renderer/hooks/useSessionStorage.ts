@@ -8,63 +8,177 @@ export interface StoredSession {
   pinnedFiles: string[]
 }
 
-function projectKey(projectPath: string): string {
-  // Hash simples do path pra usar como chave
+interface SessionIndexEntry {
+  id: string
+  title: string
+  timestamp: number
+}
+
+// ── Key helpers ───────────────────────────────────────────────────────────────
+
+function hashPath(projectPath: string): string {
   let hash = 0
   for (let i = 0; i < projectPath.length; i++) {
     hash = ((hash << 5) - hash + projectPath.charCodeAt(i)) | 0
   }
-  return `koda_sessions_${Math.abs(hash).toString(16)}`
+  return Math.abs(hash).toString(16)
+}
+
+/** Lightweight index — stores only { id, title, timestamp } per session */
+function indexKey(projectPath: string): string {
+  return `koda_sessions_idx_${hashPath(projectPath)}`
+}
+
+/** Full session data stored individually — serializes only 1 session at a time */
+function sessionKey(sessionId: string): string {
+  return `koda_sess_${sessionId}`
+}
+
+/** Legacy monolithic key (pre-refactor) — used for one-time migration */
+function legacyKey(projectPath: string): string {
+  return `koda_sessions_${hashPath(projectPath)}`
 }
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export const sessionStorage = {
-  list(projectPath: string): StoredSession[] {
-    try {
-      const raw = localStorage.getItem(projectKey(projectPath))
-      if (!raw) return []
-      const sessions: StoredSession[] = JSON.parse(raw)
-      return sessions.sort((a, b) => b.timestamp - a.timestamp)
-    } catch {
-      return []
+// ── Migration ─────────────────────────────────────────────────────────────────
+
+/**
+ * One-time migration from the old monolithic key (all 50 sessions in one JSON)
+ * to the new per-session key architecture. Runs once per project path.
+ */
+function migrateIfNeeded(projectPath: string): void {
+  const legacy = legacyKey(projectPath)
+  const raw = localStorage.getItem(legacy)
+  if (!raw) return
+
+  const idxKey = indexKey(projectPath)
+  // Already migrated — just clean up the old key
+  if (localStorage.getItem(idxKey)) {
+    localStorage.removeItem(legacy)
+    return
+  }
+
+  try {
+    const sessions: StoredSession[] = JSON.parse(raw)
+    const index: SessionIndexEntry[] = []
+    for (const session of sessions) {
+      localStorage.setItem(sessionKey(session.id), JSON.stringify(session))
+      index.push({ id: session.id, title: session.title, timestamp: session.timestamp })
     }
+    localStorage.setItem(idxKey, JSON.stringify(index))
+  } catch {
+    // Migration failed — start fresh
+  } finally {
+    localStorage.removeItem(legacy)
+  }
+}
+
+// ── Index helpers ─────────────────────────────────────────────────────────────
+
+function readIndex(projectPath: string): SessionIndexEntry[] {
+  migrateIfNeeded(projectPath)
+  try {
+    const raw = localStorage.getItem(indexKey(projectPath))
+    if (!raw) return []
+    return JSON.parse(raw) as SessionIndexEntry[]
+  } catch {
+    return []
+  }
+}
+
+function writeIndex(projectPath: string, index: SessionIndexEntry[]): void {
+  localStorage.setItem(indexKey(projectPath), JSON.stringify(index))
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+export const sessionStorage = {
+  /**
+   * Returns session metadata sorted newest-first.
+   * Reads only the lightweight index — does NOT load message arrays.
+   */
+  list(projectPath: string): StoredSession[] {
+    const index = readIndex(projectPath)
+    return index
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map(entry => ({
+        id: entry.id,
+        title: entry.title,
+        timestamp: entry.timestamp,
+        messages: [],    // not loaded — use get() for full data
+        pinnedFiles: [],
+      }))
   },
 
+  /** Loads a single session by ID — O(1), reads only that session's key. */
   get(projectPath: string, sessionId: string): StoredSession | null {
-    const sessions = sessionStorage.list(projectPath)
-    return sessions.find(s => s.id === sessionId) || null
+    migrateIfNeeded(projectPath)
+    try {
+      const raw = localStorage.getItem(sessionKey(sessionId))
+      if (raw) return JSON.parse(raw) as StoredSession
+    } catch {}
+    return null
   },
 
+  /**
+   * Saves a session. O(1) — writes only the current session's key,
+   * then updates the small index. No longer serializes all 50 sessions.
+   */
   save(projectPath: string, session: Omit<StoredSession, 'id' | 'title'> & { id?: string; title?: string }): string {
-    const sessions = sessionStorage.list(projectPath)
+    migrateIfNeeded(projectPath)
     const id = session.id || generateId()
     const title = session.title || session.messages.find(m => m.type === 'user')?.text?.slice(0, 50) || 'Untitled'
 
-    const existing = sessions.findIndex(s => s.id === id)
-    const updated: StoredSession = { id, title, timestamp: Date.now(), messages: session.messages, pinnedFiles: session.pinnedFiles }
-
-    if (existing >= 0) {
-      sessions[existing] = updated
-    } else {
-      sessions.unshift(updated)
+    const updated: StoredSession = {
+      id,
+      title,
+      timestamp: Date.now(),
+      messages: session.messages,
+      pinnedFiles: session.pinnedFiles,
     }
 
-    // Limita a 50 sessões por projeto
-    const trimmed = sessions.slice(0, 50)
-    localStorage.setItem(projectKey(projectPath), JSON.stringify(trimmed))
+    // Write only this one session — this is the key performance fix
+    localStorage.setItem(sessionKey(id), JSON.stringify(updated))
+
+    // Update the lightweight index
+    const index = readIndex(projectPath)
+    const existingIdx = index.findIndex(e => e.id === id)
+    const entry: SessionIndexEntry = { id, title, timestamp: updated.timestamp }
+
+    if (existingIdx >= 0) {
+      index[existingIdx] = entry
+    } else {
+      index.unshift(entry)
+    }
+
+    // Enforce 50-session limit — clean up evicted session data
+    if (index.length > 50) {
+      const evicted = index.splice(50)
+      for (const e of evicted) {
+        localStorage.removeItem(sessionKey(e.id))
+      }
+    }
+
+    writeIndex(projectPath, index)
     return id
   },
 
+  /** Deletes a session and removes it from the index. */
   delete(projectPath: string, sessionId: string): void {
-    const sessions = sessionStorage.list(projectPath).filter(s => s.id !== sessionId)
-    localStorage.setItem(projectKey(projectPath), JSON.stringify(sessions))
+    migrateIfNeeded(projectPath)
+    localStorage.removeItem(sessionKey(sessionId))
+    const index = readIndex(projectPath).filter(e => e.id !== sessionId)
+    writeIndex(projectPath, index)
   },
 
+  /** Returns the most recently saved session with full message data. */
   getMostRecent(projectPath: string): StoredSession | null {
-    const sessions = sessionStorage.list(projectPath)
-    return sessions[0] || null
-  }
+    const index = readIndex(projectPath)
+    if (index.length === 0) return null
+    const sorted = [...index].sort((a, b) => b.timestamp - a.timestamp)
+    return sessionStorage.get(projectPath, sorted[0].id)
+  },
 }

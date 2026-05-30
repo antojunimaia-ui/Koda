@@ -45,19 +45,19 @@ const SETTINGS_STEPS: TourStep[] = [
   {
     targetId: 'stour-api',
     title: 'API & Models',
-    description: 'Configure seu provedor de IA e chave de API. Escolha entre OpenAI, Anthropic, Google, Koda Cloud e mais 10 provedores.',
+    description: 'Configure your AI provider and API key. Choose from OpenAI, Anthropic, Google, Koda Cloud, and over 10 more providers.',
     arrowDir: 'right',
   },
   {
     targetId: 'stour-themes',
-    title: 'Temas',
-    description: 'Personalize as cores do Koda. Escolha entre Tokyo Night, Monokai, Cyberpunk e GitHub Dark — ou edite os valores diretamente.',
+    title: 'Themes',
+    description: 'Customize Koda\'s colors. Choose between Tokyo Night, Monokai, Cyberpunk, and GitHub Dark — or edit the values directly.',
     arrowDir: 'right',
   },
   {
     targetId: 'stour-koda',
     title: 'Koda Settings',
-    description: 'Controle o que aparece na interface: modo de exibição das ferramentas, posição do terminal e navegador, Iconbar, e modo de UI (Modern ou Classic).',
+    description: 'Control what appears in the interface: tool display mode, terminal and browser positions, Iconbar, and UI mode (Modern or Classic).',
     arrowDir: 'right',
   },
   {
@@ -69,7 +69,7 @@ const SETTINGS_STEPS: TourStep[] = [
   {
     targetId: 'stour-skills',
     title: 'Skills',
-    description: 'Instale skills do marketplace para dar ao Koda conhecimento especializado em frameworks, linguagens ou fluxos de trabalho específicos.',
+    description: 'Install skills from the marketplace to give Koda specialized knowledge in frameworks, languages, or specific workflows.',
     arrowDir: 'right',
   },
 ]
@@ -79,9 +79,9 @@ const MAIN_STORAGE_KEY = 'koda_onboarding_done'
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface OnboardingTourProps {
-  // Modo principal (ModernUI)
+  // Main mode (ModernUI)
   show?: boolean
-  // Modo settings
+  // Settings mode
   mode?: 'settings'
   active?: boolean
   onDone?: () => void
@@ -254,7 +254,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ show, mode, active, onD
   return <MainTour show={show ?? false} />
 }
 
-// Componente interno pra manter o estado do tour principal isolado
+// Internal component to keep the main tour state isolated
 const MainTour: React.FC<{ show: boolean }> = ({ show }) => {
   const [visible, setVisible] = useState(false)
   const { step, setStep, pos, ready, tooltipRef } = useTour(MAIN_STEPS, visible)

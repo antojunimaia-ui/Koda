@@ -4,6 +4,7 @@ import KodaSettingsTab from './KodaSettingsTab.js'
 import RemoteControlTab from './RemoteControlTab.js'
 import SkillMarketplace from './SkillMarketplace.js'
 import OnboardingTour from '../modern/OnboardingTour.js'
+import { KoDB } from '../../db/kodb.js'
 import tokyoNight from '../../themes/tokyo-night.json'
 import monokai from '../../themes/monokai.json'
 import cyberpunk from '../../themes/cyberpunk.json'
@@ -80,23 +81,15 @@ const SettingsUI = memo(({
   const [provider, setProvider] = useState(defaultProvider || 'openai')
   const [model, setModel] = useState(defaultModel || 'gpt-4o')
   const [advisorModel, setAdvisorModel] = useState(defaultAdvisorModel || 'gpt-4o')
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('koda_api_key') || '')
+  const [apiKey, setApiKey] = useState(() => KoDB.get('apiKey'))
 
   const [providersConfig, setProvidersConfig] = useState<Record<string, { apiKey: string, model: string, advisorModel: string }>>(() => {
-    let parsed: Record<string, { apiKey: string, model: string, advisorModel?: string }> = {}
-    try {
-      const saved = localStorage.getItem('koda_providers_config')
-      if (saved) {
-        parsed = JSON.parse(saved)
-      }
-    } catch (e) {
-      console.error(e)
-    }
+    const parsed = KoDB.get('providersConfig')
 
-    const currentProvider = localStorage.getItem('koda_provider') || 'openai'
-    const currentKey = localStorage.getItem('koda_api_key') || ''
-    const currentModel = localStorage.getItem('koda_model') || ''
-    const currentAdvisorModel = localStorage.getItem('koda_advisor_model') || ''
+    const currentProvider = KoDB.get('provider')
+    const currentKey = KoDB.get('apiKey')
+    const currentModel = KoDB.get('model')
+    const currentAdvisorModel = KoDB.get('advisorModel')
 
     const initialConfig: Record<string, { apiKey: string, model: string, advisorModel: string }> = {}
     
@@ -165,11 +158,11 @@ const SettingsUI = memo(({
   }
 
   const handleSave = () => {
-    localStorage.setItem('koda_providers_config', JSON.stringify(providersConfig))
-    localStorage.setItem('koda_api_key', apiKey)
-    localStorage.setItem('koda_provider', provider)
-    localStorage.setItem('koda_model', model)
-    localStorage.setItem('koda_advisor_model', advisorModel)
+    KoDB.set('providersConfig', providersConfig)
+    KoDB.set('apiKey', apiKey)
+    KoDB.set('provider', provider)
+    KoDB.set('model', model)
+    KoDB.set('advisorModel', advisorModel)
     onSave({ provider, model, advisorModel, apiKey })
   }
 

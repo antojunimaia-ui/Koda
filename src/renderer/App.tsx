@@ -25,6 +25,7 @@ import UpdateBanner from './components/UpdateBanner.js'
 import ContextPanel, { ContextPanelOverlay, ExplorerTabButton } from './components/context/ContextPanel.js'
 import { ExplorerPanelOverlay } from './components/context/ContextPanel.js'
 import SettingsUI, { DEFAULT_THEME } from './components/settings/SettingsUI.js'
+import { KoDB } from './db/kodb.js'
 
 // ─── UI Modes ───────────────────────────────────────────────────────────────
 import ClassicUI from './components/classic/ClassicUI.js'
@@ -97,16 +98,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('koda_providers_config')
-      if (saved) {
-        const config = JSON.parse(saved) as Record<string, { apiKey: string, model: string, advisorModel: string }>
-        Object.entries(config).forEach(([provId, data]) => {
-          const noKeyRequired = ['koda-cloud', 'ollama', 'llamacpp'].includes(provId)
-          if (noKeyRequired || !!data.apiKey) {
-            fetchModelsForProvider(provId, data.apiKey)
-          }
-        })
-      }
+      const config = KoDB.get('providersConfig')
+      Object.entries(config).forEach(([provId, data]) => {
+        const noKeyRequired = ['koda-cloud', 'ollama', 'llamacpp'].includes(provId)
+        if (noKeyRequired || !!data.apiKey) {
+          fetchModelsForProvider(provId, data.apiKey)
+        }
+      })
     } catch (e) {
       console.error('Error auto-fetching models:', e)
     }
@@ -152,11 +150,7 @@ const App: React.FC = () => {
   })
 
   const [theme, setTheme] = useState<KodaTheme>(() => {
-    try {
-      const saved = localStorage.getItem('koda_theme')
-      if (saved) return JSON.parse(saved)
-    } catch { }
-    return DEFAULT_THEME
+    return KoDB.get('theme')
   })
 
   // ── Workspace Actions ───────────────────────────────────────────────────────
@@ -326,7 +320,7 @@ const App: React.FC = () => {
   }, [kodaSettings])
 
   useEffect(() => {
-    localStorage.setItem('koda_theme', JSON.stringify(theme))
+    KoDB.set('theme', theme)
     const root = document.documentElement
     const { colors: c } = theme
 
@@ -372,10 +366,10 @@ const App: React.FC = () => {
 
     // Initialize with a default workspace if none exist
     if (workspaces.length === 0) {
-      const savedKey = localStorage.getItem('koda_api_key')
-      const savedProvider = localStorage.getItem('koda_provider')
-      const savedModel = localStorage.getItem('koda_model')
-      const savedAdvisor = localStorage.getItem('koda_advisor_model')
+      const savedKey = KoDB.get('apiKey')
+      const savedProvider = KoDB.get('provider')
+      const savedModel = KoDB.get('model')
+      const savedAdvisor = KoDB.get('advisorModel')
 
       const initialId = Math.random().toString(36).substring(7)
       window.koda.init(initialId).then(async (res: any) => {
@@ -987,21 +981,18 @@ Your current task is: ${userMsg}`
             const res = await window.koda.setup(activeWorkspace.id, { provider: providerId, model, advisorModel, apiKey })
             if (res.success) {
               updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
-              localStorage.setItem('koda_provider', providerId)
-              localStorage.setItem('koda_model', model)
-              localStorage.setItem('koda_api_key', apiKey)
-              if (advisorModel) localStorage.setItem('koda_advisor_model', advisorModel)
+              KoDB.set('provider', providerId)
+              KoDB.set('model', model)
+              KoDB.set('apiKey', apiKey)
+              if (advisorModel) KoDB.set('advisorModel', advisorModel)
 
               // Sync the active model to providers config too
               try {
-                const saved = localStorage.getItem('koda_providers_config')
-                if (saved) {
-                  const config = JSON.parse(saved)
-                  if (config[providerId]) {
-                    config[providerId].model = model
-                    if (advisorModel) config[providerId].advisorModel = advisorModel
-                    localStorage.setItem('koda_providers_config', JSON.stringify(config))
-                  }
+                const config = KoDB.get('providersConfig')
+                if (config[providerId]) {
+                  config[providerId].model = model
+                  if (advisorModel) config[providerId].advisorModel = advisorModel
+                  KoDB.set('providersConfig', config)
                 }
               } catch (e) {
                 console.error('Error syncing provider model selection:', e)

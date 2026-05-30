@@ -1,5 +1,4 @@
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { existsSync, statSync } from "fs";
+import { readFile, writeFile, mkdir, stat } from "fs/promises";
 import { resolve, dirname } from "path";
 import { globby } from "globby";
 
@@ -53,9 +52,9 @@ export async function createSnapshot(
     files.map(async (relPath) => {
       const absPath = resolve(cwd, relPath);
       try {
-        const stat = statSync(absPath);
+        const fileStat = await stat(absPath);
         // Skip binary files larger than 2 MB or binary blobs
-        if (stat.size > 2 * 1024 * 1024) return;
+        if (fileStat.size > 2 * 1024 * 1024) return;
         const content = await readFile(absPath, "utf-8");
         fileMap[absPath] = content;
       } catch {
