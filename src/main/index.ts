@@ -253,7 +253,8 @@ ipcMain.handle('agent:message', async (_event, workspaceId: string, messageId: n
   // before any destructive tool (file_write, file_edit, shell…) can execute,
   // so rollback safety is fully preserved.
   const convLength = agent.getConversationLength()
-  const snapshotPromise = createSnapshot(messageId, convLength)
+  const cwd = agent.getInfo().cwd || process.cwd()
+  const snapshotPromise = createSnapshot(cwd, messageId, convLength)
   pendingSnapshots.set(messageId, snapshotPromise)
   // Clean up the entry once the snapshot settles (success or error)
   snapshotPromise.finally(() => pendingSnapshots.delete(messageId))

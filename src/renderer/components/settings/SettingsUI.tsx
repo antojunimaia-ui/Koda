@@ -98,6 +98,7 @@ const SettingsUI = memo(({
       const savedData = parsed[p.id] || {}
       
       const defaults = PROVIDER_DEFAULTS[p.id] || { model: '', advisorModel: '' }
+
       
       initialConfig[p.id] = {
         apiKey: savedData.apiKey ?? (isCurrent ? currentKey : ''),
@@ -174,9 +175,14 @@ const SettingsUI = memo(({
         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
     }`
 
+  // Block clicks from propagating to the background
+  const handleWrapperClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+  }
+
   return (
-    <div className={`absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200 ${uiMode === 'modern' ? 'bg-black/60' : 'bg-black/80'}`}>
-      <div className={`flex w-[960px] h-[640px] border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#141414] border-white/8' : 'bg-slate-900 border-slate-700/50'}`}>
+    <div className={`absolute inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200 ${uiMode === 'modern' ? 'bg-black/60' : 'bg-black/80'}`} onClick={onClose}>
+      <div className={`flex w-[960px] h-[640px] border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#141414] border-white/8' : 'bg-slate-900 border-slate-700/50'}`} onClick={handleWrapperClick}>
 
         {/* Sidebar */}
         <div className={`w-1/4 flex flex-col p-4 gap-2 ${uiMode === 'modern' ? 'bg-white/[0.02] border-r border-white/5' : 'bg-slate-800/30 border-r border-slate-700/50'}`}>

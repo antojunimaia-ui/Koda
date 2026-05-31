@@ -11,15 +11,14 @@ interface ChatHistoryProps {
 
 const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, onLoadSession, isVisible }) => {
   const [sessions, setSessions] = useState<Array<{ id: string; title: string; timestamp: number }>>([])
-  const [isHovering, setIsHovering] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if ((isVisible || isHovering) && projectPath) {
+    if (projectPath) {
       loadSessions()
     }
-  }, [isVisible, isHovering, projectPath])
+  }, [isVisible, projectPath])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -61,14 +60,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
   const projectName = projectPath.split(/[/\\]/).pop() || 'Project'
 
   return (
-    <div className="absolute left-12 top-0 bottom-0 z-[1050] pointer-events-none">
-      <div
-        className={`w-72 h-full bg-[#141414] border-r border-white/5 flex flex-col transition-transform duration-200 shadow-2xl pointer-events-auto ${
-          (isVisible || isHovering) ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => { setIsHovering(false); setMenuOpenId(null) }}
-      >
+    <div className="flex flex-col flex-1 min-h-0">
         {/* Header */}
         <div className="p-4 border-b border-white/5">
           <div className="text-white font-bold text-sm mb-1">{projectName}</div>
@@ -130,7 +122,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
             ))
           )}
         </div>
-      </div>
     </div>
   )
 }

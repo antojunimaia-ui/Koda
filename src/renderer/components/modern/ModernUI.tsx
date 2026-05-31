@@ -687,6 +687,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
         onTogglePanel={onTogglePanel}
         uiMode="modern"
         showIconBar={kodaSettings.showIconBar}
+        onToggleIconBar={() => setKodaSettings(prev => ({ ...prev, showIconBar: !prev.showIconBar }))}
         isSplitEnabled={isSplitEnabled}
         onToggleSplit={onToggleSplit || (() => {})}
         extraButton={
@@ -729,30 +730,38 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
 
       <div className="flex flex-1 min-h-0 relative flex-row">
-        {/* ── Iconbar (Modern Only) ── */}
+        {/* ── Left Sidebar (Modern Only) ── */}
         {kodaSettings.showIconBar && (
-          <>
-            <div 
-              id="tour-iconbar"
-              className="w-12 bg-[#141414] border-r border-white/5 flex flex-col items-center py-4 gap-4 shrink-0 z-[1100]"
-              onMouseEnter={() => setShowChatHistory(true)}
-              onMouseLeave={() => setShowChatHistory(false)}
-            >
-              <div className="flex flex-col gap-2 flex-1 pt-2">
-              <button 
+          <div
+            id="tour-iconbar"
+            className="w-64 bg-[#141414] border-r border-white/5 flex flex-col shrink-0 z-[1100] overflow-hidden"
+          >
+            {/* Sessions — inline, sempre visível */}
+            <ChatHistory
+              projectPath={agentInfo?.cwd || ''}
+              onNewSession={() => onNewSession?.()}
+              onLoadSession={(sessionId) => onLoadSession?.(sessionId)}
+              isVisible={true}
+            />
+
+            {/* Botões de ferramentas */}
+            <div className="border-t border-white/5 py-2 px-2 flex flex-col gap-0.5">
+              <button
                 onClick={() => onTerminalClick()}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showTerminal ? 'bg-amber-500/10 text-amber-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-left ${showTerminal ? 'bg-amber-500/10 text-amber-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
                 title="Toggle Terminal"
               >
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                <span className="text-[11px] font-medium">Terminal</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => onBrowserClick()}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showBrowser ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-left ${showBrowser ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
                 title="Toggle Browser"
               >
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <span className="text-[11px] font-medium">Browser</span>
               </button>
 
               {kodaSettings.explorerButtonPosition !== 'titlebar' && (
@@ -789,33 +798,28 @@ const ModernUI: React.FC<ModernUIProps> = ({
               )}
             </div>
 
-            <div className="flex flex-col gap-2 mb-2">
-              <button 
+            {/* MCP + Settings na parte inferior */}
+            <div className="border-t border-white/5 py-2 px-2 flex flex-col gap-0.5">
+              <button
                 onClick={onMcpClick}
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-400 hover:bg-white/5 transition-all"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:text-indigo-400 hover:bg-white/5 transition-all text-left"
                 title="MCP Systems"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                <span className="text-[11px] font-medium">MCP</span>
               </button>
-              <button 
+              <button
                 onClick={onSettingsClick}
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-zinc-200 hover:bg-white/5 transition-all"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:text-zinc-200 hover:bg-white/5 transition-all text-left"
                 title="Settings"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span className="text-[11px] font-medium">Settings</span>
               </button>
             </div>
           </div>
+        )}
 
-          {/* Chat History Panel */}
-          <ChatHistory
-            projectPath={agentInfo?.cwd || ''}
-            onNewSession={() => onNewSession?.()}
-            onLoadSession={(sessionId) => onLoadSession?.(sessionId)}
-            isVisible={showChatHistory}
-          />
-        </>
-      )}
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Workspace tabs — inside the chat column, naturally right of the Iconbar */}

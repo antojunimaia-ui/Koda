@@ -15,6 +15,7 @@ interface TitleBarProps {
   onTogglePanel: () => void
   uiMode?: 'classic' | 'modern'
   showIconBar?: boolean
+  onToggleIconBar?: () => void
   isSplitEnabled: boolean
   onToggleSplit: () => void
   extraButton?: React.ReactNode
@@ -30,7 +31,7 @@ const MODES: { id: Mode; label: string; icon: string; desc: string; color: strin
 const TitleBar: React.FC<TitleBarProps> = ({ 
   mode, onModeChange, onSettingsClick, onMcpClick, 
   onBrowserClick, showBrowser, onTerminalClick, showTerminal, 
-  showPanel, onTogglePanel, uiMode = 'classic', showIconBar = true,
+  showPanel, onTogglePanel, uiMode = 'classic', showIconBar = true, onToggleIconBar,
   isSplitEnabled, onToggleSplit, extraButton
 }) => {
   const [showDropdown, setShowDropdown] = useState(false)
@@ -94,21 +95,32 @@ const TitleBar: React.FC<TitleBarProps> = ({
   )
 
   return (
-    <div className={`relative h-10 flex items-center justify-between select-none titlebar-drag shrink-0 z-[1000] ${uiMode === 'modern' ? 'bg-transparent pr-3' : 'bg-slate-900 border-b border-white/5 px-3'}`}>
+    <div className={`relative h-8 flex items-center justify-between select-none titlebar-drag shrink-0 z-[1000] ${uiMode === 'modern' ? 'bg-transparent pr-3' : 'bg-slate-900 border-b border-white/5 px-3'}`}>
       
       {/* Custom bottom border for Modern UI (starts after Iconbar) */}
       {uiMode === 'modern' && (
-        <div className={`absolute bottom-0 right-0 h-[1px] bg-white/5 ${showIconBar ? 'left-12' : 'left-0'}`} />
+        <div className={`absolute bottom-0 right-0 h-[1px] bg-white/5 ${showIconBar ? 'left-64' : 'left-0'}`} />
       )}
 
       <div className="flex items-center h-full relative z-10">
         
         {/* Visual extension of the IconBar directly inside the TitleBar */}
-        {uiMode === 'modern' && showIconBar && (
-          <div className="w-12 h-full shrink-0" />
+        {uiMode === 'modern' && (
+          <div className={`${showIconBar ? 'w-64' : 'w-auto pr-3'} h-full shrink-0 flex items-center pl-3`}>
+            <button
+              onClick={onToggleIconBar}
+              className={`w-7 h-7 flex items-center justify-center rounded transition-all no-drag ${showIconBar ? 'text-slate-500 hover:text-cyan-400 hover:bg-white/5' : 'text-slate-500 hover:text-cyan-400 hover:bg-white/5'}`}
+              title={showIconBar ? 'Hide Sidebar' : 'Show Sidebar'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+              </svg>
+            </button>
+          </div>
         )}
 
-        <div className={`flex items-center gap-1 h-full ${uiMode === 'modern' ? 'pl-3' : ''}`}>
+        <div className={`flex items-center gap-1 h-full ${uiMode === 'modern' && !showIconBar ? 'pl-0' : uiMode === 'modern' ? 'pl-3' : ''}`}>
           <div className="no-drag h-full flex items-center">
             {modeSelector}
           </div>
@@ -192,7 +204,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
             <button
               onClick={onTogglePanel}
               title={showPanel ? 'Hide context panel' : 'Show context panel'}
-              className={`w-11 h-10 flex items-center justify-center transition-colors no-drag ${showPanel ? 'text-cyan-400 bg-cyan-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+              className={`w-11 h-8 flex items-center justify-center transition-colors no-drag ${showPanel ? 'text-cyan-400 bg-cyan-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18M3 12h12M3 18h8"/>
@@ -203,19 +215,19 @@ const TitleBar: React.FC<TitleBarProps> = ({
 
         <button 
           onClick={() => window.koda.minimize()}
-          className="w-11 h-10 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
+          className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
         >
           <svg width="12" height="1" viewBox="0 0 12 1" fill="currentColor"><rect width="12" height="1"/></svg>
         </button>
         <button 
           onClick={() => window.koda.maximize()}
-          className="w-11 h-10 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
+          className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1"><rect x="1" y="1" width="8" height="8"/></svg>
         </button>
         <button 
           onClick={() => window.koda.close()}
-          className="w-11 h-10 flex items-center justify-center text-slate-400 hover:bg-rose-600 hover:text-white transition-colors no-drag"
+          className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-rose-600 hover:text-white transition-colors no-drag"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
             <path d="M1 1L9 9M9 1L1 9"/>

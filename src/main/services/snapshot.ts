@@ -15,14 +15,14 @@ export interface WorkspaceSnapshot {
 }
 
 const IGNORED = [
-  "node_modules/**",
-  ".git/**",
-  "dist/**",
-  "dist-electron/**",
-  "release-build/**",
-  "release/**",
-  "package-lock.json",
-  "yarn.lock",
+  "**/node_modules/**",
+  "**/.git/**",
+  "**/dist/**",
+  "**/dist-electron/**",
+  "**/release-build/**",
+  "**/release/**",
+  "**/package-lock.json",
+  "**/yarn.lock",
 ];
 
 // In-memory store keyed by UI message ID
@@ -33,11 +33,16 @@ const snapshots = new Map<number, WorkspaceSnapshot>();
  * under `messageId`. Call this BEFORE the agent starts processing
  * the user's message.
  */
+// Cache to avoid reading the same unchanged file repeatedly
+const fileCache = new Map<string, { mtimeMs: number; size: number; content: string }>();
+
 export async function createSnapshot(
+  cwd: string,
   messageId: number,
   conversationLength: number
 ): Promise<void> {
-  const cwd = process.cwd();
+  // Yield to the event loop immediately so the caller isn't blocked
+  await new Promise(r => setTimeout(r, 0));
 
   const files = await globby(["**/*"], {
     ignore: IGNORED,
@@ -48,20 +53,35 @@ export async function createSnapshot(
 
   const fileMap: Record<string, string> = {};
 
-  await Promise.all(
-    files.map(async (relPath) => {
-      const absPath = resolve(cwd, relPath);
-      try {
-        const fileStat = await stat(absPath);
-        // Skip binary files larger than 2 MB or binary blobs
-        if (fileStat.size > 2 * 1024 * 1024) return;
-        const content = await readFile(absPath, "utf-8");
-        fileMap[absPath] = content;
-      } catch {
-        // Unreadable / binary — skip silently
-      }
-    })
-  );
+  // Process files in chunks to avoid blocking the event loop
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+    const chunk = files.slice(i, i + CHUNK_SIZE);
+    await Promise.all(
+      chunk.map(async (relPath) => {
+        const absPath = resolve(cwd, relPath);
+        try {
+          const fileStat = await stat(absPath);
+          // Skip binary files larger than 2 MB or binary blobs
+          if (fileStat.size > 2 * 1024 * 1024) return;
+          
+          const cached = fileCache.get(absPath);
+          if (cached && cached.mtimeMs === fileStat.mtimeMs && cached.size === fileStat.size) {
+            fileMap[absPath] = cached.content;
+            return;
+          }
+
+          const content = await readFile(absPath, "utf-8");
+          fileCache.set(absPath, { mtimeMs: fileStat.mtimeMs, size: fileStat.size, content });
+          fileMap[absPath] = content;
+        } catch {
+          // Unreadable / binary — skip silently
+        }
+      })
+    );
+    // Yield to the event loop
+    await new Promise((r) => setTimeout(r, 0));
+  }
 
   snapshots.set(messageId, {
     messageId,
