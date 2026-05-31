@@ -16,6 +16,12 @@ import electronUpdater from 'electron-updater'
 const { autoUpdater } = electronUpdater
 import dotenv from 'dotenv'
 
+// Map of in-flight snapshot promises keyed by messageId.
+// The snapshot runs in parallel with the first LLM call so the IPC
+// handler returns immediately (no UI freeze) while still guaranteeing
+// the snapshot is ready before any destructive tool executes.
+const pendingSnapshots = new Map<number, Promise<void>>()
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Set working directory to user's home on startup so the agent
@@ -240,9 +246,17 @@ ipcMain.handle('agent:message', async (_event, workspaceId: string, messageId: n
   const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
 
-  // Snapshot the workspace BEFORE the agent touches anything
+  // Kick off the snapshot in the background — do NOT await here.
+  // This prevents the IPC handler from blocking the Electron main process
+  // event loop, which was causing the window to briefly freeze on every message.
+  // The snapshot Promise is stored and will be awaited inside processMessage
+  // before any destructive tool (file_write, file_edit, shell…) can execute,
+  // so rollback safety is fully preserved.
   const convLength = agent.getConversationLength()
-  await createSnapshot(messageId, convLength)
+  const snapshotPromise = createSnapshot(messageId, convLength)
+  pendingSnapshots.set(messageId, snapshotPromise)
+  // Clean up the entry once the snapshot settles (success or error)
+  snapshotPromise.finally(() => pendingSnapshots.delete(messageId))
 
   try {
     await agent.processMessage(
@@ -252,7 +266,8 @@ ipcMain.handle('agent:message', async (_event, workspaceId: string, messageId: n
       (name, chunk) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
       (name, result, success, args) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_end', name, result, success, args }),
       (error) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'error', message: error }),
-      images as any
+      images as any,
+      snapshotPromise
     )
     mainWindow?.webContents.send('agent:update', { workspaceId, type: 'done' })
     return { success: true }

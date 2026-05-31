@@ -128,7 +128,8 @@ export class Agent {
     onToolProgress: (name: string, chunk: string) => void,
     onToolEnd: (name: string, result: string, success: boolean, args: any) => void,
     onError: (error: string) => void,
-    images?: import("../providers/base.js").ContentPart[]
+    images?: import("../providers/base.js").ContentPart[],
+    snapshotPromise?: Promise<void>
   ): Promise<void> {
     if (!this.provider) {
       onError("Agent not ready. Please wait for initialization.");
@@ -173,7 +174,7 @@ export class Agent {
           // Skill + message: re-enter with enriched message (no longer a slash command)
           this.isProcessing = false;
           const enriched = `${skillContext}\n\n---\n\n${restOfMessage}`;
-          return this.processMessage(enriched, onText, onToolStart, onToolProgress, onToolEnd, onError, images);
+          return this.processMessage(enriched, onText, onToolStart, onToolProgress, onToolEnd, onError, images, snapshotPromise);
         } else {
           // Skill only: acknowledge and inject into conversation context
           onText(`✅ Skill **${skill.name}** activated.${skill.description ? ` ${skill.description}` : ''}\n\nSend your task and I'll apply this skill's instructions.`);
@@ -242,6 +243,14 @@ export class Agent {
 
 
       this.conversation.addUser(messageToSend, images);
+
+      // Ensure the background snapshot is complete before the agent loop starts.
+      // By this point the LLM call is about to begin (network round-trip), so
+      // in practice the snapshot will already be done. If not, we wait here —
+      // still without having blocked the IPC handler that returned long ago.
+      if (snapshotPromise) {
+        await snapshotPromise.catch(() => { /* snapshot errors are non-fatal */ });
+      }
 
       let iterations = 0;
 
