@@ -44,6 +44,17 @@ process.on('warning', (warning) => {
 // Disable GPU hardware acceleration warnings on AMD
 app.commandLine.appendSwitch('disable-gpu-sandbox')
 app.commandLine.appendSwitch('disable-software-rasterizer')
+app.commandLine.appendSwitch('disable-gpu')
+app.commandLine.appendSwitch('disable-gpu-compositing')
+app.commandLine.appendSwitch('disable-gpu-process-crash-limit')
+app.commandLine.appendSwitch('disable-features', 'UseSkiaRenderer,Vulkan')
+
+// Disable disk cache to prevent corruption issues
+app.commandLine.appendSwitch('disable-disk-cache')
+app.commandLine.appendSwitch('disable-http-cache')
+
+// Increase memory limit for better stability
+app.commandLine.appendSwitch('max-old-space-size', '4096')
 
 // Load environment variables
 dotenv.config()
@@ -78,14 +89,42 @@ function createWindow() {
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
     show: false, // Prevent flash before maximize
-      webPreferences: {
+    webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,
       contextIsolation: true,
       webviewTag: true,
       webSecurity: false, // Permitir carregamento de arquivos locais (Vídeos, etc)
       enableWebSQL: false,
+      // Additional settings to prevent GPU and cache issues
+      offscreen: false,
+      transparent: false,
+      backgroundColor: '#0f172a',
     },
+  })
+
+  // Handle GPU-related errors
+  mainWindow.webContents.on('gpu-process-crashed', (event, killed) => {
+    console.warn('GPU process crashed, attempting to recover...')
+    // Don't auto-restart to avoid infinite crash loops
+  })
+
+  // Handle renderer process crashes
+  mainWindow.webContents.on('crashed', () => {
+    console.error('Renderer process crashed')
+    // Attempt to reload the window
+    setTimeout(() => {
+      mainWindow?.reload()
+    }, 2000)
+  })
+
+  // Handle unresponsive renderer
+  mainWindow.on('unresponsive', () => {
+    console.warn('Window became unresponsive')
+    // Force close after 10 seconds
+    setTimeout(() => {
+      mainWindow?.destroy()
+    }, 10000)
   })
 
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -670,6 +709,63 @@ ipcMain.handle('project:get_files', async () => {
       dot: true,
       onlyFiles: true
     })
+    return { success: true, files }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('project:list_dir_lazy', async (_, dirPath?: string) => {
+  try {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    const { existsSync } = await import('fs')
+    const { checkKodaIgnore } = await import('./utils/kodaignore.js')
+    
+    const cwd = process.cwd()
+    const targetDir = dirPath ? path.resolve(dirPath) : cwd
+    
+    // Security check: ensure targetDir is inside cwd (case-insensitive for Windows)
+    const resolvedCwd = path.resolve(cwd).toLowerCase()
+    const resolvedTarget = path.resolve(targetDir).toLowerCase()
+    if (!resolvedTarget.startsWith(resolvedCwd)) {
+      throw new Error('Access denied: directory outside project')
+    }
+    
+    if (!existsSync(targetDir)) {
+      return { success: true, files: [] }
+    }
+    
+    const entries = await fs.readdir(targetDir, { withFileTypes: true })
+    const files = []
+    
+    // Default system ignores
+    const systemIgnore = new Set(['.git', 'node_modules', 'dist', 'dist-electron', 'release-build', 'package-lock.json', 'yarn.lock'])
+    
+    for (const entry of entries) {
+      if (systemIgnore.has(entry.name)) continue
+      
+      const fullPath = path.join(targetDir, entry.name)
+      
+      // Respect .kodaignore
+      if (checkKodaIgnore(fullPath, cwd)) continue
+      
+      const isDir = entry.isDirectory()
+      
+      files.push({
+        name: entry.name,
+        path: fullPath.replace(/\\/g, '/'),
+        isDir
+      })
+    }
+    
+    // Sort directories first, then files alphabetically
+    files.sort((a, b) => {
+      if (a.isDir && !b.isDir) return -1
+      if (!a.isDir && b.isDir) return 1
+      return a.name.localeCompare(b.name)
+    })
+    
     return { success: true, files }
   } catch (err: any) {
     return { success: false, error: err.message }

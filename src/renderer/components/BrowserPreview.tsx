@@ -1,16 +1,46 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, RotateCw, X, Lock, Globe, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RotateCw, Smartphone, Monitor, Lock, Globe, Loader2 } from 'lucide-react';
 
 interface BrowserPreviewProps {
   initialUrl?: string;
   onClose: () => void;
 }
 
+const DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const MOBILE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+
 const BrowserPreview: React.FC<BrowserPreviewProps> = ({ initialUrl = 'http://localhost:5173', onClose }) => {
   const [url, setUrl] = useState(initialUrl);
   const [inputUrl, setInputUrl] = useState(initialUrl);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const webviewRef = useRef<any>(null);
+  const isFirstMount = useRef(true);
+
+  // Force reload and URL fix when toggling mobile/desktop
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    if (!webviewRef.current || !isReady) return;
+    
+    try {
+      let currentUrl = webviewRef.current.getURL();
+      
+      // Se voltar para desktop e estiver num subdomínio mobile comum, tenta limpar
+      if (!isMobile && currentUrl.includes('m.youtube.com')) {
+        currentUrl = currentUrl.replace('m.youtube.com', 'www.youtube.com');
+        setUrl(currentUrl);
+        setInputUrl(currentUrl);
+      } else {
+        webviewRef.current.reload();
+      }
+    } catch (e) {
+      console.warn('Webview not ready for reload yet');
+    }
+  }, [isMobile, isReady]);
 
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,15 +52,15 @@ const BrowserPreview: React.FC<BrowserPreviewProps> = ({ initialUrl = 'http://lo
   };
 
   const reload = () => {
-    if (webviewRef.current) webviewRef.current.reload();
+    if (webviewRef.current && isReady) webviewRef.current.reload();
   };
 
   const goBack = () => {
-    if (webviewRef.current && webviewRef.current.canGoBack()) webviewRef.current.goBack();
+    if (webviewRef.current && isReady && webviewRef.current.canGoBack()) webviewRef.current.goBack();
   };
 
   const goForward = () => {
-    if (webviewRef.current && webviewRef.current.canGoForward()) webviewRef.current.goForward();
+    if (webviewRef.current && isReady && webviewRef.current.canGoForward()) webviewRef.current.goForward();
   };
 
   useEffect(() => {
@@ -40,17 +70,20 @@ const BrowserPreview: React.FC<BrowserPreviewProps> = ({ initialUrl = 'http://lo
     const handleStartLoading = () => setIsLoading(true);
     const handleStopLoading = () => {
       setIsLoading(false);
-      setInputUrl(webview.getURL());
+      if (isReady) setInputUrl(webview.getURL());
     };
+    const handleDomReady = () => setIsReady(true);
 
     webview.addEventListener('did-start-loading', handleStartLoading);
     webview.addEventListener('did-stop-loading', handleStopLoading);
+    webview.addEventListener('dom-ready', handleDomReady);
 
     return () => {
       webview.removeEventListener('did-start-loading', handleStartLoading);
       webview.removeEventListener('did-stop-loading', handleStopLoading);
+      webview.removeEventListener('dom-ready', handleDomReady);
     };
-  }, []);
+  }, [isReady]);
 
   return (
     <div className="flex flex-col h-full bg-[#141414] border-r border-white/5 overflow-hidden">
@@ -112,11 +145,11 @@ const BrowserPreview: React.FC<BrowserPreviewProps> = ({ initialUrl = 'http://lo
         {/* Action Controls */}
         <div className="flex items-center shrink-0">
           <button 
-            onClick={onClose} 
-            className="p-1 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded active:scale-95 transition-all duration-200" 
-            title="Close Preview"
+            onClick={() => setIsMobile(!isMobile)} 
+            className={`p-1 rounded active:scale-95 transition-all duration-200 ${isMobile ? 'text-indigo-400 bg-indigo-500/10' : 'text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/50'}`}
+            title={isMobile ? "Desktop View" : "Mobile View"}
           >
-            <X className="w-3.5 h-3.5" />
+            {isMobile ? <Monitor className="w-3.5 h-3.5" /> : <Smartphone className="w-3.5 h-3.5" />}
           </button>
         </div>
 
@@ -129,13 +162,19 @@ const BrowserPreview: React.FC<BrowserPreviewProps> = ({ initialUrl = 'http://lo
       </div>
 
       {/* Webview Content */}
-      <div className="flex-1 bg-zinc-950 relative">
-        <webview 
-          ref={webviewRef}
-          src={url}
-          style={{ width: '100%', height: '100%' }}
-          allowpopups={true}
-        />
+      <div className={`flex-1 bg-zinc-950 relative overflow-hidden flex flex-col ${isMobile ? 'items-center justify-center p-4 overflow-y-auto custom-scrollbar' : ''}`}>
+        <div 
+          className={`bg-black shadow-2xl transition-all duration-300 ease-in-out ${isMobile ? 'w-[375px] h-[667px] border border-zinc-800/40 rounded-xl' : 'w-full h-full'}`}
+        >
+          <webview 
+            ref={webviewRef}
+            src={url}
+            style={{ width: '100%', height: '100%' }}
+            className={isMobile ? 'rounded-xl' : ''}
+            allowpopups={true}
+            useragent={isMobile ? MOBILE_UA : DESKTOP_UA}
+          />
+        </div>
       </div>
     </div>
   );

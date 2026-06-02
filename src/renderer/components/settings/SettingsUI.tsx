@@ -181,11 +181,11 @@ const SettingsUI = memo(({
   }
 
   return (
-    <div className={`absolute inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200 ${uiMode === 'modern' ? 'bg-black/60' : 'bg-black/80'}`} onClick={onClose}>
-      <div className={`flex w-[960px] h-[640px] border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#141414] border-white/8' : 'bg-slate-900 border-slate-700/50'}`} onClick={handleWrapperClick}>
+    <div className={`absolute inset-0 z-9999 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200 ${uiMode === 'modern' ? 'bg-black/60' : 'bg-black/80'}`} onClick={onClose}>
+      <div className={`flex w-240 h-160 border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#141414] border-white/8' : 'bg-slate-900 border-slate-700/50'}`} onClick={handleWrapperClick}>
 
         {/* Sidebar */}
-        <div className={`w-1/4 flex flex-col p-4 gap-2 ${uiMode === 'modern' ? 'bg-white/[0.02] border-r border-white/5' : 'bg-slate-800/30 border-r border-slate-700/50'}`}>
+        <div className={`w-1/4 flex flex-col p-4 gap-2 ${uiMode === 'modern' ? 'bg-white/2 border-r border-white/5' : 'bg-slate-800/30 border-r border-slate-700/50'}`}>
           <div className={`font-bold flex items-center gap-2 mb-6 px-2 ${uiMode === 'modern' ? 'text-white' : 'text-cyan'}`}>
             <span className="text-xl">⚙️</span> Settings
           </div>
@@ -369,7 +369,7 @@ const SettingsUI = memo(({
           </div>
 
           {/* Footer */}
-          <div className={`px-6 py-4 flex justify-between items-center border-t ${uiMode === 'modern' ? 'bg-white/[0.02] border-white/5' : 'bg-slate-800/10 border-slate-700/50'}`}>
+          <div className={`px-6 py-4 flex justify-between items-center border-t ${uiMode === 'modern' ? 'bg-white/2 border-white/5' : 'bg-slate-800/10 border-slate-700/50'}`}>
             <div className="text-[10px] text-slate-500 font-mono">
               v26.1.5 — Build 2026.05.01
             </div>

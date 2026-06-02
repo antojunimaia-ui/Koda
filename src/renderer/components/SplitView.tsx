@@ -417,7 +417,6 @@ const SplitView: React.FC<SplitViewProps> = ({
         className="w-1 flex-shrink-0 cursor-col-resize flex items-center justify-center group hover:bg-indigo-500/40 transition-colors z-10"
         style={{ backgroundColor: 'var(--koda-border)' }}
       >
-        <div className={`w-px h-12 transition-colors rounded-full ${uiMode === 'classic' ? 'bg-cyan-400/20 group-hover:bg-cyan-400' : 'bg-white/20 group-hover:bg-indigo-400'}`} />
       </div>
 
       <div style={{ width: `${100 - splitRatio}%` }} className="flex flex-col min-w-0">

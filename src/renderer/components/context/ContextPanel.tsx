@@ -156,7 +156,7 @@ const ExplorerTabButton: React.FC<{
   )
 }
 
-export { ExplorerTabButton, FileExplorer }
+export { FileExplorer }
 
 interface FileNode {
   name: string
@@ -232,15 +232,64 @@ const FileExplorer: React.FC<{
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'inside' | null>(null)
 
-  const isMarkdown = (name: string) => name.toLowerCase().endsWith('.md') || name.toLowerCase().endsWith('.mdx')
-  const isVideo = (name: string) => ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'].includes(name.toLowerCase().split('.').pop() || '')
+  const [loadedPaths, setLoadedPaths] = useState<Set<string>>(new Set())
 
-  const reloadTree = () => {
-    window.koda.getFiles().then((res: any) => {
+  const updateNodeInTree = (nodes: FileNode[], targetPath: string, newChildren: FileNode[]): FileNode[] => {
+    return nodes.map(node => {
+      if (node.path === targetPath) {
+        return { ...node, children: newChildren }
+      }
+      if (node.children) {
+        return { ...node, children: updateNodeInTree(node.children, targetPath, newChildren) }
+      }
+      return node
+    })
+  }
+
+  const findNodeInTree = (nodes: FileNode[], targetPath: string): FileNode | undefined => {
+    for (const node of nodes) {
+      if (node.path === targetPath) return node
+      if (node.children) {
+        const found = findNodeInTree(node.children, targetPath)
+        if (found) return found
+      }
+    }
+    return undefined
+  }
+
+  const reloadFolder = (folderPath: string) => {
+    const normalPath = folderPath.replace(/\\/g, '/')
+    window.koda.listDirLazy(normalPath).then((res: any) => {
       if (res.success) {
+        const childNodes = res.files.map((f: any) => ({
+          name: f.name,
+          path: f.path,
+          isDir: f.isDir,
+          children: f.isDir ? [] : undefined
+        }))
+        
         const normalCwd = cwd.replace(/\\/g, '/')
-        const absPaths = res.files.map((f: string) => normalCwd + '/' + f.replace(/\\/g, '/'))
-        setTree(buildTree(absPaths, normalCwd))
+        if (normalPath === normalCwd) {
+          setTree(prevTree => {
+            return childNodes.map((n: any) => {
+              const existingNode = prevTree.find(p => p.path === n.path)
+              if (existingNode && existingNode.isDir) {
+                return { ...n, children: existingNode.children }
+              }
+              return n
+            })
+          })
+        } else {
+          setTree(prevTree => {
+            return updateNodeInTree(prevTree, normalPath, childNodes.map((n: any) => {
+              const existingNode = findNodeInTree(prevTree, n.path)
+              if (existingNode && existingNode.isDir) {
+                return { ...n, children: existingNode.children }
+              }
+              return n
+            }))
+          })
+        }
       }
     })
   }
@@ -249,7 +298,7 @@ const FileExplorer: React.FC<{
     try {
       const filePath = `${parentPath}/${fileName}`
       await window.koda.writeFile(filePath, '')
-      reloadTree()
+      reloadFolder(parentPath)
       setCreatingNew(null)
     } catch (error) {
       console.error('Error creating file:', error)
@@ -260,7 +309,7 @@ const FileExplorer: React.FC<{
     try {
       const folderPath = `${parentPath}/${folderName}`
       await window.koda.createFolder?.(folderPath)
-      reloadTree()
+      reloadFolder(parentPath)
       setCreatingNew(null)
     } catch (error) {
       console.error('Error creating folder:', error)
@@ -272,7 +321,7 @@ const FileExplorer: React.FC<{
       const parentPath = oldPath.substring(0, oldPath.lastIndexOf('/'))
       const newPath = `${parentPath}/${newFileName}`
       await window.koda.renameFile?.(oldPath, newPath)
-      reloadTree()
+      reloadFolder(parentPath)
       setRenamingPath(null)
       setNewName('')
     } catch (error) {
@@ -282,8 +331,9 @@ const FileExplorer: React.FC<{
 
   const handleDelete = async (filePath: string) => {
     try {
+      const parentPath = filePath.substring(0, filePath.lastIndexOf('/'))
       await window.koda.deleteFile?.(filePath)
-      reloadTree()
+      reloadFolder(parentPath)
     } catch (error) {
       console.error('Error deleting:', error)
     }
@@ -298,7 +348,10 @@ const FileExplorer: React.FC<{
       if (sourcePath === newPath) return
       
       await window.koda.renameFile?.(sourcePath, newPath)
-      reloadTree()
+      
+      const sourceParentPath = sourcePath.substring(0, sourcePath.lastIndexOf('/'))
+      reloadFolder(sourceParentPath)
+      reloadFolder(targetFolderPath)
     } catch (error) {
       console.error('Error moving:', error)
     }
@@ -547,11 +600,18 @@ const FileExplorer: React.FC<{
   useEffect(() => {
     if (!cwd || cwd === '...') return
     setLoading(true)
-    window.koda.getFiles().then((res: any) => {
+    setLoadedPaths(new Set())
+    setExpanded(new Set())
+    const normalCwd = cwd.replace(/\\/g, '/')
+    window.koda.listDirLazy(normalCwd).then((res: any) => {
       if (res.success) {
-        const normalCwd = cwd.replace(/\\/g, '/')
-        const absPaths = res.files.map((f: string) => normalCwd + '/' + f.replace(/\\/g, '/'))
-        setTree(buildTree(absPaths, normalCwd))
+        const rootNodes = res.files.map((f: any) => ({
+          name: f.name,
+          path: f.path,
+          isDir: f.isDir,
+          children: f.isDir ? [] : undefined
+        }))
+        setTree(rootNodes)
       }
       setLoading(false)
     })
@@ -570,7 +630,8 @@ const FileExplorer: React.FC<{
     }
 
     const handleRefresh = () => {
-      reloadTree()
+      const normalCwd = cwd.replace(/\\/g, '/')
+      reloadFolder(normalCwd)
     }
 
     window.addEventListener('koda:create-file', handleCreateFile)
@@ -589,30 +650,52 @@ const FileExplorer: React.FC<{
     if (!cwd || cwd === '...') return
     
     const unsubscribe = window.koda.onFileSystemChange?.((change) => {
-      // Only reload if the change is in the current directory
-      if (change.directory === cwd || change.directory === cwd.replace(/\\/g, '/')) {
-        console.log('[FileExplorer] File system change detected, reloading...');
-        window.koda.getFiles().then((res: any) => {
-          if (res.success) {
-            const normalCwd = cwd.replace(/\\/g, '/')
-            const absPaths = res.files.map((f: string) => normalCwd + '/' + f.replace(/\\/g, '/'))
-            setTree(buildTree(absPaths, normalCwd))
-          }
-        })
+      const changedDir = change.directory.replace(/\\/g, '/')
+      const normalCwd = cwd.replace(/\\/g, '/')
+      if (changedDir === normalCwd || loadedPaths.has(changedDir)) {
+        console.log(`[FileExplorer] File system change in ${changedDir}, reloading...`);
+        reloadFolder(changedDir)
       }
     })
     
     return () => {
       unsubscribe?.()
     }
-  }, [cwd])
+  }, [cwd, loadedPaths])
 
   const toggle = (path: string) => {
-    setExpanded(prev => {
-      const next = new Set(prev)
-      next.has(path) ? next.delete(path) : next.add(path)
-      return next
-    })
+    const normalPath = path.replace(/\\/g, '/')
+    const isExpanding = !expanded.has(normalPath)
+    
+    if (isExpanding && !loadedPaths.has(normalPath)) {
+      window.koda.listDirLazy(normalPath).then((res: any) => {
+        if (res.success) {
+          const childNodes = res.files.map((f: any) => ({
+            name: f.name,
+            path: f.path,
+            isDir: f.isDir,
+            children: f.isDir ? [] : undefined
+          }))
+          setTree(prevTree => updateNodeInTree(prevTree, normalPath, childNodes))
+          setLoadedPaths(prev => {
+            const next = new Set(prev)
+            next.add(normalPath)
+            return next
+          })
+          setExpanded(prev => {
+            const next = new Set(prev)
+            next.add(normalPath)
+            return next
+          })
+        }
+      })
+    } else {
+      setExpanded(prev => {
+        const next = new Set(prev)
+        next.has(normalPath) ? next.delete(normalPath) : next.add(normalPath)
+        return next
+      })
+    }
   }
 
   const renderNode = (node: FileNode, depth = 0) => {
@@ -933,27 +1016,16 @@ const ContextPanel = memo(({ files, pinnedFiles, onPin, onUnpin, onInject, onAdd
     <div className="flex flex-col h-full w-full overflow-hidden bg-[#141414]">
 
       {/* Header */}
-      <div className="flex items-center gap-0.5 px-2 pt-2 pb-1.5 border-b border-white/5 flex-shrink-0">
+      <div className="flex items-center gap-0.5 px-2 pt-2 pb-1.5 border-b border-white/5 shrink-0">
         <button
           onClick={() => setTab('context')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-            tab === 'context' ? 'bg-white/8 text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-          }`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all bg-white/8 text-white`}
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 6h18M3 12h12M3 18h8" />
           </svg>
           Context
         </button>
-        {showExplorerTab && (
-          <ExplorerTabButton
-            active={tab === 'explorer'}
-            onClick={() => setTab('explorer')}
-            position={explorerTabPosition}
-            onMoveTo={(pos) => onExplorerTabPositionChange?.(pos)}
-            variant="panel"
-          />
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -1043,14 +1115,13 @@ interface ContextPanelOverlayProps extends ContextPanelProps {
 export const ContextPanelOverlay: React.FC<ContextPanelOverlayProps> = ({ width, isResizing, onStartResize, ...props }) => {
   return (
     <div
-      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex bg-[#141414] border-l border-white/5"
+      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 flex bg-[#141414] border-l border-white/5"
       style={{ width }}
     >
       <div
         onMouseDown={onStartResize}
         className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
       >
-        <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizing ? 'bg-white' : ''}`} />
       </div>
       <ContextPanel {...props} />
     </div>
@@ -1068,79 +1139,24 @@ interface ExplorerPanelOverlayProps {
   onClose: () => void
   explorerTabPosition: 'iconbar' | 'titlebar'
   onMoveTo: (pos: 'panel' | 'iconbar' | 'titlebar') => void
+  zIndex?: number
+  width: number
+  onStartResize: () => void
 }
 
 export const ExplorerPanelOverlay: React.FC<ExplorerPanelOverlayProps> = ({
-  cwd, pinnedFiles, onPin, onInject, onAddToInput, onClose, explorerTabPosition, onMoveTo
+  cwd, pinnedFiles, onPin, onInject, onAddToInput, onClose, explorerTabPosition, onMoveTo, zIndex = 50, width, onStartResize
 }) => {
-  const containerRef = React.useRef<HTMLDivElement>(null)
-  const isResizing = React.useRef(false)
-  const startX = React.useRef(0)
-  const startWidth = React.useRef(0)
-  const [width, setWidth] = React.useState(256)
-
-  const onMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault()
-    isResizing.current = true
-    startX.current = e.clientX
-    startWidth.current = containerRef.current?.offsetWidth ?? 256
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-  }
-
-  React.useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current || !containerRef.current) return
-      const newWidth = Math.max(180, Math.min(520, window.innerWidth - e.clientX))
-      containerRef.current.style.width = `${newWidth}px`
-    }
-    const onMouseUp = (e: MouseEvent) => {
-      if (!isResizing.current) return
-      isResizing.current = false
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-      setWidth(Math.max(180, Math.min(520, window.innerWidth - e.clientX)))
-    }
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-    }
-  }, [])
-
   return (
     <div
-      ref={containerRef}
-      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 shadow-2xl flex flex-col bg-[#141414] border-l border-white/5"
-      style={{ width }}
+      className={`absolute top-10 bottom-0 right-0 flex flex-col bg-[#141414] border-l border-white/5`}
+      style={{ width, zIndex }}
     >
       {/* Resize handle */}
       <div
-        onMouseDown={onMouseDown}
-        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-[100] flex-shrink-0 flex items-center justify-center group bg-white/5 hover:bg-indigo-500/50 transition-colors"
+        onMouseDown={onStartResize}
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-100 shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50 transition-colors"
       >
-        <div className="w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors" />
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 pt-2 pb-1.5 border-b border-white/5 flex-shrink-0 pl-4">
-        <ExplorerTabButton
-          active={true}
-          onClick={onClose}
-          position={explorerTabPosition}
-          onMoveTo={onMoveTo}
-          variant="panel"
-        />
-        <button
-          onClick={onClose}
-          className="text-slate-600 hover:text-slate-400 transition-colors p-1"
-          title="Close"
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </button>
       </div>
 
       {/* File tree */}

@@ -538,7 +538,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       {/* Explorer Panel */}
       {showExplorerPanel && (
         <>
-          <div className="flex-shrink-0 border-r border-white/10 bg-[#141414]" style={{ width: `${explorerWidth}px` }}>
+          <div className="shrink-0 border-r border-white/10 bg-[#141414]" style={{ width: `${explorerWidth}px` }}>
             <div className="h-full overflow-y-auto custom-scrollbar">
               <div className="px-2 pt-1 pb-0.5 flex items-center justify-between">
                 <h3 className="text-slate-300 text-[9px] font-bold uppercase tracking-wider">Explorer</h3>
@@ -608,9 +608,8 @@ const IDELayout: React.FC<IDELayoutProps> = ({
               document.addEventListener('mousemove', handleMouseMove)
               document.addEventListener('mouseup', handleMouseUp)
             }}
-            className="w-1 cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
+            className="w-1 cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
           >
-            <div className="h-8 w-[1px] bg-white/20 group-hover:bg-white/50 transition-colors" />
           </div>
         </>
       )}
@@ -618,7 +617,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       {/* Editor Panel */}
       {showEditorPanel && (
         <>
-          <div className="flex-1 border-r border-white/10 bg-[#141414] flex flex-col min-w-[300px]">
+          <div className="flex-1 border-r border-white/10 bg-[#141414] flex flex-col min-w-75">
             {/* Tabs Bar */}
             {tabs.length > 0 && (
               <div className="flex items-center bg-[#252525] border-b border-white/10 overflow-x-auto custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
@@ -656,7 +655,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                         src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${tab.icon}`}
                         width="14" 
                         height="14" 
-                        className="flex-shrink-0"
+                        className="shrink-0"
                         alt={tab.title}
                         style={{ objectFit: 'contain' }}
                       />
@@ -667,7 +666,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                         src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${tab.icon}`}
                         width="14" 
                         height="14" 
-                        className="flex-shrink-0"
+                        className="shrink-0"
                         alt={tab.title}
                         style={{ objectFit: 'contain' }}
                       />
@@ -677,7 +676,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                   return (
                     <div
                       key={tab.id}
-                      className={`group relative flex items-center gap-2 px-3 py-1.5 border-r border-white/5 cursor-pointer transition-all min-w-[120px] max-w-[200px] ${
+                      className={`group relative flex items-center gap-2 px-3 py-1.5 border-r border-white/5 cursor-pointer transition-all min-w-30 max-w-50 ${
                         isDeleted
                           ? 'bg-red-900/20 text-red-400 border-t-2 border-t-red-500'
                           : isActive 
@@ -701,11 +700,11 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                       
                       {/* Deleted indicator or Unsaved Indicator or Close Button */}
                       {tab.type === 'file' && tab.file?.hasUnsavedChanges && !isDeleted ? (
-                        <span className="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0" title="Unsaved changes" />
+                        <span className="w-1.5 h-1.5 bg-white rounded-full shrink-0" title="Unsaved changes" />
                       ) : null}
                       
                       {isDeleted && (
-                        <span className="text-[9px] text-red-400 flex-shrink-0 mr-1" title="File deleted from disk">
+                        <span className="text-[9px] text-red-400 shrink-0 mr-1" title="File deleted from disk">
                           ⚠
                         </span>
                       )}
@@ -715,7 +714,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                           e.stopPropagation()
                           closeTab(tab.id)
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-white/10 rounded transition-all flex-shrink-0"
+                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-white/10 rounded transition-all shrink-0"
                         title="Close (Ctrl+W)"
                       >
                         <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
@@ -733,7 +732,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
               {activeTab ? (
                 <>
                   {/* Main Content Area (Editor or Browser) */}
-                  <div className={`${showTerminal ? 'flex-shrink-0' : 'flex-1'} relative`} style={{ height: showTerminal ? `calc(100% - ${terminalHeight}px - 4px)` : '100%' }}>
+                  <div className={`${showTerminal ? 'shrink-0' : 'flex-1'} relative`} style={{ height: showTerminal ? `calc(100% - ${terminalHeight}px - 4px)` : '100%' }}>
                     {activeTab.type === 'file' && activeTab.file ? (
                       isLoadingFile ? (
                         <div className="flex items-center justify-center h-full">
@@ -939,15 +938,14 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                         document.addEventListener('mousemove', handleMouseMove)
                         document.addEventListener('mouseup', handleMouseUp)
                       }}
-                      className="h-1 w-full cursor-row-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group bg-white/5 hover:bg-indigo-500/50"
+                      className="h-1 w-full cursor-row-resize transition-all z-100 shrink-0 flex items-center justify-center group bg-white/5 hover:bg-indigo-500/50"
                     >
-                      <div className="w-8 h-[1px] bg-white/20 group-hover:bg-white/50 transition-colors" />
                     </div>
                   )}
                   
                   {/* Terminal Panel Below Editor/Browser */}
                   {showTerminal && (
-                    <div className="flex-shrink-0 relative" style={{ height: `${terminalHeight}px` }}>
+                    <div className="shrink-0 relative" style={{ height: `${terminalHeight}px` }}>
                       <TerminalPanel onClose={onTerminalClose || (() => {})} cwd={cwd} />
                     </div>
                   )}
@@ -990,9 +988,8 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                 document.addEventListener('mousemove', handleMouseMove)
                 document.addEventListener('mouseup', handleMouseUp)
               }}
-              className="w-1 cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
+              className="w-1 cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
             >
-              <div className="h-8 w-[1px] bg-white/20 group-hover:bg-white/50 transition-colors" />
             </div>
           )}
         </>
@@ -1000,7 +997,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
 
       {/* Chat Panel — fixed width when Editor is visible, flex-1 otherwise */}
       <div
-        className={showEditorPanel ? 'flex-shrink-0' : 'flex-1 min-w-0'}
+        className={showEditorPanel ? 'shrink-0' : 'flex-1 min-w-0'}
         style={showEditorPanel ? { width: `${chatWidth}px` } : undefined}
       >
         {children}

@@ -18,6 +18,8 @@ interface TitleBarProps {
   onToggleIconBar?: () => void
   isSplitEnabled: boolean
   onToggleSplit: () => void
+  showExplorer?: boolean
+  onToggleExplorer?: () => void
   extraButton?: React.ReactNode
 }
 
@@ -32,7 +34,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
   mode, onModeChange, onSettingsClick, onMcpClick, 
   onBrowserClick, showBrowser, onTerminalClick, showTerminal, 
   showPanel, onTogglePanel, uiMode = 'classic', showIconBar = true, onToggleIconBar,
-  isSplitEnabled, onToggleSplit, extraButton
+  isSplitEnabled, onToggleSplit, showExplorer, onToggleExplorer, extraButton
 }) => {
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -65,7 +67,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
       </button>
 
       {showDropdown && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 z-[1100]">
+        <div className="absolute top-full left-0 mt-1 w-64 bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 z-1100">
           <div className="p-1">
             {MODES.map((m) => (
               <button
@@ -95,11 +97,11 @@ const TitleBar: React.FC<TitleBarProps> = ({
   )
 
   return (
-    <div className={`relative h-8 flex items-center justify-between select-none titlebar-drag shrink-0 z-[1000] ${uiMode === 'modern' ? 'bg-transparent pr-3' : 'bg-slate-900 border-b border-white/5 px-3'}`}>
+    <div className={`relative h-8 flex items-center justify-between select-none titlebar-drag shrink-0 z-1000 ${uiMode === 'modern' ? 'bg-transparent pr-3' : 'bg-slate-900 border-b border-white/5 px-3'}`}>
       
       {/* Custom bottom border for Modern UI (starts after Iconbar) */}
       {uiMode === 'modern' && (
-        <div className={`absolute bottom-0 right-0 h-[1px] bg-white/5 ${showIconBar ? 'left-64' : 'left-0'}`} />
+        <div className={`absolute bottom-0 right-0 h-px bg-white/5 ${showIconBar ? 'left-64' : 'left-0'}`} />
       )}
 
       <div className="flex items-center h-full relative z-10">
@@ -212,6 +214,16 @@ const TitleBar: React.FC<TitleBarProps> = ({
             </button>
           </>
         )}
+
+        <button
+          onClick={onToggleExplorer}
+          title={showExplorer ? 'Hide Explorer' : 'Show Explorer'}
+          className={`w-11 h-8 flex items-center justify-center transition-colors no-drag ${showExplorer ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
 
         <button 
           onClick={() => window.koda.minimize()}

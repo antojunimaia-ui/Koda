@@ -45,6 +45,9 @@ interface ClassicUIProps {
   showTerminal: boolean
   showPanel: boolean
   onTogglePanel: () => void
+  showExplorer: boolean
+  setShowExplorer: (v: boolean) => void
+  explorerWidth?: number
   leftPanelWidth: number
   rightPanelWidth: number
   startResizing: (e: React.MouseEvent) => void
@@ -96,7 +99,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
   pendingImages, setPendingImages, taskQueue, setTaskQueue, handleSend, handlePathClick, 
   handleInputChange, handleRollback, inputRef, virtuosoRef, theme, kodaSettings,
   onSettingsClick, onMcpClick, onBrowserClick, showBrowser, onTerminalClick, 
-  showTerminal, showPanel, onTogglePanel, leftPanelWidth, rightPanelWidth, startResizing, isResizing,
+  showTerminal, showPanel, onTogglePanel, showExplorer, setShowExplorer, explorerWidth = 256, leftPanelWidth, rightPanelWidth, startResizing, isResizing,
   startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
   isDragging, handleDragOver, handleDragLeave, handleDrop, inPlanMode, showThinkingSpinner,
   symbols, slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
@@ -119,29 +122,28 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
     return (
       <div 
         style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }} 
-        className={`flex flex-col flex-shrink-0 min-w-[250px] relative h-full bg-[#0d1117] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
+        className={`flex flex-col shrink-0 min-w-62.5 relative h-full bg-[#0d1117] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
       >
         {hasBrowser && (
-          <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
+          <div className="shrink-0 min-h-25 relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
             <BrowserPreview onClose={() => onBrowserClick()} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-              <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+              <div className={`absolute inset-0 z-100 ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
           </div>
         )}
         {hasBrowser && hasTerminal && (
           <div
             onMouseDown={startResizingHeight}
-            className={`h-1 w-full cursor-row-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-cyan-500 h-1.5' : 'bg-white/5 hover:bg-cyan-500/50'}`}
+            className={`h-1 w-full cursor-row-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-cyan-500 h-1.5' : 'bg-white/5 hover:bg-cyan-500/50'}`}
           >
-            <div className={`w-8 h-[1px] bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingHeight ? 'bg-white' : ''}`} />
           </div>
         )}
         {hasTerminal && (
-          <div className="flex-1 min-h-[100px] relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
+          <div className="flex-1 overflow-hidden" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
             <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} workspaceId={activeId || undefined} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-              <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+              <div className={`absolute inset-0 z-100 ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
           </div>
         )}
@@ -205,7 +207,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
     >
       {/* Drag overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-[100] border-2 border-dashed border-cyan-400/60 bg-cyan-900/20 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-100 border-2 border-dashed border-cyan-400/60 bg-cyan-900/20 flex items-center justify-center pointer-events-none">
           <div className="text-center">
             <div className="text-4xl mb-2">📂</div>
             <div className="text-cyan-300 font-bold text-lg">Drop files or images here</div>
@@ -228,6 +230,8 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
         uiMode="classic"
         isSplitEnabled={isSplitEnabled}
         onToggleSplit={onToggleSplit}
+        showExplorer={showExplorer}
+        onToggleExplorer={() => setShowExplorer(!showExplorer)}
       />
 
       {isSplitEnabled && (
@@ -245,14 +249,12 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
       <div className="flex-1 relative flex flex-col min-h-0">
         <div className="flex flex-1 min-h-0 overflow-hidden relative">
           
-          {showLeft && renderPanelStack('left')}
           {showLeft && (
             <div
               onMouseDown={startResizing}
-              className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
+              className={`w-1 h-full cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizing ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
               style={{ backgroundColor: isResizing ? 'var(--koda-accent)' : undefined }}
             >
-              <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizing ? 'bg-white' : ''}`} />
             </div>
           )}
 
@@ -319,17 +321,17 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   title="Click to select new working directory"
                 >
                   <span className="opacity-40 group-hover:opacity-100 transition-all" style={{ color: 'var(--koda-accent)' }}>{symbols.dir}</span>
-                  <span className="truncate max-w-[300px] transition-all group-hover:text-white">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
+                  <span className="truncate max-w-75 transition-all group-hover:text-white">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
                 </div>
               </div>
 
               <div className="flex-1 min-h-0 relative mt-2 pr-2">
                 <Virtuoso
                   ref={virtuosoRef}
+                  className="h-full custom-scrollbar max-w-75 lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto"
                   data={renderableMessages}
                   alignToBottom
                   increaseViewportBy={{ top: 200, bottom: 200 }}
-                  className="terminal-scroll-area h-full custom-scrollbar"
                   itemContent={(_index, item: any) => (
                     item.type === 'tool_group' ? (
                       <div className="mb-4">
@@ -393,7 +395,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     <span className="text-[9px] font-black uppercase tracking-widest text-amber-400">⏳ Queue</span>
                     <div className="flex gap-1.5 flex-1 overflow-hidden">
                       {taskQueue.map((t, i) => (
-                        <span key={i} className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-[160px]">{t.text}</span>
+                        <span key={i} className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-40">{t.text}</span>
                       ))}
                     </div>
                     <button onClick={() => setTaskQueue([])} className="text-[9px] text-slate-600 hover:text-rose-400 transition-colors" title="Clear queue">✕ clear</button>
@@ -431,33 +433,29 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     </div>
                   )}
                   {showSlashMenu && slashItems.length > 0 && (
-                    <div className="absolute bottom-[100%] left-4 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar mb-2 p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
-                      {slashItems.map((item, idx) => (
+                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-slate-800 border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden z-50">
+                      {slashItems.map((item, i) => (
                         <button
                           key={item.name}
-                          className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md transition-all text-left group ${idx === slashIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
                           onClick={() => selectSlashItem(item)}
+                          className={`w-full text-left px-3 py-2 flex flex-col gap-0.5 ${i === slashIndex ? 'bg-cyan-500/20' : 'hover:bg-slate-700/50'}`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs">{item.icon}</span>
-                              <span className={`text-[10px] font-black uppercase tracking-widest ${idx === slashIndex ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                                {item.name}
-                              </span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{item.icon}</span>
+                            <span className={`text-xs font-bold ${i === slashIndex ? 'text-cyan-400' : 'text-slate-200'}`}>{item.name}</span>
                           </div>
-                          {item.description && (
-                            <span className="text-[9px] text-slate-500 ml-5 group-hover:text-slate-400 transition-colors uppercase font-medium">
-                              {item.description}
-                            </span>
-                          )}
+                          {item.description && <span className="text-[10px] text-slate-400 pl-6 mt-1.5 leading-tight">{item.description}</span>}
                         </button>
                       ))}
                     </div>
                   )}
 
                   {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute bottom-[100%] left-4 z-[1100] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl max-h-60 overflow-y-auto w-64 custom-scrollbar mb-2 p-1 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                    <div className="absolute bottom-full left-0 mb-2 w-72 bg-slate-800 border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col min-h-5 max-h-50">
+                      <div className="px-3 py-1.5 border-b border-slate-700/50 text-[10px] font-bold text-slate-400 bg-slate-900/50 uppercase tracking-wider flex items-center justify-between">
+                        <span className="text-[10px] font-bold">Suggestions</span>
+                        <button onClick={() => setSuggestionIndex(-1)} className="text-[10px] text-slate-600 hover:text-rose-400 transition-colors">✕ clear</button>
+                      </div>
                       {suggestions.map((file, idx) => (
                         <button
                           key={file}
@@ -476,7 +474,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   )}
 
                   <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-20 ${initializing ? 'terminal-input-disabled' : ''}`}>
-                    <span className={`font-bold mt-[6px] ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
+                    <span className={`font-bold mt-1.5 ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
                     {initializing ? (
                       <span className="text-slate-600 animate-pulse italic text-sm">Initializing...</span>
                     ) : (
@@ -493,7 +491,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                         onKeyDown={handleKeyDown}
                         onPaste={handlePaste}
                         placeholder={isProcessing ? 'Add to queue — agent will run next...' : 'Type your message...'}
-                        className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-slate-600 font-bold resize-none py-1.5 leading-normal min-h-[20px] max-h-[200px] custom-scrollbar"
+                        className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-slate-600 font-bold resize-none py-1.5 leading-normal min-h-5 max-h-50 custom-scrollbar"
                       />
                     )}
                   </div>
@@ -506,15 +504,18 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
           {showRight && (
             <div
               onMouseDown={startResizingRight}
-              className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingRight ? 'bg-cyan-500 w-1.5' : 'bg-white/5 hover:bg-cyan-500/50'}`}
+              className={`w-1 h-full cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizingRight ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
+              style={{ backgroundColor: isResizingRight ? 'var(--koda-accent)' : undefined }}
             >
-              <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingRight ? 'bg-white' : ''}`} />
             </div>
           )}
           {showRight && renderPanelStack('right')}
 
           {/* Space for ContextPanel overlay */}
-          {showPanel && <div className="w-64 flex-shrink-0" />}
+          {showPanel && <div className="w-64 shrink-0" />}
+
+          {/* Standalone Explorer Placeholder */}
+          {showExplorer && <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />}
         </div>
       </div>
     </div>

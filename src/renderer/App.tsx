@@ -22,7 +22,7 @@ import { BrailleSpinner } from './components/BrailleSpinner.js'
 import MessageRow from './components/messages/MessageRow.js'
 import PlanApprovalModal from './components/modals/PlanApprovalModal.js'
 import UpdateBanner from './components/UpdateBanner.js'
-import ContextPanel, { ContextPanelOverlay, ExplorerTabButton } from './components/context/ContextPanel.js'
+import ContextPanel, { ContextPanelOverlay } from './components/context/ContextPanel.js'
 import { ExplorerPanelOverlay } from './components/context/ContextPanel.js'
 import SettingsUI, { DEFAULT_THEME } from './components/settings/SettingsUI.js'
 import { KoDB } from './db/kodb.js'
@@ -207,14 +207,17 @@ const App: React.FC = () => {
     rightPanelWidth, 
     browserHeight, 
     contextPanelWidth,
+    explorerWidth,
     isResizing, 
     isResizingRight, 
     isResizingHeight,
     isResizingContext,
+    isResizingExplorer,
     startResizing, 
     startResizingRight, 
     startResizingHeight,
     startResizingContext,
+    startResizingExplorer,
   } = useResizable()
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } = useDragDrop({ 
     setInput, 
@@ -1024,6 +1027,7 @@ Your current task is: ${userMsg}`
           onTogglePanel={() => setShowPanel(p => !p)}
           showExplorer={showExplorer}
           setShowExplorer={setShowExplorer}
+          explorerWidth={explorerWidth}
           contextPanelWidth={contextPanelWidth}
           contextPanelTab={contextPanelTab}
           onContextPanelTabChange={(t) => { setContextPanelTab(t); if (!showPanel) setShowPanel(true) }}
@@ -1119,6 +1123,9 @@ Your current task is: ${userMsg}`
           showTerminal={showTerminal}
           showPanel={showPanel}
           onTogglePanel={() => setShowPanel(p => !p)}
+          showExplorer={showExplorer}
+          setShowExplorer={setShowExplorer}
+          explorerWidth={explorerWidth}
           
           // Layout state
           leftPanelWidth={leftPanelWidth}
@@ -1190,16 +1197,13 @@ Your current task is: ${userMsg}`
           width={contextPanelWidth}
           isResizing={isResizingContext}
           onStartResize={startResizingContext}
-          explorerTabPosition={kodaSettings.explorerTabPosition ?? 'panel'}
-          onExplorerTabPositionChange={(pos) => setKodaSettings(prev => ({ ...prev, explorerTabPosition: pos }))}
-          showExplorerTab={(kodaSettings.explorerTabPosition ?? 'panel') === 'panel'}
           activeTab={contextPanelTab}
           onTabChange={setContextPanelTab}
         />
       )}
 
       {/* Standalone Explorer Panel Overlay */}
-      {showExplorer && (kodaSettings.explorerTabPosition === 'iconbar' || kodaSettings.explorerTabPosition === 'titlebar') && (
+      {showExplorer && (
         <ExplorerPanelOverlay
           cwd={activeWorkspace.agentInfo.cwd}
           pinnedFiles={activeWorkspace.pinnedFiles}
@@ -1207,15 +1211,11 @@ Your current task is: ${userMsg}`
           onInject={handleInjectFile}
           onAddToInput={handleAddToInput}
           onClose={() => setShowExplorer(false)}
-          explorerTabPosition={kodaSettings.explorerTabPosition as 'iconbar' | 'titlebar'}
-          onMoveTo={(pos) => {
-            setKodaSettings(prev => ({ ...prev, explorerTabPosition: pos }))
-            if (pos === 'panel') {
-              setShowExplorer(false)
-              setShowPanel(true)
-              setContextPanelTab('explorer')
-            }
-          }}
+          explorerTabPosition="titlebar"
+          onMoveTo={() => {}}
+          width={explorerWidth}
+          onStartResize={startResizingExplorer}
+          zIndex={100}
         />
       )}
     </div>

@@ -15,7 +15,8 @@
     "dist:all": "npm run build && electron-builder --win --x64 --ia32",
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:mac": "npm run build && electron-builder --mac",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clear-cache": "node scripts/clear-cache.mjs --confirm"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

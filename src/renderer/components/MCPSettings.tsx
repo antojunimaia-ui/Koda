@@ -71,9 +71,14 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({ onClose, onSave }) => {
     onClose();
   };
 
+  // Block clicks from propagating to the background
+  const handleWrapperClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+  }
+
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="flex w-[850px] h-[600px] bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
+    <div className="absolute inset-0 z-9999 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+      <div className="flex w-[860px] h-[580px] bg-[#0f1115] border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl" onClick={handleWrapperClick}>
         
         {/* Sidebar */}
         <div className="w-1/3 bg-slate-800/30 border-r border-slate-700/50 flex flex-col p-4 gap-2">

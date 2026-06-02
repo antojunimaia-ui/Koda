@@ -79,7 +79,7 @@ const ExplorerButton: React.FC<{
       {menu && (
         <div
           ref={menuRef}
-          className="fixed z-[9999] bg-[#141414] border border-white/10 rounded-xl shadow-2xl py-1 w-52"
+          className="fixed z-9999 bg-[#141414] border border-white/10 rounded-xl shadow-2xl py-1 w-52"
           style={{ top: menu.y, left: menu.x }}
         >
           <div className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-600">Move to</div>
@@ -142,6 +142,7 @@ interface ModernUIProps {
   onTogglePanel: () => void
   showExplorer: boolean
   setShowExplorer: (show: boolean) => void
+  explorerWidth?: number
   contextPanelWidth?: number
   contextPanelTab?: 'context' | 'explorer'
   onContextPanelTabChange?: (tab: 'context' | 'explorer') => void
@@ -267,7 +268,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
   inputRef: externalInputRef, virtuosoRef, theme, kodaSettings, setKodaSettings, onSettingsClick, onMcpClick, onBrowserClick,
 
-  showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel, showExplorer, setShowExplorer, contextPanelWidth = 256, contextPanelTab, onContextPanelTabChange,
+  showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel, showExplorer, setShowExplorer, explorerWidth = 256, contextPanelWidth = 256, contextPanelTab, onContextPanelTabChange,
   slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
   suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
   leftPanelWidth, rightPanelWidth, startResizing, isResizing, startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
@@ -620,48 +621,40 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
   // Layout Logic
   const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
-  const showRight = (showBrowser && kodaSettings.browserPosition === 'right') || (showTerminal && kodaSettings.terminalPosition === 'right') || showExplorer;
+  const showRight = (showBrowser && kodaSettings.browserPosition === 'right') || (showTerminal && kodaSettings.terminalPosition === 'right');
 
   const renderPanelStack = (pos: 'left' | 'right') => {
     const hasBrowser = showBrowser && kodaSettings.browserPosition === pos;
     const hasTerminal = showTerminal && kodaSettings.terminalPosition === pos;
-    const hasExplorer = showExplorer && pos === 'right'; // Explorer sempre à direita
     
-    if (!hasBrowser && !hasTerminal && !hasExplorer) return null;
+    if (!hasBrowser && !hasTerminal) return null;
 
     return (
       <div 
         style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }} 
-        className={`flex flex-col flex-shrink-0 min-w-[200px] relative h-full bg-[#141414] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
+        className={`flex flex-col shrink-0 min-w-50 relative h-full bg-[#141414] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
       >
         {hasBrowser && (
-          <div className="flex-shrink-0 min-h-[100px] relative" style={{ height: (hasTerminal || hasExplorer) ? `${browserHeight}%` : '100%' }}>
+          <div className="shrink-0 min-h-25 relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
             <BrowserPreview onClose={() => onBrowserClick()} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-                <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+                <div className={`absolute inset-0 z-100 ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
           </div>
         )}
-        {hasBrowser && (hasTerminal || hasExplorer) && (
+        {hasBrowser && hasTerminal && (
           <div
             onMouseDown={startResizingHeight}
-            className={`h-1 w-full cursor-row-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+            className={`h-1 w-full cursor-row-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
           >
-            <div className={`w-8 h-[1px] bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingHeight ? 'bg-white' : ''}`} />
           </div>
         )}
         {hasTerminal && (
-          <div className="flex-1 min-h-[100px] relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
+          <div className="flex-1 min-h-25 relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
             <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-                <div className={`absolute inset-0 z-[100] ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+                <div className={`absolute inset-0 z-100 ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
-          </div>
-        )}
-        {hasExplorer && !hasTerminal && (
-          <div className="flex-1 min-h-[100px] relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
-            {/* Explorer será renderizado via overlay, então só precisamos do espaço */}
-            <div className="w-full h-full" />
           </div>
         )}
       </div>
@@ -690,6 +683,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
         onToggleIconBar={() => setKodaSettings(prev => ({ ...prev, showIconBar: !prev.showIconBar }))}
         isSplitEnabled={isSplitEnabled}
         onToggleSplit={onToggleSplit || (() => {})}
+        showExplorer={showExplorer}
+        onToggleExplorer={() => setShowExplorer(!showExplorer)}
         extraButton={
           <>
             {kodaSettings.explorerButtonPosition === 'titlebar' && (
@@ -699,28 +694,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 position="titlebar"
                 onMoveToIconbar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
                 onMoveToTitlebar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
-              />
-            )}
-            {(kodaSettings.explorerTabPosition ?? 'panel') === 'titlebar' && (
-              <ExplorerTabButton
-                active={kodaSettings.explorerTabPosition === 'panel' ? (showPanel && contextPanelTab === 'explorer') : showExplorer}
-                onClick={() => {
-                  if (kodaSettings.explorerTabPosition === 'panel') {
-                    onContextPanelTabChange?.('explorer')
-                  } else {
-                    setShowExplorer(!showExplorer)
-                  }
-                }}
-                position="titlebar"
-                onMoveTo={(pos) => {
-                  setKodaSettings(prev => ({ ...prev, explorerTabPosition: pos }))
-                  if (pos === 'panel') {
-                    setShowExplorer(false)
-                    onTogglePanel()
-                    onContextPanelTabChange?.('explorer')
-                  }
-                }}
-                variant="titlebar"
               />
             )}
           </>
@@ -734,7 +707,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
         {kodaSettings.showIconBar && (
           <div
             id="tour-iconbar"
-            className="w-64 bg-[#141414] border-r border-white/5 flex flex-col shrink-0 z-[1100] overflow-hidden"
+            className="w-64 bg-[#141414] border-r border-white/5 flex flex-col shrink-0 z-1100 overflow-hidden"
           >
             {/* Sessions — inline, sempre visível */}
             <ChatHistory
@@ -771,29 +744,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
                   position={kodaSettings.explorerButtonPosition ?? 'iconbar'}
                   onMoveToIconbar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
                   onMoveToTitlebar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
-                />
-              )}
-
-              {(kodaSettings.explorerTabPosition ?? 'panel') === 'iconbar' && (
-                <ExplorerTabButton
-                  active={kodaSettings.explorerTabPosition === 'panel' ? (showPanel && contextPanelTab === 'explorer') : showExplorer}
-                  onClick={() => {
-                    if (kodaSettings.explorerTabPosition === 'panel') {
-                      onContextPanelTabChange?.('explorer')
-                    } else {
-                      setShowExplorer(!showExplorer)
-                    }
-                  }}
-                  position="iconbar"
-                  onMoveTo={(pos) => {
-                    setKodaSettings(prev => ({ ...prev, explorerTabPosition: pos }))
-                    if (pos === 'panel') {
-                      setShowExplorer(false)
-                      onTogglePanel()
-                      onContextPanelTabChange?.('explorer')
-                    }
-                  }}
-                  variant="iconbar"
                 />
               )}
             </div>
@@ -936,7 +886,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === slashIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
                               onClick={() => selectSlashItem(item)}
                             >
-                              <span className="text-sm flex-shrink-0">{item.icon}</span>
+                              <span className="text-sm shrink-0">{item.icon}</span>
                               <div className="flex flex-col min-w-0">
                                 <span className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
                                   {item.name}
@@ -962,7 +912,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === suggestionIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
                               onClick={() => selectSuggestion(file)}
                             >
-                              <span className="text-sm flex-shrink-0">📄</span>
+                              <span className="text-sm shrink-0">📄</span>
                               <span className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
                                 {file}
                               </span>
@@ -996,7 +946,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         </div>
                       )}
 
-                      <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0 flex flex-wrap items-start gap-1">
+                      <div className="overflow-y-auto max-h-75 px-3 pt-2 pb-0 flex flex-wrap items-start gap-1">
                         {/* Render file pills inline with text */}
                         {inputFiles.map((filePath, i) => {
                           const fileName = filePath.split(/[/\\]/).pop() || filePath
@@ -1007,13 +957,13 @@ const ModernUI: React.FC<ModernUIProps> = ({
                                 src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${iconName}`}
                                 width="12" 
                                 height="12" 
-                                className="flex-shrink-0 object-contain"
+                                className="shrink-0 object-contain"
                                 alt={fileName}
                               />
-                              <span className="max-w-[150px] truncate">{fileName}</span>
+                              <span className="max-w-37.5 truncate">{fileName}</span>
                               <button
                                 onClick={() => onRemoveInputFile(filePath)}
-                                className="flex-shrink-0 w-3 h-3 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                                className="shrink-0 w-3 h-3 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
                                 title="Remove"
                               >
                                 <svg width="6" height="6" viewBox="0 0 10 10" fill="none">
@@ -1034,7 +984,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                           onPaste={handlePaste}
                           id="tour-input"
                           placeholder={inputFiles.length === 0 ? "Ask Koda anything..." : ""}
-                          className="flex-1 min-w-[200px] bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug align-top"
+                          className="flex-1 min-w-50 bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-5 resize-none leading-snug align-top"
                           style={{ overflow: "hidden" }}
                         />
                       </div>
@@ -1048,7 +998,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                           
                           <div id="tour-cwd" onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
                             <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-                            <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
+                            <span className="text-[9px] font-medium text-zinc-400 truncate max-w-75 group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
                           </div>
                         </div>
 
@@ -1086,9 +1036,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
           {showLeft && (
             <div
               onMouseDown={startResizing}
-              className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+              className={`w-1 h-full cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
             >
-              <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizing ? 'bg-white' : ''}`} />
             </div>
           )}
 
@@ -1193,7 +1142,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === slashIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
                             onClick={() => selectSlashItem(item)}
                           >
-                            <span className="text-sm flex-shrink-0">{item.icon}</span>
+                            <span className="text-sm shrink-0">{item.icon}</span>
                             <div className="flex flex-col min-w-0">
                               <span className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
                                 {item.name}
@@ -1223,7 +1172,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                               src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${getIconForFile(file.split(/[/\\]/).pop() || '')}`}
                               width="16" 
                               height="16" 
-                              className="flex-shrink-0 object-contain"
+                              className="shrink-0 object-contain"
                               alt="file icon"
                             />
                             <span className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
@@ -1262,7 +1211,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                                   </div>
                                 </div>
                                 {/* Subtle decorative pattern */}
-                                <div className="absolute top-0 right-0 w-12 h-12 bg-white/[0.02] -mr-6 -mt-6 rotate-45 pointer-events-none" />
+                                <div className="absolute top-0 right-0 w-12 h-12 bg-white/2 -mr-6 -mt-6 rotate-45 pointer-events-none" />
                               </div>
                             )}
                             <button 
@@ -1274,7 +1223,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       </div>
                     )}
 
-                    <div className="overflow-y-auto max-h-[300px] px-3 pt-2 pb-0 flex flex-wrap items-start gap-1">
+                    <div className="overflow-y-auto max-h-75 px-3 pt-2 pb-0 flex flex-wrap items-start gap-1">
                       {/* Render file pills inline with text */}
                       {inputFiles.map((filePath, i) => {
                         const fileName = filePath.split(/[/\\]/).pop() || filePath
@@ -1285,13 +1234,13 @@ const ModernUI: React.FC<ModernUIProps> = ({
                               src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${iconName}`}
                               width="12" 
                               height="12" 
-                              className="flex-shrink-0 object-contain"
+                              className="shrink-0 object-contain"
                               alt={fileName}
                             />
-                            <span className="max-w-[150px] truncate">{fileName}</span>
+                            <span className="max-w-37.5 truncate">{fileName}</span>
                             <button
                               onClick={() => onRemoveInputFile(filePath)}
-                              className="flex-shrink-0 w-3 h-3 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                              className="shrink-0 w-3 h-3 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
                               title="Remove"
                             >
                               <svg width="6" height="6" viewBox="0 0 10 10" fill="none">
@@ -1312,7 +1261,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         onPaste={handlePaste}
                         id="tour-input"
                         placeholder={inputFiles.length === 0 ? "Ask Koda anything..." : ""}
-                        className="flex-1 min-w-[200px] bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug align-top"
+                        className="flex-1 min-w-50 bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-5 resize-none leading-snug align-top"
                         style={{ overflow: "hidden" }}
                       />
                     </div>
@@ -1326,7 +1275,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         
                         <div id="tour-cwd" onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
                           <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-                          <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[300px] group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
+                          <span className="text-[9px] font-medium text-zinc-400 truncate max-w-75 group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
                         </div>
                       </div>
 
@@ -1361,15 +1310,17 @@ const ModernUI: React.FC<ModernUIProps> = ({
           {showRight && (
             <div
               onMouseDown={startResizingRight}
-              className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${isResizingRight ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+              className={`w-1 h-full cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizingRight ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
             >
-              <div className={`w-[1px] h-8 bg-white/20 group-hover:bg-white/50 transition-colors ${isResizingRight ? 'bg-white' : ''}`} />
             </div>
           )}
           {showRight && renderPanelStack('right')}
 
             {/* Space for ContextPanel overlay */}
-            {showPanel && <div className="flex-shrink-0" style={{ width: contextPanelWidth }} />}
+            {showPanel && <div className="shrink-0" style={{ width: contextPanelWidth }} />}
+
+            {/* Space for Standalone Explorer overlay */}
+            {showExplorer && <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />}
           </div>
           )}
         </div>

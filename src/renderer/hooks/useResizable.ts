@@ -5,14 +5,17 @@ interface UseResizableReturn {
   rightPanelWidth: number
   browserHeight: number
   contextPanelWidth: number
+  explorerWidth: number
   isResizing: boolean
   isResizingRight: boolean
   isResizingHeight: boolean
   isResizingContext: boolean
+  isResizingExplorer: boolean
   startResizing: () => void
   startResizingRight: () => void
   startResizingHeight: () => void
   startResizingContext: () => void
+  startResizingExplorer: () => void
 }
 
 /**
@@ -24,10 +27,12 @@ export function useResizable(): UseResizableReturn {
   const [rightPanelWidth, setRightPanelWidth] = useState(30)
   const [browserHeight, setBrowserHeight] = useState(60)
   const [contextPanelWidth, setContextPanelWidth] = useState(256)
+  const [explorerWidth, setExplorerWidth] = useState(256)
   const [isResizing, setIsResizing] = useState(false)
   const [isResizingRight, setIsResizingRight] = useState(false)
   const [isResizingHeight, setIsResizingHeight] = useState(false)
   const [isResizingContext, setIsResizingContext] = useState(false)
+  const [isResizingExplorer, setIsResizingExplorer] = useState(false)
 
   // ── Left Horizontal resize ────────────────────────────────────────────────────
   const startResizing = useCallback(() => setIsResizing(true), [])
@@ -126,18 +131,45 @@ export function useResizable(): UseResizableReturn {
     }
   }, [isResizingContext, resizeContext, stopResizingContext])
 
+  // ── Explorer Panel resize (right side, px-based) ──────────────────────────
+  const startResizingExplorer = useCallback(() => setIsResizingExplorer(true), [])
+  const stopResizingExplorer = useCallback(() => setIsResizingExplorer(false), [])
+
+  const resizeExplorer = useCallback((e: MouseEvent) => {
+    if (!isResizingExplorer) return
+    const newWidth = Math.max(180, Math.min(520, window.innerWidth - e.clientX))
+    setExplorerWidth(newWidth)
+  }, [isResizingExplorer])
+
+  useEffect(() => {
+    if (isResizingExplorer) {
+      window.addEventListener('mousemove', resizeExplorer)
+      window.addEventListener('mouseup', stopResizingExplorer)
+    } else {
+      window.removeEventListener('mousemove', resizeExplorer)
+      window.removeEventListener('mouseup', stopResizingExplorer)
+    }
+    return () => {
+      window.removeEventListener('mousemove', resizeExplorer)
+      window.removeEventListener('mouseup', stopResizingExplorer)
+    }
+  }, [isResizingExplorer, resizeExplorer, stopResizingExplorer])
+
   return {
     leftPanelWidth,
     rightPanelWidth,
     browserHeight,
     contextPanelWidth,
+    explorerWidth,
     isResizing,
     isResizingRight,
     isResizingHeight,
     isResizingContext,
+    isResizingExplorer,
     startResizing,
     startResizingRight,
     startResizingHeight,
     startResizingContext,
+    startResizingExplorer,
   }
 }
