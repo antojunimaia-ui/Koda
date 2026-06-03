@@ -99,23 +99,20 @@ function createWindow() {
       // Additional settings to prevent GPU and cache issues
       offscreen: false,
       transparent: false,
-      backgroundColor: '#0f172a',
     },
   })
 
-  // Handle GPU-related errors
-  mainWindow.webContents.on('gpu-process-crashed', (event, killed) => {
-    console.warn('GPU process crashed, attempting to recover...')
-    // Don't auto-restart to avoid infinite crash loops
-  })
-
-  // Handle renderer process crashes
-  mainWindow.webContents.on('crashed', () => {
-    console.error('Renderer process crashed')
-    // Attempt to reload the window
-    setTimeout(() => {
-      mainWindow?.reload()
-    }, 2000)
+  // Handle renderer/GPU process crashes (Electron 22+ unified event)
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    if (details.reason === 'crashed' || details.reason === 'killed') {
+      console.error('Renderer process gone:', details.reason)
+      // Attempt to reload the window after a short delay
+      setTimeout(() => {
+        mainWindow?.reload()
+      }, 2000)
+    } else {
+      console.warn('Render process gone:', details.reason)
+    }
   })
 
   // Handle unresponsive renderer

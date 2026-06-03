@@ -31,6 +31,7 @@ declare global {
       ptyWrite: (pid: number, data: string) => Promise<{ success: boolean }>
       ptyResize: (pid: number, cols: number, rows: number) => Promise<{ success: boolean }>
       getFiles: () => Promise<{ success: boolean; files: string[]; error?: string }>
+      listDirLazy: (dirPath?: string) => Promise<{ success: boolean; files: Array<{ name: string; path: string; isDir: boolean }>; error?: string }>
       readFile: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string }>
       readFileBase64: (filePath: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>
       writeFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>

@@ -77,7 +77,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({ onClose, onSave }) => {
   }
 
   return (
-    <div className="absolute inset-0 z-9999 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+    <div className="absolute inset-0 z-9999 flex items-center justify-center bg-black/85 animate-in fade-in duration-150" onClick={onClose}>
       <div className="flex w-[860px] h-[580px] bg-[#0f1115] border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl" onClick={handleWrapperClick}>
         
         {/* Sidebar */}

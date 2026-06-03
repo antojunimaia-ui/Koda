@@ -111,11 +111,13 @@ const SettingsUI = memo(({
   })
 
   useEffect(() => {
+    // Skip if models already loaded for this provider
+    if (loadedModels[provider]) return
     if (!apiKey && !['openrouter', 'ollama', 'llamacpp', 'koda-cloud'].includes(provider)) {
       return
     }
     fetchModelsForProvider(provider, apiKey)
-  }, [provider, apiKey, fetchModelsForProvider])
+  }, [provider, apiKey, fetchModelsForProvider, loadedModels])
 
   const handleFetchModels = (provId: string) => {
     const key = providersConfig[provId]?.apiKey || ''
@@ -181,7 +183,7 @@ const SettingsUI = memo(({
   }
 
   return (
-    <div className={`absolute inset-0 z-9999 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200 ${uiMode === 'modern' ? 'bg-black/60' : 'bg-black/80'}`} onClick={onClose}>
+    <div className={`absolute inset-0 z-9999 flex items-center justify-center animate-in fade-in duration-150 ${uiMode === 'modern' ? 'bg-black/75' : 'bg-black/85'}`} onClick={onClose}>
       <div className={`flex w-240 h-160 border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#141414] border-white/8' : 'bg-slate-900 border-slate-700/50'}`} onClick={handleWrapperClick}>
 
         {/* Sidebar */}
@@ -220,7 +222,7 @@ const SettingsUI = memo(({
         <div className="flex-1 flex flex-col">
           <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
             {activeTab === 'api' && (
-              <div className="flex flex-col gap-6 animate-in slide-in-from-left-2 duration-300">
+              <div className="flex flex-col gap-6">
                 <h3 className="text-white font-bold text-sm flex items-center gap-2">
                   <span className="w-1.5 h-4 bg-cyan rounded-full"></span>
                   API Configuration
@@ -315,7 +317,7 @@ const SettingsUI = memo(({
             )}
 
             {activeTab === 'themes' && (
-              <div className="flex flex-col gap-6 animate-in slide-in-from-left-2 duration-300">
+              <div className="flex flex-col gap-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-white font-bold text-sm flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-magenta rounded-full"></span>

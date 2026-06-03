@@ -57,20 +57,12 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
     return date.toLocaleDateString()
   }
 
-  const projectName = projectPath.split(/[/\\]/).pop() || 'Project'
-
   return (
     <div className="flex flex-col flex-1 min-h-0">
-        {/* Header */}
-        <div className="p-4 border-b border-white/5">
-          <div className="text-white font-bold text-sm mb-1">{projectName}</div>
-          <div className="text-slate-500 text-xs truncate">{projectPath}</div>
-        </div>
-
         {/* New Session Button */}
         <button
           onClick={onNewSession}
-          className="mx-3 mt-3 px-3 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-all flex items-center gap-2 text-sm"
+          className="mx-3 mt-2 px-3 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-all flex items-center gap-2 text-sm"
         >
           <MessageSquarePlus className="w-4 h-4" />
           Nova sessão

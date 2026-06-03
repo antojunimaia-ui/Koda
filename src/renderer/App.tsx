@@ -108,7 +108,8 @@ const App: React.FC = () => {
     } catch (e) {
       console.error('Error auto-fetching models:', e)
     }
-  }, [fetchModelsForProvider, showSettings])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchModelsForProvider])
 
   const updateWorkspace = useCallback((id: string, updates: Partial<Workspace> | ((prev: Workspace) => Workspace)) => {
     setWorkspaces(prev => prev.map(w => {

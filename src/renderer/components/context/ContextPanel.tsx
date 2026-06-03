@@ -156,7 +156,7 @@ const ExplorerTabButton: React.FC<{
   )
 }
 
-export { FileExplorer }
+export { FileExplorer, ExplorerTabButton }
 
 interface FileNode {
   name: string
@@ -445,6 +445,8 @@ const FileExplorer: React.FC<{
     setDropTarget(null)
     setDropPosition(null)
   }
+
+  const isMarkdown = (name: string) => name.toLowerCase().endsWith('.md') || name.toLowerCase().endsWith('.mdx')
 
   const getContextMenuItems = (filePath: string, isDir: boolean = false): ContextMenuItem[] => {
     const fileName = filePath.split('/').pop() || ''
