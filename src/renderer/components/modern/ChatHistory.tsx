@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { MessageSquarePlus, MoreHorizontal, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Trash2 } from 'lucide-react'
 import { sessionStorage as kodaSessionStorage } from '../../hooks/useSessionStorage.js'
 
 interface ChatHistoryProps {
@@ -30,6 +30,17 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault()
+        onNewSession()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onNewSession])
+
   const loadSessions = () => {
     const list = kodaSessionStorage.list(projectPath)
     setSessions(list.map(s => ({ id: s.id, title: s.title, timestamp: s.timestamp })))
@@ -59,14 +70,18 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-        {/* New Session Button */}
-        <button
-          onClick={onNewSession}
-          className="mx-3 mt-2 px-3 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-all flex items-center gap-2 text-sm"
-        >
-          <MessageSquarePlus className="w-4 h-4" />
-          Nova sessão
-        </button>
+        {/* Header with Sessions title and New Session action */}
+        <div className="mx-3 mt-4 mb-2 flex items-center justify-between border-b border-white/5 pb-2">
+          <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Sessions</span>
+          <button
+            onClick={onNewSession}
+            className="text-slate-500 hover:text-white text-xs flex items-center gap-1 transition-colors"
+            title="Nova sessão (Ctrl+N)"
+          >
+            <span className="font-medium">New</span>
+            <kbd className="text-[9px] bg-white/5 border border-white/10 px-1 py-0.5 rounded text-slate-400 font-mono leading-none">Ctrl+N</kbd>
+          </button>
+        </div>
 
         {/* Sessions List */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
