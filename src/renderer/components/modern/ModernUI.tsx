@@ -193,6 +193,8 @@ interface ModernUIProps {
   onSelectActiveModel?: (providerId: string, model: string, advisorModel: string, apiKey: string) => void
   loadedModels?: Record<string, string[]>
   fetchModelsForProvider?: (provId: string, apiKey: string) => Promise<void>
+  isIDEWindow?: boolean
+  onToggleIDEMode?: () => void
 }
 
 // ─── Auto Resize Hook ────────────────────────────────────────────────────────
@@ -281,6 +283,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
   onNewSession, onLoadSession, onAddToInput, onInject, pinnedFiles, onPin,
   inputFiles, onRemoveInputFile, onSelectActiveModel, loadedModels = {},
   fetchModelsForProvider,
+  isIDEWindow = false,
+  onToggleIDEMode,
 }) => {
   
   const [showChatHistory, setShowChatHistory] = useState(false)
@@ -685,6 +689,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
         onToggleSplit={onToggleSplit || (() => {})}
         showExplorer={showExplorer}
         onToggleExplorer={() => setShowExplorer(!showExplorer)}
+        isIDEWindow={isIDEWindow}
+        onToggleIDEMode={onToggleIDEMode}
         extraButton={
           <>
             {kodaSettings.explorerButtonPosition === 'titlebar' && (

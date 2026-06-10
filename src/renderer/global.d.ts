@@ -61,6 +61,8 @@ declare global {
       selectDirectory: () => Promise<string | null>
       updaterInstall: () => Promise<void>
       onUpdaterEvent: (callback: (event: string, data?: any) => void) => (() => void)
+      openIDE: () => Promise<void>
+      openAgent: () => Promise<void>
     }
   }
 }

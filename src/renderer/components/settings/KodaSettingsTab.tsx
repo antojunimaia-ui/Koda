@@ -268,47 +268,6 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings, uiMode }: KodaSet
         </div>
       </section>
 
-      {/* IDE Mode Section */}
-      <section>
-        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
-          <span className="w-1.5 h-4 bg-amber-400 rounded-full"></span>
-          IDE Mode
-        </h3>
-        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">Transform Koda into a full IDE experience with dedicated panels for file exploration and code editing.</p>
-        
-        <div className="flex flex-col gap-4 bg-slate-800/20 p-5 rounded-xl border border-slate-700/50">
-          <SettingToggle 
-            label="Explorer Panel" 
-            description="Show a permanent file explorer on the left side, like VS Code" 
-            enabled={kodaSettings.showExplorerPanel || false} 
-            onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showExplorerPanel: v }))} 
-          />
-          
-          <SettingToggle 
-            label="Editor Panel" 
-            description="Show a code editor in the center with chat moved to the right side" 
-            enabled={kodaSettings.showEditorPanel || false} 
-            onChange={(v: boolean) => setKodaSettings(prev => ({ ...prev, showEditorPanel: v }))} 
-          />
-          
-          {(kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel) && (
-            <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-amber-400 text-xs">💡</span>
-                <span className="text-amber-300 text-[10px] font-bold">IDE Layout Active</span>
-              </div>
-              <p className="text-amber-200/80 text-[9px] leading-relaxed">
-                {kodaSettings.showExplorerPanel && kodaSettings.showEditorPanel 
-                  ? "Full IDE mode: Explorer (left) → Editor (center) → Chat (right)"
-                  : kodaSettings.showExplorerPanel 
-                    ? "Explorer mode: File tree on the left side"
-                    : "Editor mode: Code editor in center, chat on the right"
-                }
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
     </div>
   )
 })

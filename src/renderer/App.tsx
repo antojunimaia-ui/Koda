@@ -150,6 +150,28 @@ const App: React.FC = () => {
     }
   })
 
+  const isIDEWindow = React.useMemo(() => {
+    return new URLSearchParams(window.location.search).get('window') === 'ide'
+  }, [])
+
+  const activeSettings = React.useMemo(() => {
+    return {
+      ...kodaSettings,
+      showExplorerPanel: isIDEWindow,
+      showEditorPanel: isIDEWindow,
+    }
+  }, [kodaSettings, isIDEWindow])
+
+  const handleToggleIDEMode = useCallback(() => {
+    if (isIDEWindow) {
+      // We're in the IDE window → switch to the Agent/main window
+      window.koda?.openAgent?.()
+    } else {
+      // We're in the main window → open the IDE window
+      window.koda?.openIDE?.()
+    }
+  }, [isIDEWindow])
+
   const [theme, setTheme] = useState<KodaTheme>(() => {
     return KoDB.get('theme')
   })
@@ -1016,10 +1038,12 @@ Your current task is: ${userMsg}`
           inputRef={inputRef}
           virtuosoRef={virtuosoRef}
           theme={theme}
-          kodaSettings={kodaSettings}
+          kodaSettings={activeSettings}
           setKodaSettings={setKodaSettings}
           onSettingsClick={() => setShowSettings(true)}
           onMcpClick={() => setShowMcpSettings(true)}
+          isIDEWindow={isIDEWindow}
+          onToggleIDEMode={handleToggleIDEMode}
           onBrowserClick={() => setShowBrowser(p => !p)}
           showBrowser={showBrowser}
           onTerminalClick={() => setShowTerminal(p => !p)}

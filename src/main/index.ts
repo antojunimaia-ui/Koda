@@ -65,8 +65,75 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 let mainWindow: BrowserWindow | null = null
+let ideWindow: BrowserWindow | null = null
 const agents = new Map<string, Agent>()
 const discordRPC = new DiscordRPCManager()
+
+function createIDEWindow() {
+  const preloadPath = path.join(__dirname, 'preload/index.mjs')
+  
+  ideWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    backgroundColor: '#0f172a',
+    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    show: false,
+    webPreferences: {
+      preload: preloadPath,
+      nodeIntegration: false,
+      contextIsolation: true,
+      webviewTag: true,
+      webSecurity: false,
+      enableWebSQL: false,
+      offscreen: false,
+      transparent: false,
+    },
+  })
+
+  ideWindow.webContents.on('render-process-gone', (_event, details) => {
+    if (details.reason === 'crashed' || details.reason === 'killed') {
+      console.error('IDE Renderer process gone:', details.reason)
+      setTimeout(() => {
+        ideWindow?.reload()
+      }, 2000)
+    }
+  })
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    ideWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}?window=ide`)
+    ideWindow.webContents.openDevTools()
+  } else {
+    const indexPath = path.join(__dirname, '../dist/index.html')
+    ideWindow.loadURL(`file:///${indexPath.replace(/\\/g, '/')}?window=ide`)
+  }
+
+  ideWindow.once('ready-to-show', () => {
+    ideWindow?.maximize()
+    ideWindow?.show()
+  })
+
+  ideWindow.webContents.on('will-navigate', (event, url) => {
+    const rootUrl = process.env.VITE_DEV_SERVER_URL || 'file://'
+    if (!url.startsWith(rootUrl)) {
+      event.preventDefault()
+      import('electron').then(({ shell }) => {
+        shell.openExternal(url)
+      })
+    }
+  })
+
+  ideWindow.webContents.setWindowOpenHandler((details) => {
+    import('electron').then(({ shell }) => {
+      shell.openExternal(details.url)
+    })
+    return { action: 'deny' }
+  })
+
+  ideWindow.on('closed', () => {
+    ideWindow = null
+  })
+}
 
 // Use Electron's net.fetch which uses Chromium's network stack (avoids Node.js TLS issues)
 const efetch: typeof fetch = (input: any, init?: any) => net.fetch(input, init) as any
@@ -214,18 +281,32 @@ app.on('window-all-closed', () => {
 })
 
 // Window control handlers
-ipcMain.handle('window:minimize', () => {
-  mainWindow?.minimize()
+ipcMain.handle('window:minimize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  win?.minimize()
 })
-ipcMain.handle('window:maximize', () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize()
+ipcMain.handle('window:maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win?.isMaximized()) {
+    win.unmaximize()
   } else {
-    mainWindow?.maximize()
+    win?.maximize()
   }
 })
-ipcMain.handle('window:close', () => {
-  mainWindow?.close()
+ipcMain.handle('window:close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  win?.close()
+})
+
+ipcMain.handle('window:open_ide', () => {
+  createIDEWindow()
+})
+
+ipcMain.handle('window:open_agent', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  }
 })
 
 ipcMain.handle('window:open_external', async (_event, url: string) => {

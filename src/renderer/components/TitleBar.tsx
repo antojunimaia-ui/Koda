@@ -21,6 +21,8 @@ interface TitleBarProps {
   showExplorer?: boolean
   onToggleExplorer?: () => void
   extraButton?: React.ReactNode
+  isIDEWindow?: boolean
+  onToggleIDEMode?: () => void
 }
 
 const MODES: { id: Mode; label: string; icon: string; desc: string; color: string }[] = [
@@ -34,7 +36,8 @@ const TitleBar: React.FC<TitleBarProps> = ({
   mode, onModeChange, onSettingsClick, onMcpClick, 
   onBrowserClick, showBrowser, onTerminalClick, showTerminal, 
   showPanel, onTogglePanel, uiMode = 'classic', showIconBar = true, onToggleIconBar,
-  isSplitEnabled, onToggleSplit, showExplorer, onToggleExplorer, extraButton
+  isSplitEnabled, onToggleSplit, showExplorer, onToggleExplorer, extraButton,
+  isIDEWindow = false, onToggleIDEMode
 }) => {
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -224,6 +227,19 @@ const TitleBar: React.FC<TitleBarProps> = ({
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
         </button>
+
+        {onToggleIDEMode && (
+          <button
+            onClick={onToggleIDEMode}
+            title={isIDEWindow ? 'Open Agent Chat' : 'Open IDE Window'}
+            className="group flex items-center h-8 px-2 hover:bg-white/5 rounded transition-all no-drag select-none cursor-pointer"
+          >
+            <span className="max-w-0 opacity-0 group-hover:max-w-28 group-hover:opacity-100 transition-all duration-300 ease-out text-[10px] font-bold text-slate-300 pr-1.5 whitespace-nowrap overflow-hidden">
+              {isIDEWindow ? 'Open Agent' : 'Open IDE'}
+            </span>
+            <img src="/icon.png" className="w-4.5 h-4.5 object-contain filter brightness-90 group-hover:brightness-100 transition-all" />
+          </button>
+        )}
 
         <button 
           onClick={() => window.koda.minimize()}
