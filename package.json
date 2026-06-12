@@ -1,7 +1,7 @@
 {
   "name": "koda-electron",
   "version": "26.1.5",
-  "description": "Koda AI - Desktop Edition",
+  "description": "Koda - Your ideal development partner.",
   "main": "dist-electron/index.js",
   "type": "module",
   "scripts": {
@@ -72,7 +72,7 @@
     "appId": "com.koda.desktop",
     "productName": "Koda",
     "npmRebuild": false,
-    "copyright": "Copyright © 2025 Koda",
+    "copyright": "Copyright © 2026 Koda",
     "directories": {
       "output": "release-build"
     },
