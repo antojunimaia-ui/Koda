@@ -48,14 +48,14 @@ export const KODB_METADATA: Record<keyof KoDBSchema, DBMetadata & { defaultValue
     name: 'Active Model',
     category: 'API',
     description: 'The primary model name for the active provider',
-    defaultValue: 'gpt-4o',
+    defaultValue: 'gpt-5.5',
   },
   advisorModel: {
     id: 'koda_advisor_model',
     name: 'Advisor Model',
     category: 'API',
     description: 'The advisor model name for the active provider',
-    defaultValue: 'gpt-4o',
+    defaultValue: 'gpt-5.5',
   },
   providersConfig: {
     id: 'koda_providers_config',
