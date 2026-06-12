@@ -24,7 +24,7 @@ const userTasks = new Map<string, { messageId: number; result: TaskResult }>();
 export async function startKoClawBot(
   config: KoClawConfig,
   getAgent: () => { agent: Agent; workspaceId: string } | null,
-  mainWindow: BrowserWindow | null
+  getWindows: () => BrowserWindow[]
 ): Promise<void> {
   if (client) {
     await stopKoClawBot();
@@ -95,7 +95,10 @@ export async function startKoClawBot(
     // Send initial response
     const statusMsg = await message.reply('🤖 Processing your request...');
 
-    const emit = (data: object) => mainWindow?.webContents.send('agent:update', { workspaceId, ...data });
+    const emit = (data: object) => {
+      const payload = { workspaceId, ...data };
+      getWindows().forEach(w => w.webContents.send('agent:update', payload));
+    };
 
     // Show in UI
     emit({ type: 'discord_task', messageId: msgId, message: content, user: message.author.tag });

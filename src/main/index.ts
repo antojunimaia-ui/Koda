@@ -69,6 +69,12 @@ let ideWindow: BrowserWindow | null = null
 const agents = new Map<string, Agent>()
 const discordRPC = new DiscordRPCManager()
 
+/** Broadcast an agent:update event to all open windows (main + IDE). */
+function broadcastAgentUpdate(data: object) {
+  mainWindow?.webContents.send('agent:update', data)
+  ideWindow?.webContents.send('agent:update', data)
+}
+
 function createIDEWindow() {
   const preloadPath = path.join(__dirname, 'preload/index.mjs')
   
@@ -343,7 +349,7 @@ ipcMain.handle('agent:init', async (_event, workspaceId: string) => {
       
       // Wire up real-time tool progress events to the renderer
       agent.setProgressEmitter((event, toolName, data) => {
-        mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event, toolName, ...data })
+        broadcastAgentUpdate({ workspaceId, type: 'tool_progress', event, toolName, ...data })
       })
       
       // Start watching the current directory
@@ -379,15 +385,15 @@ ipcMain.handle('agent:message', async (_event, workspaceId: string, messageId: n
   try {
     await agent.processMessage(
       message,
-      (text) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'text', content: text }),
-      (name, args) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_start', name, args }),
-      (name, chunk) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
-      (name, result, success, args) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_end', name, result, success, args }),
-      (error) => mainWindow?.webContents.send('agent:update', { workspaceId, type: 'error', message: error }),
+      (text) => broadcastAgentUpdate({ workspaceId, type: 'text', content: text }),
+      (name, args) => broadcastAgentUpdate({ workspaceId, type: 'tool_start', name, args }),
+      (name, chunk) => broadcastAgentUpdate({ workspaceId, type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
+      (name, result, success, args) => broadcastAgentUpdate({ workspaceId, type: 'tool_end', name, result, success, args }),
+      (error) => broadcastAgentUpdate({ workspaceId, type: 'error', message: error }),
       images as any,
       snapshotPromise
     )
-    mainWindow?.webContents.send('agent:update', { workspaceId, type: 'done' })
+    broadcastAgentUpdate({ workspaceId, type: 'done' })
     return { success: true }
   } catch (error) {
     return { success: false, error: (error as Error).message }
@@ -448,7 +454,7 @@ ipcMain.handle('agent:cd', async (_event, workspaceId: string, targetPath: strin
     await agent.resetConversation()
     await agent.initialize()
     agent.setProgressEmitter((event, toolName, data) => {
-      mainWindow?.webContents.send('agent:update', { workspaceId, type: 'tool_progress', event, toolName, ...data })
+      broadcastAgentUpdate({ workspaceId, type: 'tool_progress', event, toolName, ...data })
     })
     
     // Start watching the new directory
@@ -1074,7 +1080,7 @@ ipcMain.handle('koclaw:start', async (_event, config: { token: string; channelId
       if (!entry) return null
       return { agent: entry[1], workspaceId: entry[0] }
     }
-    await startKoClawBot({ ...config, enabled: true }, getAgentWithId, mainWindow)
+    await startKoClawBot({ ...config, enabled: true }, getAgentWithId, () => [mainWindow, ideWindow].filter((w): w is BrowserWindow => !!w))
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }

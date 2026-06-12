@@ -69,11 +69,11 @@ function cleanupResult(msgId: number) {
 export function startWebhookServer(
   config: WebhookConfig,
   getAgent: () => { agent: Agent; workspaceId: string } | null,
-  mainWindow: BrowserWindow | null
+  getWindows: () => BrowserWindow[]
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (server) {
-      server.close(() => { server = null; startWebhookServer(config, getAgent, mainWindow).then(resolve).catch(reject); });
+      server.close(() => { server = null; startWebhookServer(config, getAgent, getWindows).then(resolve).catch(reject); });
       return;
     }
 
@@ -185,7 +185,10 @@ export function startWebhookServer(
         taskResults.set(msgId, result);
         cleanupResult(msgId);
 
-        const emit = (data: object) => mainWindow?.webContents.send('agent:update', { workspaceId, ...data });
+        const emit = (data: object) => {
+          const payload = { workspaceId, ...data };
+          getWindows().forEach(w => w.webContents.send('agent:update', payload));
+        };
 
         // Show in UI
         emit({ type: 'remote_task', messageId: msgId, message: body.message });
@@ -244,7 +247,7 @@ export function startWebhookServer(
           await agent.resetConversation();
           await agent.initialize();
           const info = agent.getInfo();
-          mainWindow?.webContents.send('agent:update', { workspaceId, type: 'remote_cd', cwd: info.cwd });
+          getWindows().forEach(w => w.webContents.send('agent:update', { workspaceId, type: 'remote_cd', cwd: info.cwd }));
           json(res, 200, { success: true, cwd: info.cwd });
         } catch (err: any) {
           json(res, 400, { error: err.message });
@@ -258,7 +261,7 @@ export function startWebhookServer(
         if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
         const { agent, workspaceId } = entry;
         await agent.resetConversation();
-        mainWindow?.webContents.send('agent:update', { workspaceId, type: 'remote_reset' });
+        getWindows().forEach(w => w.webContents.send('agent:update', { workspaceId, type: 'remote_reset' }));
         json(res, 200, { success: true });
         return;
       }
