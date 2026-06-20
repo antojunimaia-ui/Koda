@@ -543,9 +543,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
     // Show the animated avatar in the footer only when the agent is working
     // but there are no tool messages at the end (avatar is shown inside CompactToolView in that case)
     const lastMsg = messages[messages.length - 1];
-    const lastIsDoneAssistant = lastMsg?.type === 'assistant' && lastMsg.done;
+    const lastIsAssistant = lastMsg?.type === 'assistant';
     const lastIsTool = lastMsg?.type === 'tool';
-    const showAvatar = isProcessing && !lastIsDoneAssistant && !lastIsTool;
+    const showAvatar = isProcessing && !lastIsAssistant && !lastIsTool;
 
     return (
       <div className="pb-8">

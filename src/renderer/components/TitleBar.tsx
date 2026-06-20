@@ -218,16 +218,6 @@ const TitleBar: React.FC<TitleBarProps> = ({
           </>
         )}
 
-        <button
-          onClick={onToggleExplorer}
-          title={showExplorer ? 'Hide Explorer' : 'Show Explorer'}
-          className={`w-11 h-8 flex items-center justify-center transition-colors no-drag ${showExplorer ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
-        </button>
-
         {onToggleIDEMode && (
           <button
             onClick={onToggleIDEMode}
@@ -240,6 +230,16 @@ const TitleBar: React.FC<TitleBarProps> = ({
             <img src="/icon.png" className="w-4.5 h-4.5 object-contain filter brightness-90 group-hover:brightness-100 transition-all" />
           </button>
         )}
+
+        <button
+          onClick={onToggleExplorer}
+          title={showExplorer ? 'Hide Explorer' : 'Show Explorer'}
+          className={`w-11 h-8 flex items-center justify-center transition-colors no-drag ${showExplorer ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
 
         <button 
           onClick={() => window.koda.minimize()}
