@@ -23,6 +23,7 @@ import OnboardingTour from './OnboardingTour.js'
 import { PromptBox } from './PromptBox.js'
 import { ExplorerTabButton } from '../context/ContextPanel.js'
 import IDELayout from '../IDELayout.js'
+import StatusBar from '../StatusBar.js'
 
 // ─── Explorer Button with context menu ───────────────────────────────────────
 const ExplorerButton: React.FC<{
@@ -433,17 +434,20 @@ const ModernUI: React.FC<ModernUIProps> = ({
           className="bg-transparent border-0 text-zinc-500 hover:text-zinc-300 text-[10px] font-mono outline-none cursor-pointer transition-colors appearance-none truncate"
         >
           {modelDropdownOptions.map((opt) => {
-            const models = opt.availableModels && opt.availableModels.length > 0
+            const baseModels = opt.availableModels && opt.availableModels.length > 0
               ? opt.availableModels
               : [opt.model]
 
-            if (!models.includes(opt.model)) {
-              models.unshift(opt.model)
+            const modelsCopy = [...baseModels]
+            if (!modelsCopy.includes(opt.model)) {
+              modelsCopy.unshift(opt.model)
             }
+
+            const uniqueModels = Array.from(new Set(modelsCopy))
 
             return (
               <optgroup key={opt.providerId} label={opt.providerName} className="bg-neutral-900 text-zinc-400 font-mono text-[9px]">
-                {models.map(m => {
+                {uniqueModels.map(m => {
                   const val = JSON.stringify({ providerId: opt.providerId, model: m })
                   return (
                     <option key={`${opt.providerId}-${m}`} value={val} className="bg-neutral-900 text-zinc-300 font-mono text-[10px]">
@@ -1155,6 +1159,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
           )}
         </div>
       </div>
+
+      {/* StatusBar - only in IDE mode */}
+      {isIDEWindow && <StatusBar mode={mode} onModeChange={setMode} />}
 
       <OnboardingTour show={messages.length === 0} />
     </div>

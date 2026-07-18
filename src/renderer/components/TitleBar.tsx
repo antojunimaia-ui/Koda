@@ -126,9 +126,11 @@ const TitleBar: React.FC<TitleBarProps> = ({
         )}
 
         <div className={`flex items-center gap-1 h-full ${uiMode === 'modern' && !showIconBar ? 'pl-0' : uiMode === 'modern' ? 'pl-3' : ''}`}>
-          <div className="no-drag h-full flex items-center">
-            {modeSelector}
-          </div>
+          {!isIDEWindow && (
+            <div className="no-drag h-full flex items-center">
+              {modeSelector}
+            </div>
+          )}
 
         <button
           id="tour-workspaces"
