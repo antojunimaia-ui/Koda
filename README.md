@@ -19,6 +19,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/7FtCkNunYF)
 [![Support the project](https://img.shields.io/badge/Support-the%20project-ff69b4?logo=github-sponsors&logoColor=white)](https://apoie.pedrodev.top)
+[![Website](https://img.shields.io/badge/Website-koda-22d3ee?logo=googlechrome&logoColor=white)](https://koda-hmwq.onrender.com/)
 
 Koda is an Open-Source Agent Development Environment (ADE) for AI-assisted software engineering. No IDE extensions, no cloud servers, no clipboard gymnastics — it reads your codebase, edits files, runs commands, and ships code directly in your local environment.
 
@@ -32,6 +33,9 @@ Koda is an Open-Source Agent Development Environment (ADE) for AI-assisted softw
 
 - **Autonomous pair-programming** — Koda reads your project structure, understands the architecture, and edits files directly. No copy-paste required.
 - **Modern UI by default** — opens in the sleek `Modern Pro` layout with Iconbar on first launch. Classic CLI mode is still available via Settings.
+- **Sidebar always open** — the Iconbar is open by default on every launch, showing the session history panel immediately.
+- **Project & branch indicator** — above the chat input, Koda shows the current project folder and, when the directory is a Git repo, the active branch with a dropdown to switch branches (local and remote) without leaving the app.
+- **Readable model names** — the model selector displays human-friendly names (`Claude Sonnet 4`, `GPT-4o Mini`, `Gemini 2.5 Flash`) instead of raw API slugs, with a clean sans-serif font.
 - **Onboarding tour** — first-time users get an interactive guided tour highlighting the CWD selector, chat input, mode switcher, workspace split button, and Iconbar. Appears once and is dismissed to localStorage.
 - **Chat history** — per-project session history stored in `localStorage`. Hover the Iconbar to open the history panel, load a past session, or delete it. Each conversation is a separate session file — no overwriting.
 - **User messages aligned right** — in Modern UI, user messages appear as chat bubbles on the right side. Rollback action appears below on hover.
@@ -50,7 +54,7 @@ Koda is an Open-Source Agent Development Environment (ADE) for AI-assisted softw
 - **Dynamic slash menu** — typing `/` opens a live-filtered dropdown listing all native commands and available skills.
 - **Inline diff viewer** — `file_edit` outputs render as a side-by-side visual diff with line numbers.
 - **System notifications** — native OS notification fires when a long task (>3s) completes and the window is not in focus.
-- **Remote Control API** — built-in HTTP server (default port `3141`) exposes `POST /task`, `GET /status`, `POST /reset`, and `GET /messages`.
+- **Remote Control API** — built-in HTTP server (default port `3141`) with real-time SSE streaming, synchronous `wait` mode, and remote directory switching via `/cd`.
 - **MCP support** — connect any Model Context Protocol server. Tools are discovered at runtime and injected into the agent's arsenal dynamically.
 - **LSP integration** — semantic queries via `typescript-language-server`: hover types, go-to-definition, and symbol resolution.
 - **16 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
@@ -241,14 +245,19 @@ TEMPERATURE=0.3
 
 ## Remote Control API
 
-Enable in **Settings → Remote Control**.
+Enable in **Settings → KoClaw**.
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/status` | Public | Agent status, busy state, current project and model |
-| `POST` | `/task` | Token | Send a task — body: `{ "message": "..." }` |
+| `POST` | `/task` | Token | Send a task — body: `{ "message": "...", "wait": true }` |
 | `POST` | `/reset` | Token | Reset conversation remotely |
 | `GET` | `/messages` | Token | Retrieve full conversation history as JSON |
+| `GET` | `/stream?messageId=X` | Token | SSE stream — receive agent response in real time |
+| `GET` | `/result?messageId=X` | Token | Poll result of a completed task (expires in 10 min) |
+| `POST` | `/cd` | Token | Change the agent's working directory — body: `{ "path": "..." }` |
+
+The `wait: true` field on `POST /task` holds the HTTP response until the agent finishes and returns the full result synchronously — ideal for bots that need the answer before replying.
 
 ```bash
 curl -X POST http://100.x.x.x:3141/task \
@@ -296,9 +305,9 @@ src/
 │   │   ├── conversation.ts      # Message history, microCompact, trimIfNeeded, rollback
 │   │   ├── prompt-builder.ts    # Dynamic system prompt assembly (env + project + tools)
 │   │   └── context.ts           # Project detection (language, framework, package manager)
-│   ├── providers/               # 15 LLM provider implementations (all extend BaseProvider)
+│   ├── providers/               # 16 LLM provider implementations (all extend BaseProvider)
 │   │   └── base.ts              # BaseProvider, Message, StreamChunk, ToolCall interfaces
-│   ├── tools/                   # 19 agent tools (all extend BaseTool)
+│   ├── tools/                   # 21 agent tools (all extend BaseTool)
 │   │   ├── index.ts             # ToolRegistry: registration, mode filtering, plan-mode lock
 │   │   ├── shell.ts             # ShellTool + PTY registry + KillPty/ListPty/ShellInput/ShellWait
 │   │   ├── file-edit.ts         # String-replace edit with unified diff output
@@ -332,6 +341,8 @@ src/
     │   └── useSessionStorage.ts # localStorage-based session persistence (list/save/delete)
     └── components/
         ├── modern/ModernUI.tsx  # Default UI: sleek backdrop-blur interface with Iconbar
+        ├── modern/PromptBox.tsx # Chat input with project path, git branch picker, model selector
+        ├── modern/GitBranchPicker.tsx # Git branch detection and checkout dropdown
         ├── classic/ClassicUI.tsx# Alternative UI: cyberpunk terminal-inspired interface
         ├── OnboardingTour.tsx   # First-launch guided tour (5 steps, arrow tooltips)
         ├── ChatHistory.tsx      # Per-project session history panel (hover Iconbar to open)
