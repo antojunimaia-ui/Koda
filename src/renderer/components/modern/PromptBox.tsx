@@ -2,6 +2,7 @@ import React from 'react'
 import { Paperclip, ArrowUpIcon } from 'lucide-react'
 import { getIconForFile } from 'vscode-icons-js'
 import { AgentInfo, AttachedFile } from '../../types/index.js'
+import { GitBranchPicker } from './GitBranchPicker.js'
 
 interface PromptBoxProps {
   isDraggingOver: boolean
@@ -52,7 +53,46 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
 }) => {
   const isIde = variant === 'ide'
 
+  // Extrai só o nome da pasta raiz do projeto para exibição compacta
+  const projectName = agentInfo.cwd
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter(Boolean)
+    .pop() || agentInfo.cwd
+
   return (
+    <>
+      {/* Path label — só no modo normal (não IDE) */}
+      {!isIde && (
+        <div className="flex items-center mb-1.5 px-1 w-fit">
+          <div
+            id="tour-cwd"
+            onClick={handlePathClick}
+            className="flex items-center gap-1.5 cursor-pointer group"
+            title={agentInfo.cwd}
+          >
+            <svg
+              width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="text-zinc-600 group-hover:text-indigo-400 transition-colors shrink-0"
+            >
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+            <span className="text-[11px] font-semibold text-zinc-500 group-hover:text-zinc-300 transition-colors truncate max-w-72">
+              {projectName}
+            </span>
+            <svg
+              width="10" height="10" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className="text-zinc-700 group-hover:text-zinc-500 transition-colors shrink-0"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
+          <GitBranchPicker cwd={agentInfo.cwd} />
+        </div>
+      )}
+
     <div 
       className={`relative bg-neutral-900/80 rounded-2xl border transition-all ${
         isDraggingOver 
@@ -142,17 +182,10 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
             <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
             <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">Attach</span>
           </button>
-          
-          <div id="tour-cwd" onClick={handlePathClick} className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
-            <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-            <span className="text-[9px] font-medium text-zinc-400 truncate max-w-75 group-hover:text-zinc-200">
-              {agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}
-            </span>
-          </div>
+          {renderModelDropdown()}
         </div>
 
         <div className="flex items-center gap-3">
-          {renderModelDropdown()}
           <button
             type="button"
             onClick={() => isProcessing ? handleStop() : handleSend()}
@@ -176,5 +209,6 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
         </div>
       </div>
     </div>
+    </>
   )
 }

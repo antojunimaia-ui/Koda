@@ -1172,3 +1172,57 @@ ipcMain.handle('discord:clear_activity', async () => {
   }
 })
 
+// ── Git IPC handlers ──────────────────────────────────────────────────────────
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+const execFileAsync = promisify(execFile)
+
+async function gitExec(cwd: string, args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync('git', args, { cwd })
+  return stdout.trim()
+}
+
+ipcMain.handle('git:info', async (_event, cwd: string) => {
+  try {
+    // Verifica se é um repo git
+    await gitExec(cwd, ['rev-parse', '--is-inside-work-tree'])
+
+    const branch = await gitExec(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'])
+    const branches = (await gitExec(cwd, ['branch', '--format=%(refname:short)']))
+      .split('\n')
+      .map(b => b.trim())
+      .filter(Boolean)
+
+    // Branches remotas também (sem duplicar as locais)
+    let remoteBranches: string[] = []
+    try {
+      remoteBranches = (await gitExec(cwd, ['branch', '-r', '--format=%(refname:short)']))
+        .split('\n')
+        .map(b => b.trim().replace(/^origin\//, ''))
+        .filter(b => b && b !== 'HEAD' && !branches.includes(b))
+    } catch { /* sem remotes */ }
+
+    return {
+      success: true,
+      branch,
+      branches: [...branches, ...remoteBranches],
+    }
+  } catch {
+    return { success: false, branch: null, branches: [] }
+  }
+})
+
+ipcMain.handle('git:checkout', async (_event, cwd: string, branch: string) => {
+  try {
+    // Tenta checkout local, se falhar tenta criar tracking branch do remote
+    try {
+      await gitExec(cwd, ['checkout', branch])
+    } catch {
+      await gitExec(cwd, ['checkout', '-b', branch, `origin/${branch}`])
+    }
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+

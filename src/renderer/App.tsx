@@ -140,7 +140,7 @@ const App: React.FC = () => {
   const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
     try {
       const saved = localStorage.getItem('koda_settings')
-      if (saved) return { browserPosition: 'left', terminalPosition: 'left', showIconBar: true, explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel', showExplorerPanel: false, showEditorPanel: false, ...JSON.parse(saved) }
+      if (saved) return { browserPosition: 'left', terminalPosition: 'left', explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel', showExplorerPanel: false, showEditorPanel: false, ...JSON.parse(saved), showIconBar: true }
     } catch { }
     return {
       showTerminal: true, showShellWait: true, showFileRead: true, showFileEdit: true,

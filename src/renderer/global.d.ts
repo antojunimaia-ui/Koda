@@ -55,6 +55,9 @@ declare global {
       koClawStatus: () => Promise<{ running: boolean; ready: boolean; username: string | null }>
       discordEnable: () => Promise<{ success: boolean; error?: string }>
       discordDisable: () => Promise<{ success: boolean }>
+      // Git
+      gitInfo: (cwd: string) => Promise<{ success: boolean; branch: string | null; branches: string[] }>
+      gitCheckout: (cwd: string, branch: string) => Promise<{ success: boolean; error?: string }>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>

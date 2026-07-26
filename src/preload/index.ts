@@ -67,6 +67,9 @@ contextBridge.exposeInMainWorld('koda', {
   discordIsEnabled: () => ipcRenderer.invoke('discord:is_enabled'),
   discordUpdateActivity: (activity: { projectName: string; fileName?: string; fileType?: string; startTimestamp?: number }) => ipcRenderer.invoke('discord:update_activity', activity),
   discordClearActivity: () => ipcRenderer.invoke('discord:clear_activity'),
+  // Git
+  gitInfo: (cwd: string) => ipcRenderer.invoke('git:info', cwd),
+  gitCheckout: (cwd: string, branch: string) => ipcRenderer.invoke('git:checkout', cwd, branch),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),
