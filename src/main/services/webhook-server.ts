@@ -8,19 +8,8 @@ export interface WebhookConfig {
   enabled: boolean;
 }
 
-interface TaskResult {
-  text: string;
-  done: boolean;
-  error?: string;
-}
-
 let server: http.Server | null = null;
 let currentConfig: WebhookConfig | null = null;
-
-// SSE clients per messageId
-const sseClients = new Map<number, http.ServerResponse[]>();
-// Completed task results (kept for 10 min)
-const taskResults = new Map<number, TaskResult>();
 
 function json(res: http.ServerResponse, status: number, data: unknown) {
   const body = JSON.stringify(data);
@@ -43,27 +32,7 @@ function readBody(req: http.IncomingMessage): Promise<string> {
 
 function isValidToken(req: http.IncomingMessage, token: string): boolean {
   const auth = req.headers['authorization'] || '';
-  const query = new URL(req.url || '/', `http://localhost`).searchParams.get('token') || '';
-  return auth === `Bearer ${token}` || query === token;
-}
-
-function sseWrite(res: http.ServerResponse, event: string, data: unknown) {
-  try {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  } catch { /* client disconnected */ }
-}
-
-function broadcastSSE(msgId: number, event: string, data: unknown) {
-  const clients = sseClients.get(msgId) || [];
-  for (const client of clients) sseWrite(client, event, data);
-  if (event === 'done' || event === 'error') {
-    for (const client of clients) { try { client.end(); } catch { } }
-    sseClients.delete(msgId);
-  }
-}
-
-function cleanupResult(msgId: number) {
-  setTimeout(() => taskResults.delete(msgId), 10 * 60 * 1000);
+  return auth === `Bearer ${token}`;
 }
 
 export function startWebhookServer(
@@ -95,167 +64,66 @@ export function startWebhookServer(
         return;
       }
 
-      // ── GET /status — public ──────────────────────────────────────────────
-      if (method === 'GET' && pathname === '/status') {
-        const entry = getAgent();
-        const info = entry?.agent?.getInfo();
-        json(res, 200, {
-          online: true,
-          busy: entry?.agent ? (entry.agent as any).isProcessing ?? false : false,
-          project: info?.project ?? null,
-          model: info?.model ?? null,
-          cwd: info?.cwd ?? null,
-        });
-        return;
-      }
-
-      // All other routes require token
-      if (!isValidToken(req, config.token)) {
+      // All routes require token — except GET /help
+      if (pathname !== '/help' && !isValidToken(req, config.token)) {
         json(res, 401, { error: 'Unauthorized' });
         return;
       }
 
-      // ── GET /stream?messageId=X ───────────────────────────────────────────
-      if (method === 'GET' && pathname === '/stream') {
-        const msgId = parseInt(url.searchParams.get('messageId') || '0');
-        if (!msgId) { json(res, 400, { error: 'messageId is required' }); return; }
-
-        // If task already done, return result immediately as SSE then close
-        const existing = taskResults.get(msgId);
-        if (existing) {
-          res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*',
-          });
-          if (existing.error) {
-            sseWrite(res, 'error', { message: existing.error });
-          } else {
-            sseWrite(res, 'text', { content: existing.text });
-            sseWrite(res, 'done', { text: existing.text });
-          }
-          res.end();
-          return;
-        }
-
-        // Open SSE stream and wait for task
-        res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-        });
-        res.write(': connected\n\n'); // keep-alive comment
-
-        const clients = sseClients.get(msgId) || [];
-        clients.push(res);
-        sseClients.set(msgId, clients);
-
-        req.on('close', () => {
-          const list = sseClients.get(msgId) || [];
-          sseClients.set(msgId, list.filter(c => c !== res));
+      // ── GET /help ─────────────────────────────────────────────────────────
+      // Public endpoint. Returns a machine-readable description of the API
+      // so any agent can discover how to use KoClaw without prior knowledge.
+      if (method === 'GET' && pathname === '/help') {
+        json(res, 200, {
+          name: 'KoClaw — Koda Agent API',
+          description: 'HTTP API that allows external agents to interact with Koda, an AI software engineer running locally. You can send tasks, read the conversation history, and reset the session.',
+          authentication: 'All endpoints except /help require an Authorization header with a Bearer token: "Authorization: Bearer <token>".',
+          workflow: 'Send a task via POST /message (returns immediately). Poll GET /messages to check when the agent has finished and read the response. Use POST /reset to start a fresh conversation.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/help',
+              auth: false,
+              description: 'Returns this help document. No authentication required.',
+            },
+            {
+              method: 'POST',
+              path: '/message',
+              auth: true,
+              body: { message: 'string — the task or question to send to Koda' },
+              response: { success: true, message: 'Message accepted, agent is processing' },
+              notes: 'Returns 202 immediately. The agent processes the task asynchronously. Use GET /messages to read the result. Returns 409 if the agent is already busy.',
+            },
+            {
+              method: 'GET',
+              path: '/messages',
+              auth: true,
+              response: { messages: 'array of conversation message objects' },
+              notes: 'Returns the full conversation history. Poll this endpoint after POST /message to check for the agent response. The last message from the assistant is the reply to your task.',
+            },
+            {
+              method: 'POST',
+              path: '/reset',
+              auth: true,
+              response: { success: true },
+              notes: 'Clears the entire conversation history and resets the Koda session. Use this before starting a new unrelated task.',
+            },
+          ],
         });
         return;
       }
 
-      // ── GET /result?messageId=X ───────────────────────────────────────────
-      if (method === 'GET' && pathname === '/result') {
-        const msgId = parseInt(url.searchParams.get('messageId') || '0');
-        if (!msgId) { json(res, 400, { error: 'messageId is required' }); return; }
-        const result = taskResults.get(msgId);
-        if (!result) { json(res, 404, { error: 'Result not found or expired' }); return; }
-        json(res, 200, result);
-        return;
-      }
-
-      // ── POST /task ────────────────────────────────────────────────────────
-      if (method === 'POST' && pathname === '/task') {
+      // ── GET /messages ─────────────────────────────────────────────────────
+      // Returns the full conversation history of the active workspace.
+      if (method === 'GET' && pathname === '/messages') {
         const entry = getAgent();
         if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
-        const { agent, workspaceId } = entry;
-        if ((agent as any).isProcessing) { json(res, 409, { error: 'busy' }); return; }
-
-        let body: { message?: string; wait?: boolean } = {};
-        try { body = JSON.parse(await readBody(req)); } catch { json(res, 400, { error: 'Invalid JSON' }); return; }
-        if (!body.message?.trim()) { json(res, 400, { error: 'message is required' }); return; }
-
-        const msgId = Date.now();
-        const result: TaskResult = { text: '', done: false };
-        taskResults.set(msgId, result);
-        cleanupResult(msgId);
-
-        const emit = (data: object) => {
-          const payload = { workspaceId, ...data };
-          getWindows().forEach(w => w.webContents.send('agent:update', payload));
-        };
-
-        // Show in UI
-        emit({ type: 'remote_task', messageId: msgId, message: body.message });
-
-        const runTask = agent.processMessage(
-          body.message,
-          (text) => {
-            result.text += text;
-            emit({ type: 'text', content: text });
-            broadcastSSE(msgId, 'text', { content: text });
-          },
-          (name, args) => {
-            emit({ type: 'tool_start', name, args });
-            broadcastSSE(msgId, 'tool_start', { name, args });
-          },
-          (name, chunk) => {
-            emit({ type: 'tool_progress', event: 'writing', toolName: name, content: chunk });
-          },
-          (name, r, success, args) => {
-            emit({ type: 'tool_end', name, result: r, success, args });
-            broadcastSSE(msgId, 'tool_end', { name, success });
-          },
-          (error) => {
-            result.error = error;
-            emit({ type: 'error', message: error });
-            broadcastSSE(msgId, 'error', { message: error });
-          },
-        ).then(() => {
-          result.done = true;
-          emit({ type: 'done' });
-          broadcastSSE(msgId, 'done', { text: result.text, messageId: msgId });
-        });
-
-        if (body.wait) {
-          await runTask;
-          json(res, 200, { done: true, messageId: msgId, result: result.text, error: result.error });
-        } else {
-          json(res, 202, { accepted: true, messageId: msgId });
-        }
-        return;
-      }
-
-      // ── POST /cd ──────────────────────────────────────────────────────────
-      if (method === 'POST' && pathname === '/cd') {
-        const entry = getAgent();
-        if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
-        const { agent, workspaceId } = entry;
-        if ((agent as any).isProcessing) { json(res, 409, { error: 'busy' }); return; }
-
-        let body: { path?: string } = {};
-        try { body = JSON.parse(await readBody(req)); } catch { json(res, 400, { error: 'Invalid JSON' }); return; }
-        if (!body.path?.trim()) { json(res, 400, { error: 'path is required' }); return; }
-
-        try {
-          process.chdir(body.path);
-          await agent.resetConversation();
-          await agent.initialize();
-          const info = agent.getInfo();
-          getWindows().forEach(w => w.webContents.send('agent:update', { workspaceId, type: 'remote_cd', cwd: info.cwd }));
-          json(res, 200, { success: true, cwd: info.cwd });
-        } catch (err: any) {
-          json(res, 400, { error: err.message });
-        }
+        json(res, 200, { messages: entry.agent.getHistory() });
         return;
       }
 
       // ── POST /reset ───────────────────────────────────────────────────────
+      // Clears the agent conversation and resets the session.
       if (method === 'POST' && pathname === '/reset') {
         const entry = getAgent();
         if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
@@ -266,11 +134,48 @@ export function startWebhookServer(
         return;
       }
 
-      // ── GET /messages ─────────────────────────────────────────────────────
-      if (method === 'GET' && pathname === '/messages') {
+      // ── POST /message ─────────────────────────────────────────────────────
+      // Dispatches a message to the Koda agent and returns immediately (202).
+      // Body: { "message": "your task here" }
+      // Use GET /messages to read the response once the agent finishes.
+      if (method === 'POST' && pathname === '/message') {
         const entry = getAgent();
         if (!entry) { json(res, 503, { error: 'Agent not initialized' }); return; }
-        json(res, 200, { messages: entry.agent.getHistory() });
+        const { agent, workspaceId } = entry;
+
+        if ((agent as any).isProcessing) {
+          json(res, 409, { error: 'Agent is busy processing another message' });
+          return;
+        }
+
+        let body: { message?: string } = {};
+        try {
+          body = JSON.parse(await readBody(req));
+        } catch {
+          json(res, 400, { error: 'Invalid JSON body' });
+          return;
+        }
+
+        if (!body.message?.trim()) {
+          json(res, 400, { error: '"message" field is required' });
+          return;
+        }
+
+        const emit = (data: object) => {
+          getWindows().forEach(w => w.webContents.send('agent:update', { workspaceId, ...data }));
+        };
+
+        // Fire and forget — caller uses GET /messages to read the result
+        agent.processMessage(
+          body.message,
+          (text) => emit({ type: 'text', content: text }),
+          (name, args) => emit({ type: 'tool_start', name, args }),
+          (name, chunk) => emit({ type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
+          (name, result, success, args) => emit({ type: 'tool_end', name, result, success, args }),
+          (error) => emit({ type: 'error', message: error }),
+        ).then(() => emit({ type: 'done' })).catch((err: any) => emit({ type: 'error', message: err.message }));
+
+        json(res, 202, { success: true, message: 'Message accepted, agent is processing' });
         return;
       }
 
@@ -286,7 +191,7 @@ export function startWebhookServer(
     });
 
     server.listen(config.port, '0.0.0.0', () => {
-      console.log(`[Webhook] Server listening on 0.0.0.0:${config.port}`);
+      console.log(`[KoClaw] Server listening on 0.0.0.0:${config.port}`);
       resolve();
     });
   });
@@ -295,11 +200,6 @@ export function startWebhookServer(
 export function stopWebhookServer(): Promise<void> {
   return new Promise((resolve) => {
     if (!server) { resolve(); return; }
-    // Close all SSE clients
-    for (const clients of sseClients.values()) {
-      for (const c of clients) { try { c.end(); } catch { } }
-    }
-    sseClients.clear();
     server.close(() => { server = null; currentConfig = null; resolve(); });
   });
 }

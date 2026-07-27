@@ -58,7 +58,7 @@ contextBridge.exposeInMainWorld('koda', {
   marketplaceFetch: () => ipcRenderer.invoke('marketplace:fetch'),
   marketplaceInstall: (skillName: string, version?: string) => ipcRenderer.invoke('marketplace:install', skillName, version),
   marketplaceUninstall: (skillName: string) => ipcRenderer.invoke('marketplace:uninstall', skillName),
-  koClawStart: (config: { token: string; channelId?: string }) => ipcRenderer.invoke('koclaw:start', config),
+  koClawStart: (config: { port: number; token: string }) => ipcRenderer.invoke('koclaw:start', config),
   koClawStop: () => ipcRenderer.invoke('koclaw:stop'),
   koClawStatus: () => ipcRenderer.invoke('koclaw:status'),
   // Discord RPC

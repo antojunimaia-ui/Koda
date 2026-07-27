@@ -13,6 +13,8 @@ import MessageRow from '../messages/MessageRow.js'
 import BrowserPreview from '../BrowserPreview.js'
 import TerminalPanel from '../TerminalPanel.js'
 import WorkspaceTabs from '../WorkspaceTabs.js'
+import { ModelDropdown } from './ModelDropdown.js'
+import { formatModelName } from '../../utils/formatModelName.js'
 import SplitView from '../SplitView.js'
 import CompactToolView from '../messages/CompactToolView.js'
 import QuestionsModal from '../modals/QuestionsModal.js'
@@ -387,174 +389,17 @@ const ModernUI: React.FC<ModernUIProps> = ({
     const currentProv = agentInfo.providerId || agentInfo.provider || 'openai'
     const currentModel = agentInfo.model
 
-    // Formata slug de modelo para nome legível
-    // ex: "claude-opus-4-5" → "Claude Opus 4.5"
-    // ex: "gpt-4o-mini" → "GPT-4o Mini"
-    const formatModelName = (id: string): string => {
-      // Mapeamento explícito para modelos conhecidos com nomes irregulares
-      const known: Record<string, string> = {
-        // Anthropic
-        'claude-opus-4-5':                  'Claude Opus 4.5',
-        'claude-opus-4':                    'Claude Opus 4',
-        'claude-sonnet-4-5':                'Claude Sonnet 4.5',
-        'claude-sonnet-4':                  'Claude Sonnet 4',
-        'claude-sonnet-4-20250514':         'Claude Sonnet 4',
-        'claude-3-7-sonnet-20250219':       'Claude 3.7 Sonnet',
-        'claude-3-5-sonnet-20241022':       'Claude 3.5 Sonnet',
-        'claude-3-5-haiku-20241022':        'Claude 3.5 Haiku',
-        'claude-3-opus-20240229':           'Claude 3 Opus',
-        'claude-3-sonnet-20240229':         'Claude 3 Sonnet',
-        'claude-3-haiku-20240307':          'Claude 3 Haiku',
-        // OpenAI
-        'gpt-4o':                           'GPT-4o',
-        'gpt-4o-mini':                      'GPT-4o Mini',
-        'gpt-4-turbo':                      'GPT-4 Turbo',
-        'gpt-4':                            'GPT-4',
-        'gpt-3.5-turbo':                    'GPT-3.5 Turbo',
-        'o1':                               'o1',
-        'o1-mini':                          'o1 Mini',
-        'o1-preview':                       'o1 Preview',
-        'o3':                               'o3',
-        'o3-mini':                          'o3 Mini',
-        'o4-mini':                          'o4 Mini',
-        // Google
-        'gemini-2.5-pro':                   'Gemini 2.5 Pro',
-        'gemini-2.5-flash':                 'Gemini 2.5 Flash',
-        'gemini-2.0-flash':                 'Gemini 2.0 Flash',
-        'gemini-2.0-flash-exp':             'Gemini 2.0 Flash Exp',
-        'gemini-1.5-pro':                   'Gemini 1.5 Pro',
-        'gemini-1.5-flash':                 'Gemini 1.5 Flash',
-        // DeepSeek
-        'deepseek-chat':                    'DeepSeek Chat',
-        'deepseek-coder':                   'DeepSeek Coder',
-        'deepseek-reasoner':                'DeepSeek Reasoner',
-        // Groq
-        'llama-3.3-70b-versatile':          'Llama 3.3 70B',
-        'llama3-70b-8192':                  'Llama 3 70B',
-        'llama3-8b-8192':                   'Llama 3 8B',
-        'mixtral-8x7b-32768':               'Mixtral 8x7B',
-        'gemma2-9b-it':                     'Gemma 2 9B',
-        // Mistral
-        'mistral-large-latest':             'Mistral Large',
-        'mistral-medium-latest':            'Mistral Medium',
-        'mistral-small-latest':             'Mistral Small',
-        'codestral-latest':                 'Codestral',
-        // xAI
-        'grok-beta':                        'Grok Beta',
-        'grok-2':                           'Grok 2',
-        // Together
-        'meta-llama/Llama-3.3-70B-Instruct-Turbo': 'Llama 3.3 70B Turbo',
-        'meta-llama/Llama-3-70b-chat-hf':   'Llama 3 70B',
-        // Maritaca
-        'sabia-3':                          'Sabiá 3',
-        'sabia-4':                          'Sabiá 4',
-        // Zhipu
-        'glm-4-flash':                      'GLM-4 Flash',
-        'glm-5':                            'GLM-5',
-        // Koda Cloud
-        'gemini-1.5-flash':                 'Gemini 1.5 Flash',
-        // Ollama / local
-        'llama3':                           'Llama 3',
-        'llama3:8b':                        'Llama 3 8B',
-        'llama3:70b':                       'Llama 3 70B',
-        'local-model':                      'Local Model',
-      }
-
-      if (known[id]) return known[id]
-
-      // Fallback: capitaliza cada segmento separado por - ou /
-      return id
-        .split('/')
-        .pop()! // pega só a parte após a última barra (ex: openrouter paths)
-        .replace(/-/g, ' ')
-        .replace(/\b(\w)/g, (c) => c.toUpperCase())
-        .replace(/\b(\d+)b\b/gi, '$1B') // "70b" → "70B"
-    }
-
-    const handleDropdownFocus = () => {
-      if (!fetchModelsForProvider) return
-      const activeOpt = modelDropdownOptions.find(o => o.providerId === currentProv)
-      if (activeOpt) {
-        fetchModelsForProvider(activeOpt.providerId, activeOpt.apiKey)
-      }
-    }
-
-    const selectValue = JSON.stringify({
-      providerId: currentProv,
-      model: currentModel,
-    })
-
-    const displayName = formatModelName(currentModel)
-
-    // Calcula a largura real do texto usando o ruler já montado no DOM
-    const getRulerWidth = () => {
-      const ruler = document.getElementById('model-ruler')
-      return ruler ? `${ruler.offsetWidth + 18}px` : `${displayName.length * 7.5 + 18}px`
-    }
-
-    // Measure text width using a hidden span so the select shrinks to fit
-    const rulerStyle: React.CSSProperties = {
-      position: 'absolute',
-      visibility: 'hidden',
-      whiteSpace: 'nowrap',
-      fontSize: '12px',
-      fontFamily: 'sans-serif',
-      pointerEvents: 'none',
-    }
-    
     return (
-      <div className="relative flex items-center shrink-0">
-        {/* Invisible ruler to measure the display name width */}
-        <span id="model-ruler" style={rulerStyle}>{displayName}</span>
-        <select
-          value={selectValue}
-          onFocus={handleDropdownFocus}
-          onChange={(e) => {
-            try {
-              const { providerId, model } = JSON.parse(e.target.value)
-              const opt = modelDropdownOptions.find(o => o.providerId === providerId)
-              if (opt && onSelectActiveModel) {
-                onSelectActiveModel(providerId, model, opt.advisorModel, opt.apiKey)
-              }
-            } catch (err) {
-              console.error('Error selecting model/provider:', err)
-            }
-          }}
-          style={{
-            width: getRulerWidth(),
-          }}
-          className="bg-transparent border-0 text-slate-400 hover:text-slate-200 text-[12px] font-sans outline-none cursor-pointer transition-colors appearance-none truncate"
-        >
-          {modelDropdownOptions.map((opt) => {
-            const baseModels = opt.availableModels && opt.availableModels.length > 0
-              ? opt.availableModels
-              : [opt.model]
-
-            const modelsCopy = [...baseModels]
-            if (!modelsCopy.includes(opt.model)) {
-              modelsCopy.unshift(opt.model)
-            }
-
-            const uniqueModels = Array.from(new Set(modelsCopy))
-
-            return (
-              <optgroup key={opt.providerId} label={opt.providerName} className="bg-neutral-900 text-zinc-400 font-mono text-[9px]">
-                {uniqueModels.map(m => {
-                  const val = JSON.stringify({ providerId: opt.providerId, model: m })
-                  return (
-                    <option key={`${opt.providerId}-${m}`} value={val} className="bg-neutral-900 text-zinc-300 font-mono text-[10px]">
-                      {formatModelName(m)}
-                    </option>
-                  )
-                })}
-              </optgroup>
-            )
-          })}
-        </select>
-        <div className="absolute right-0 pointer-events-none text-zinc-500 text-[10px]">
-          ∨
-        </div>
-      </div>
+      <ModelDropdown
+        currentProviderId={currentProv}
+        currentModel={currentModel}
+        options={modelDropdownOptions}
+        onSelect={(providerId, model, advisorModel, apiKey) => {
+          if (onSelectActiveModel) onSelectActiveModel(providerId, model, advisorModel, apiKey)
+        }}
+        onManageProviders={onSettingsClick}
+        onFetchModels={fetchModelsForProvider}
+      />
     )
   }
   

@@ -1071,16 +1071,20 @@ ipcMain.handle('marketplace:uninstall', async (_event, skillName: string) => {
   }
 })
 
-// KoClaw Discord Bot
-ipcMain.handle('koclaw:start', async (_event, config: { token: string; channelId?: string }) => {
+// KoClaw — HTTP API for agent-to-agent communication
+ipcMain.handle('koclaw:start', async (_event, config: { port: number; token: string }) => {
   try {
-    const { startKoClawBot } = await import('./services/koclaw-bot.js')
+    const { startWebhookServer } = await import('./services/webhook-server.js')
     const getAgentWithId = () => {
       const entry = agents.entries().next().value
       if (!entry) return null
-      return { agent: entry[1], workspaceId: entry[0] }
+      return { agent: entry[1] as Agent, workspaceId: entry[0] as string }
     }
-    await startKoClawBot({ ...config, enabled: true }, getAgentWithId, () => [mainWindow, ideWindow].filter((w): w is BrowserWindow => !!w))
+    await startWebhookServer(
+      { port: config.port, token: config.token, enabled: true },
+      getAgentWithId,
+      () => [mainWindow, ideWindow].filter((w): w is BrowserWindow => !!w)
+    )
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -1088,14 +1092,14 @@ ipcMain.handle('koclaw:start', async (_event, config: { token: string; channelId
 })
 
 ipcMain.handle('koclaw:stop', async () => {
-  const { stopKoClawBot } = await import('./services/koclaw-bot.js')
-  await stopKoClawBot()
+  const { stopWebhookServer } = await import('./services/webhook-server.js')
+  await stopWebhookServer()
   return { success: true }
 })
 
 ipcMain.handle('koclaw:status', async () => {
-  const { getKoClawStatus } = await import('./services/koclaw-bot.js')
-  return getKoClawStatus()
+  const { getWebhookStatus } = await import('./services/webhook-server.js')
+  return getWebhookStatus()
 })
 
 // MCP Configuration Store

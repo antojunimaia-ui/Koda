@@ -23,7 +23,7 @@
 
 Koda is an Open-Source Agent Development Environment (ADE) for AI-assisted software engineering. No IDE extensions, no cloud servers, no clipboard gymnastics — it reads your codebase, edits files, runs commands, and ships code directly in your local environment.
 
-[Features](#-features) • [Modes](#-operation-modes) • [Workspaces](#-multi-workspace) • [Tools](#-tool-arsenal) • [Providers](#-supported-providers) • [Installation](#-installation) • [Build](#-build--distribution) • [Architecture](#-architecture)
+[Features](#-features) • [Modes](#-operation-modes) • [Workspaces](#-multi-workspace) • [Tools](#-tool-arsenal) • [Providers](#-supported-providers) • [KoClaw](#koclaw--agent-api) • [Installation](#-installation) • [Build](#-build--distribution) • [Architecture](#-architecture)
 
 </div>
 
@@ -54,7 +54,7 @@ Koda is an Open-Source Agent Development Environment (ADE) for AI-assisted softw
 - **Dynamic slash menu** — typing `/` opens a live-filtered dropdown listing all native commands and available skills.
 - **Inline diff viewer** — `file_edit` outputs render as a side-by-side visual diff with line numbers.
 - **System notifications** — native OS notification fires when a long task (>3s) completes and the window is not in focus.
-- **Remote Control API** — built-in HTTP server (default port `3141`) with real-time SSE streaming, synchronous `wait` mode, and remote directory switching via `/cd`.
+- **KoClaw — Agent API** — built-in HTTP server (default port `3141`) that lets external agents send tasks to Koda, read conversation history, and reset the session. Self-documenting via `GET /help` — no token required for discovery.
 - **MCP support** — connect any Model Context Protocol server. Tools are discovered at runtime and injected into the agent's arsenal dynamically.
 - **LSP integration** — semantic queries via `typescript-language-server`: hover types, go-to-definition, and symbol resolution.
 - **16 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
@@ -243,30 +243,40 @@ TEMPERATURE=0.3
 
 ---
 
-## Remote Control API
+## KoClaw — Agent API
 
-Enable in **Settings → KoClaw**.
+KoClaw is a built-in HTTP server that lets external agents interact with Koda over plain HTTP. No SDK, no proprietary protocol — any agent that can make HTTP requests can delegate tasks to Koda.
+
+Enable in **Settings → KoClaw**. Choose a port (default `3141`) and copy the auto-generated Bearer token.
 
 | Method | Path | Auth | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/status` | Public | Agent status, busy state, current project and model |
-| `POST` | `/task` | Token | Send a task — body: `{ "message": "...", "wait": true }` |
-| `POST` | `/reset` | Token | Reset conversation remotely |
-| `GET` | `/messages` | Token | Retrieve full conversation history as JSON |
-| `GET` | `/stream?messageId=X` | Token | SSE stream — receive agent response in real time |
-| `GET` | `/result?messageId=X` | Token | Poll result of a completed task (expires in 10 min) |
-| `POST` | `/cd` | Token | Change the agent's working directory — body: `{ "path": "..." }` |
+| `GET` | `/help` | Public | Returns full API documentation as JSON — no token required |
+| `POST` | `/message` | Token | Send a task to Koda. Returns `202` immediately; agent processes in the background |
+| `GET` | `/messages` | Token | Retrieve the full conversation history |
+| `POST` | `/reset` | Token | Clear the conversation and reset the session |
 
-The `wait: true` field on `POST /task` holds the HTTP response until the agent finishes and returns the full result synchronously — ideal for bots that need the answer before replying.
+### How it works
+
+`POST /message` returns immediately with `202 Accepted` — Koda processes the task asynchronously. Poll `GET /messages` to check when the agent has finished and read the response. The last `assistant` message in the array is the reply.
+
+### Agent discovery
+
+Any agent that doesn't know the API can call `GET /help` (no token needed) and receive a complete machine-readable description of all endpoints, authentication, and the recommended workflow. This makes KoClaw self-documenting for agent-to-agent communication.
+
+### Example flow
 
 ```bash
-curl -X POST http://100.x.x.x:3141/task \
+# 1. Send a task
+curl -X POST http://localhost:3141/message \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"message": "run the test suite and fix any failures"}'
-```
+  -d '{"message": "refactor the auth module to use async/await"}'
 
-Tasks sent via the API appear in chat with a `🌐 Remote` badge.
+# 2. Poll for the result
+curl http://localhost:3141/messages \
+  -H "Authorization: Bearer <token>"
+```
 
 ---
 
