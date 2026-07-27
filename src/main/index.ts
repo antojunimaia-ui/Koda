@@ -1308,3 +1308,54 @@ ipcMain.handle('git:pull', async (_event, cwd: string) => {
   }
 })
 
+ipcMain.handle('git:log', async (_event, cwd: string) => {
+  try {
+    const branch = await gitExec(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'])
+
+    // Get commit list with separator to handle multi-line bodies
+    const stdout = await gitExec(cwd, [
+      'log', '--max-count=50',
+      '--pretty=format:COMMIT_START%n%H%n%h%n%s%n%b%nCOMMIT_META%n%an%n%ar%n%ai%n%D%nCOMMIT_END'
+    ])
+
+    const rawCommits = stdout.split('COMMIT_START\n').filter(Boolean)
+
+    const commits = await Promise.all(rawCommits.map(async raw => {
+      const metaIdx = raw.indexOf('\nCOMMIT_META\n')
+      const endIdx  = raw.indexOf('\nCOMMIT_END')
+      const header  = raw.slice(0, metaIdx).split('\n')
+      const meta    = raw.slice(metaIdx + 13, endIdx).split('\n')
+
+      const hash      = (header[0] || '').trim()
+      const shortHash = (header[1] || '').trim()
+      const subject   = (header[2] || '').trim()
+      const body      = header.slice(3).join('\n').trim()
+      const author    = (meta[0] || '').trim()
+      const date      = (meta[1] || '').trim()
+      const fullDate  = (meta[2] || '').trim()
+      const refs      = (meta[3] || '').trim()
+
+      const branches = refs.split(',').map((r: string) => r.trim()).filter((r: string) => r && !r.startsWith('HEAD') && !r.startsWith('origin/'))
+
+      // Get stat for this commit
+      let insertions = 0, deletions = 0, filesChanged = 0
+      try {
+        const stat = await gitExec(cwd, ['show', '--stat', '--format=', hash])
+        const statLine = stat.trim().split('\n').pop() || ''
+        const ins = statLine.match(/(\d+) insertion/)
+        const del = statLine.match(/(\d+) deletion/)
+        const fil = statLine.match(/(\d+) file/)
+        if (ins) insertions = parseInt(ins[1])
+        if (del) deletions = parseInt(del[1])
+        if (fil) filesChanged = parseInt(fil[1])
+      } catch {}
+
+      return { hash, shortHash, message: subject, body, author, date, fullDate, branch: branches[0] || null, insertions, deletions, filesChanged }
+    }))
+
+    return { success: true, commits, currentBranch: branch.trim() }
+  } catch (err: any) {
+    return { success: false, error: err.message, commits: [], currentBranch: '' }
+  }
+})
+
