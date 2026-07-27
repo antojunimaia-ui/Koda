@@ -42,7 +42,11 @@ jobs:
           sudo apt-get install -y libx11-dev libxkbfile-dev libsecret-1-dev
  
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
+
+      - name: Restore postinstall for non-Windows
+        if: matrix.platform != 'win'
+        run: npm run postinstall || true
  
       - name: Build Vite App
         if: matrix.platform == 'win'
@@ -52,6 +56,8 @@ jobs:
         if: matrix.platform == 'win' && matrix.arch == 'x64'
         run: npx electron-builder install-app-deps --arch=x64
         shell: pwsh
+        env:
+          npm_config_msvs_version: '2022'
 
       - name: Build Windows x64
         if: matrix.platform == 'win' && matrix.arch == 'x64'
@@ -63,6 +69,8 @@ jobs:
         if: matrix.platform == 'win' && matrix.arch == 'ia32'
         run: npx electron-builder install-app-deps --arch=ia32
         shell: pwsh
+        env:
+          npm_config_msvs_version: '2022'
 
       - name: Build Windows ia32
         if: matrix.platform == 'win' && matrix.arch == 'ia32'
