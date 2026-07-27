@@ -71,6 +71,7 @@ const App: React.FC = () => {
   const [showPanel, setShowPanel] = useState(false)
   const [contextPanelTab, setContextPanelTab] = useState<'context' | 'explorer'>('context')
   const [showExplorer, setShowExplorer] = useState(false)
+  const [showSourceControl, setShowSourceControl] = useState(false)
 
   const fetchModelsForProvider = useCallback(async (provId: string, apiKey: string) => {
     setLoadingState(prev => {
@@ -1052,6 +1053,9 @@ Your current task is: ${userMsg}`
           onTogglePanel={() => setShowPanel(p => !p)}
           showExplorer={showExplorer}
           setShowExplorer={setShowExplorer}
+          showSourceControl={showSourceControl}
+          onToggleSourceControl={() => setShowSourceControl(p => !p)}
+          onStartResizeSourceControl={startResizingExplorer}
           explorerWidth={explorerWidth}
           contextPanelWidth={contextPanelWidth}
           contextPanelTab={contextPanelTab}

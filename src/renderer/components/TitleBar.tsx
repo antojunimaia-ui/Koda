@@ -23,6 +23,8 @@ interface TitleBarProps {
   extraButton?: React.ReactNode
   isIDEWindow?: boolean
   onToggleIDEMode?: () => void
+  showSourceControl?: boolean
+  onToggleSourceControl?: () => void
 }
 
 const MODES: { id: Mode; label: string; icon: string; desc: string; color: string }[] = [
@@ -37,7 +39,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
   onBrowserClick, showBrowser, onTerminalClick, showTerminal, 
   showPanel, onTogglePanel, uiMode = 'classic', showIconBar = true, onToggleIconBar,
   isSplitEnabled, onToggleSplit, showExplorer, onToggleExplorer, extraButton,
-  isIDEWindow = false, onToggleIDEMode
+  isIDEWindow = false, onToggleIDEMode, showSourceControl = false, onToggleSourceControl
 }) => {
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -224,19 +226,27 @@ const TitleBar: React.FC<TitleBarProps> = ({
           <button
             onClick={onToggleIDEMode}
             title={isIDEWindow ? 'Open Agent Chat' : 'Open IDE Window'}
-            className="group flex items-center h-8 px-2 hover:bg-white/5 rounded transition-all no-drag select-none cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded transition-all no-drag hover:bg-white/5"
           >
-            <span className="max-w-0 opacity-0 group-hover:max-w-28 group-hover:opacity-100 transition-all duration-300 ease-out text-[10px] font-bold text-slate-300 pr-1.5 whitespace-nowrap overflow-hidden">
-              {isIDEWindow ? 'Open Agent' : 'Open IDE'}
-            </span>
-            <img src="/icon.png" className="w-4.5 h-4.5 object-contain filter brightness-90 group-hover:brightness-100 transition-all" />
+            <img src="/icon.png" className="w-4.5 h-4.5 object-contain filter brightness-90" />
           </button>
         )}
 
         <button
+          onClick={onToggleSourceControl}
+          title={showSourceControl ? 'Hide Source Control' : 'Show Source Control'}
+          className={`w-7 h-7 flex items-center justify-center rounded transition-all no-drag ${showSourceControl ? 'text-emerald-400 bg-emerald-400/10' : 'text-slate-500 hover:bg-white/5'}`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/>
+            <path d="M18 9a9 9 0 0 1-9 9"/><line x1="6" y1="9" x2="6" y2="15"/>
+          </svg>
+        </button>
+
+        <button
           onClick={onToggleExplorer}
           title={showExplorer ? 'Hide Explorer' : 'Show Explorer'}
-          className={`w-11 h-8 flex items-center justify-center transition-colors no-drag ${showExplorer ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+          className={`w-7 h-7 flex items-center justify-center rounded transition-all no-drag ${showExplorer ? 'text-cyan-400 bg-cyan-400/10' : 'text-slate-500 hover:bg-white/5'}`}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>

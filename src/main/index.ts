@@ -1230,3 +1230,72 @@ ipcMain.handle('git:checkout', async (_event, cwd: string, branch: string) => {
   }
 })
 
+// ── Git Source Control ───────────────────────────────────────────────────────
+
+ipcMain.handle('git:status', async (_event, cwd: string) => {
+  try {
+    const stdout = await gitExec(cwd, ['status', '--porcelain', '-u'])
+    const files = stdout.trim().split('\n').filter(Boolean).map(line => {
+      const xy = line.slice(0, 2)
+      const path = line.slice(3).trim()
+      const x = xy[0]; const y = xy[1]
+      const staged = x !== ' ' && x !== '?'
+      let status = 'untracked'
+      if (x === 'M' || y === 'M') status = 'modified'
+      else if (x === 'A') status = 'added'
+      else if (x === 'D' || y === 'D') status = 'deleted'
+      else if (x === 'R') status = 'renamed'
+      else if (x === '?' && y === '?') status = 'untracked'
+      return { path, status, staged, unstaged: y !== ' ' || xy === '??' }
+    })
+    return { success: true, files }
+  } catch (err: any) {
+    return { success: false, error: err.message, files: [] }
+  }
+})
+
+ipcMain.handle('git:stage', async (_event, cwd: string, filePath: string) => {
+  try {
+    await gitExec(cwd, ['add', filePath])
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('git:unstage', async (_event, cwd: string, filePath: string) => {
+  try {
+    await gitExec(cwd, ['restore', '--staged', filePath])
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('git:stage_all', async (_event, cwd: string) => {
+  try {
+    await gitExec(cwd, ['add', '-A'])
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('git:commit', async (_event, cwd: string, message: string) => {
+  try {
+    await gitExec(cwd, ['commit', '-m', message])
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('git:push', async (_event, cwd: string) => {
+  try {
+    await gitExec(cwd, ['push'])
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+

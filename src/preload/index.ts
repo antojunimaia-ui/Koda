@@ -70,6 +70,12 @@ contextBridge.exposeInMainWorld('koda', {
   // Git
   gitInfo: (cwd: string) => ipcRenderer.invoke('git:info', cwd),
   gitCheckout: (cwd: string, branch: string) => ipcRenderer.invoke('git:checkout', cwd, branch),
+  gitStatus: (cwd: string) => ipcRenderer.invoke('git:status', cwd),
+  gitStage: (cwd: string, filePath: string) => ipcRenderer.invoke('git:stage', cwd, filePath),
+  gitUnstage: (cwd: string, filePath: string) => ipcRenderer.invoke('git:unstage', cwd, filePath),
+  gitStageAll: (cwd: string) => ipcRenderer.invoke('git:stage_all', cwd),
+  gitCommit: (cwd: string, message: string) => ipcRenderer.invoke('git:commit', cwd, message),
+  gitPush: (cwd: string) => ipcRenderer.invoke('git:push', cwd),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),

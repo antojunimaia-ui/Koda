@@ -35,6 +35,7 @@ Koda is an Open-Source Agent Development Environment (ADE) for AI-assisted softw
 - **Modern UI by default** — opens in the sleek `Modern Pro` layout with Iconbar on first launch. Classic CLI mode is still available via Settings.
 - **Sidebar always open** — the Iconbar is open by default on every launch, showing the session history panel immediately.
 - **Project & branch indicator** — above the chat input, Koda shows the current project folder and, when the directory is a Git repo, the active branch with a dropdown to switch branches (local and remote) without leaving the app.
+- **Source Control panel** — built-in Git panel accessible from the TitleBar. Shows staged and unstaged files with vscode-icons, supports per-file stage/unstage, stage all, commit with message, and push — all without leaving the app.
 - **Readable model names** — the model selector displays human-friendly names (`Claude Sonnet 4`, `GPT-4o Mini`, `Gemini 2.5 Flash`) instead of raw API slugs, with a clean sans-serif font.
 - **Onboarding tour** — first-time users get an interactive guided tour highlighting the CWD selector, chat input, mode switcher, workspace split button, and Iconbar. Appears once and is dismissed to localStorage.
 - **Chat history** — per-project session history stored in `localStorage`. Hover the Iconbar to open the history panel, load a past session, or delete it. Each conversation is a separate session file — no overwriting.
@@ -364,7 +365,8 @@ src/
         │   ├── UserMessage.tsx        # Right-aligned bubble in Modern UI, rollback on hover
         │   └── CompactToolView.tsx    # Grouped tool summary view
         ├── WorkspaceTabs.tsx    # Tab bar for switching/creating/closing workspaces
-        ├── TitleBar.tsx         # Mode switcher + Workspace Split toggle + window controls
+        ├── TitleBar.tsx         # Mode switcher + Workspace Split + Source Control + Explorer toggles + window controls
+        ├── SourceControlPanel.tsx  # Git Source Control overlay: staged/unstaged files, commit, push
         ├── TerminalPanel.tsx    # xterm.js terminal connected to a live PTY
         ├── BrowserPreview.tsx   # Electron <webview> browser panel
         ├── MCPSettings.tsx      # MCP server configuration UI

@@ -26,6 +26,7 @@ import { PromptBox } from './PromptBox.js'
 import { ExplorerTabButton } from '../context/ContextPanel.js'
 import IDELayout from '../IDELayout.js'
 import StatusBar from '../StatusBar.js'
+import SourceControlPanel from '../SourceControlPanel.js'
 
 // ─── Explorer Button with context menu ───────────────────────────────────────
 const ExplorerButton: React.FC<{
@@ -146,6 +147,9 @@ interface ModernUIProps {
   onTogglePanel: () => void
   showExplorer: boolean
   setShowExplorer: (show: boolean) => void
+  showSourceControl?: boolean
+  onToggleSourceControl?: () => void
+  onStartResizeSourceControl?: (e: React.MouseEvent) => void
   explorerWidth?: number
   contextPanelWidth?: number
   contextPanelTab?: 'context' | 'explorer'
@@ -289,6 +293,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
   fetchModelsForProvider,
   isIDEWindow = false,
   onToggleIDEMode,
+  showSourceControl = false,
+  onToggleSourceControl,
+  onStartResizeSourceControl,
 }) => {
   
   const [showChatHistory, setShowChatHistory] = useState(false)
@@ -633,6 +640,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
         onToggleExplorer={() => setShowExplorer(!showExplorer)}
         isIDEWindow={isIDEWindow}
         onToggleIDEMode={onToggleIDEMode}
+        showSourceControl={showSourceControl}
+        onToggleSourceControl={onToggleSourceControl}
         extraButton={
           <>
             {kodaSettings.explorerButtonPosition === 'titlebar' && (
@@ -1092,6 +1101,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
             {/* Space for Standalone Explorer overlay */}
             {showExplorer && <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />}
+
+            {/* Space for Source Control overlay */}
+            {showSourceControl && <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />}
           </div>
           )}
         </div>
@@ -1099,6 +1111,16 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
       {/* StatusBar - only in IDE mode */}
       {isIDEWindow && <StatusBar mode={mode} onModeChange={setMode} />}
+
+      {/* Source Control overlay */}
+      {showSourceControl && (
+        <SourceControlPanel
+          cwd={agentInfo.cwd}
+          width={explorerWidth}
+          onStartResize={onStartResizeSourceControl || (() => {})}
+          isResizing={isResizingRight}
+        />
+      )}
 
       <OnboardingTour show={messages.length === 0} />
     </div>
