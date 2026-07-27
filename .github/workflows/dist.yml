@@ -3,9 +3,9 @@ name: Release Koda-AI
 on:
   push:
     tags:
-      - 'v*' # Trigger on version tags (e.g., v1.0.0)
+      - 'v*'
     branches:
-      - main # Also trigger on push to main (optional: for pre-releases)
+      - main
  
 jobs:
   build:
@@ -18,10 +18,10 @@ jobs:
             platform: linux
           - os: macos-latest
             platform: mac
-          - os: windows-latest
+          - os: windows-2022
             platform: win
             arch: x64
-          - os: windows-latest
+          - os: windows-2022
             platform: win
             arch: ia32
  
@@ -40,7 +40,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxkbfile-dev libsecret-1-dev
- 
+
       - name: Install dependencies
         run: npm install --ignore-scripts
 
@@ -52,12 +52,12 @@ jobs:
         if: matrix.platform == 'win'
         run: npm run build
 
-      - name: Rebuild native modules for x64
+      - name: Setup MSVC environment and rebuild x64
         if: matrix.platform == 'win' && matrix.arch == 'x64'
-        run: npx electron-builder install-app-deps --arch=x64
-        shell: pwsh
-        env:
-          npm_config_msvs_version: '2022'
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          npx electron-builder install-app-deps --arch=x64
 
       - name: Build Windows x64
         if: matrix.platform == 'win' && matrix.arch == 'x64'
@@ -65,12 +65,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --x64 --publish never
 
-      - name: Rebuild native modules for ia32
+      - name: Setup MSVC environment and rebuild ia32
         if: matrix.platform == 'win' && matrix.arch == 'ia32'
-        run: npx electron-builder install-app-deps --arch=ia32
-        shell: pwsh
-        env:
-          npm_config_msvs_version: '2022'
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsx86_amd64.bat"
+          npx electron-builder install-app-deps --arch=ia32
 
       - name: Build Windows ia32
         if: matrix.platform == 'win' && matrix.arch == 'ia32'
