@@ -1299,3 +1299,12 @@ ipcMain.handle('git:push', async (_event, cwd: string) => {
   }
 })
 
+ipcMain.handle('git:pull', async (_event, cwd: string) => {
+  try {
+    await gitExec(cwd, ['pull', '--rebase'])
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+})
+

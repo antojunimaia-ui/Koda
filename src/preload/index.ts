@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld('koda', {
   gitStageAll: (cwd: string) => ipcRenderer.invoke('git:stage_all', cwd),
   gitCommit: (cwd: string, message: string) => ipcRenderer.invoke('git:commit', cwd, message),
   gitPush: (cwd: string) => ipcRenderer.invoke('git:push', cwd),
+  gitPull: (cwd: string) => ipcRenderer.invoke('git:pull', cwd),
   // Window controls
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),
