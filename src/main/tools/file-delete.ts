@@ -30,7 +30,7 @@ export class FileDeleteTool extends BaseTool {
     const pathArg = args.path as string;
     const recursive = !!args.recursive;
 
-    const absPath = resolve(process.cwd(), pathArg);
+    const absPath = resolve((args.__cwd as string) ?? process.cwd(), pathArg);
 
     // Validate KodaIgnore constraints
     const blocked = checkKodaIgnore(pathArg);

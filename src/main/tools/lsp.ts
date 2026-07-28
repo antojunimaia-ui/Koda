@@ -42,7 +42,7 @@ export class LSPTool extends BaseTool {
 
     if (!clientInstance) {
       // Use current working directory as project root
-      clientInstance = new LSPClient(process.cwd());
+      clientInstance = new LSPClient((args.__cwd as string) ?? process.cwd());
       try {
         await clientInstance.start();
         // Give it a second to initialize properly

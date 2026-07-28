@@ -27,7 +27,7 @@ export class DiagnosticsTool extends BaseTool {
   ];
 
   async execute(args: Record<string, unknown>): Promise<ToolResult> {
-    const cwd = resolve(process.cwd(), (args.path as string) || ".");
+    const cwd = resolve((args.__cwd as string) ?? process.cwd(), (args.path as string) || ".");
 
     // Detect what checker to run
     const { getTrackedFiles } = await import("../services/file-tracker.js");

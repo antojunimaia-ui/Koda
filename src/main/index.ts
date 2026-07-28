@@ -450,7 +450,8 @@ ipcMain.handle('agent:cd', async (_event, workspaceId: string, targetPath: strin
   const agent = agents.get(workspaceId)
   if (!agent) return { error: 'Agent not initialized' }
   try {
-    process.chdir(targetPath)
+    // Define CWD isolado por agente — não usa process.chdir() para não afetar outros agentes
+    agent.setCwd(targetPath)
     await agent.resetConversation()
     await agent.initialize()
     agent.setProgressEmitter((event, toolName, data) => {

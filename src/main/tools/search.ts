@@ -48,7 +48,7 @@ export class SearchTool extends BaseTool {
 
     const pattern = args.pattern as string;
     const searchPath = resolve(
-      process.cwd(),
+      (args.__cwd as string) ?? process.cwd(),
       (args.path as string) || "."
     );
     const include = args.include as string | undefined;

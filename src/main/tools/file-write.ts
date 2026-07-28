@@ -27,7 +27,7 @@ export class FileWriteTool extends BaseTool {
     const error = this.validateArgs(args);
     if (error) return this.failure(error);
 
-    const filePath = resolve(process.cwd(), args.path as string);
+    const filePath = resolve((args.__cwd as string) ?? process.cwd(), args.path as string);
     const content = args.content as string;
     const isNew = !existsSync(filePath);
 

@@ -13,8 +13,8 @@ export interface ProjectContext {
   summary: string;
 }
 
-export async function gatherProjectContext(): Promise<ProjectContext> {
-  const cwd = process.cwd();
+export async function gatherProjectContext(cwd?: string): Promise<ProjectContext> {
+  cwd = cwd ?? process.cwd();
   const name = basename(cwd);
   const context: ProjectContext = {
     name,

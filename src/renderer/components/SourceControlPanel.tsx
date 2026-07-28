@@ -92,6 +92,10 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
   const [commits, setCommits]             = useState<GitCommit[]>([])
   const [currentBranch, setCurrentBranch] = useState('')
   const [graphOpen, setGraphOpen]           = useState(true)
+  const [scHeight, setScHeight]             = useState(50) // % height for source control section
+  const [isDraggingDivider, setIsDraggingDivider] = useState(false)
+  const dividerRef = useRef<HTMLDivElement>(null)
+  const innerRef   = useRef<HTMLDivElement>(null)
   const [hoveredCommit, setHoveredCommit]   = useState<{ commit: GitCommit; y: number } | null>(null)
   const hoverTimeout                         = useRef<ReturnType<typeof setTimeout> | null>(null)
   const menuRef   = useRef<HTMLDivElement>(null)
@@ -147,6 +151,25 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
 
   const handlePopoverMouseLeave = () => {
     hoverTimeout.current = setTimeout(() => setHoveredCommit(null), 120)
+  }
+
+  const handleDividerMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsDraggingDivider(true)
+    const startY = e.clientY
+    const startPct = scHeight
+    const totalH = innerRef.current?.getBoundingClientRect().height ?? 1
+    const onMove = (ev: MouseEvent) => {
+      const delta = ((ev.clientY - startY) / totalH) * 100
+      setScHeight(Math.min(80, Math.max(20, startPct + delta)))
+    }
+    const onUp = () => {
+      setIsDraggingDivider(false)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
   }
 
   const staged   = files.filter(f => f.staged)
@@ -217,7 +240,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
         ) : loading ? (
           <div className="flex items-center justify-center flex-1"><span className="text-slate-600 text-[10px]">Loading...</span></div>
         ) : (
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div ref={innerRef} className="flex-1 flex flex-col overflow-hidden">
 
             {/* Commit input */}
             <div className="px-3 pt-3 pb-2 shrink-0">
@@ -255,7 +278,8 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
               {error && <p className="text-rose-400 text-[10px] mt-1.5 leading-relaxed">{error}</p>}
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-1 pb-3">
+            {/* ── Source Control section (independent scroll) ── */}
+            <div className="overflow-y-auto custom-scrollbar px-1 pb-1" style={{ height: graphOpen && commits.length > 0 ? `${scHeight}%` : undefined, flex: (!graphOpen || commits.length === 0) ? 1 : undefined }}>
               {/* Staged */}
               {staged.length > 0 && (
                 <div className="mb-2">
@@ -284,70 +308,65 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
                   <span className="text-slate-600 text-[10px]">No changes</span>
                 </div>
               )}
-
-              {/* ── GRAPH ─────────────────────────────────────────────── */}
-              {commits.length > 0 && (
-                <div className="mt-1 border-t border-white/5">
-                  {/* Graph header */}
-                  <div className="flex items-center justify-between px-3 py-1.5">
-                    <button onClick={() => setGraphOpen(o => !o)} className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${graphOpen ? 'rotate-0' : '-rotate-90'}`}><polyline points="6 9 12 15 18 9"/></svg>
-                      Graph
-                    </button>
-                    <div className="flex items-center gap-0.5">
-                      {/* Fetch */}
-                      <button onClick={refresh} className="w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all" title="Fetch / Refresh">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                      </button>
-                      {/* Pull */}
-                      <button onClick={() => window.koda.gitPull(cwd).then(refresh)} className="w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all" title="Pull">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-                      </button>
-                      {/* Push */}
-                      <button onClick={() => window.koda.gitPush(cwd).then(refresh)} className="w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all" title="Push">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {graphOpen && (
-                    <div className="flex flex-col relative">
-                      {commits.map((commit, i) => (
-                        <div
-                          key={commit.hash}
-                          onMouseEnter={(e) => handleCommitMouseEnter(commit, e)}
-                          onMouseLeave={handleCommitMouseLeave}
-                          className="group w-full flex items-center gap-2 px-2 py-[5px] transition-colors text-left rounded-md hover:bg-white/5 cursor-default"
-                        >
-                          {/* Graph dot + line */}
-                          <div className="flex flex-col items-center shrink-0 self-stretch justify-start pt-[5px]" style={{ width: 12 }}>
-                            <div className={`w-2 h-2 rounded-full shrink-0 ring-1 ${i === 0 ? 'bg-indigo-400 ring-indigo-400/40' : 'bg-slate-600 ring-slate-600/40'}`} />
-                            {i < commits.length - 1 && <div className="w-px flex-1 bg-slate-700/50 mt-[2px]" />}
-                          </div>
-
-                          {/* Message */}
-                          <span className="flex-1 text-[11px] text-slate-400 group-hover:text-slate-200 truncate transition-colors min-w-0">
-                            {commit.message}
-                          </span>
-
-                          {/* Branch badge */}
-                          {commit.branch && (
-                            <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 truncate max-w-16">
-                              {commit.branch}
-                            </span>
-                          )}
-
-                          {/* Author avatar */}
-                          <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black text-white ${avatarColor(commit.author)}`} title={commit.author}>
-                            {initials(commit.author)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
+
+            {/* ── Divider — only visible when Graph is open ── */}
+            {commits.length > 0 && graphOpen && (
+              <div
+                ref={dividerRef}
+                onMouseDown={handleDividerMouseDown}
+                className={`h-1 w-full cursor-row-resize shrink-0 transition-colors ${isDraggingDivider ? 'bg-indigo-500' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+              />
+            )}
+
+            {/* ── Graph section (independent scroll) ── */}
+            {commits.length > 0 && (
+              <div className={`flex flex-col overflow-hidden border-t border-white/5 ${graphOpen ? 'flex-1' : 'shrink-0'}`}>
+                {/* Graph header */}
+                <div className="flex items-center justify-between px-3 py-1.5 shrink-0">
+                  <button onClick={() => setGraphOpen(o => !o)} className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${graphOpen ? 'rotate-0' : '-rotate-90'}`}><polyline points="6 9 12 15 18 9"/></svg>
+                    Graph
+                  </button>
+                  <div className="flex items-center gap-0.5">
+                    <button onClick={refresh} className="w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all" title="Fetch / Refresh">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
+                    <button onClick={() => window.koda.gitPull(cwd).then(refresh)} className="w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all" title="Pull">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                    </button>
+                    <button onClick={() => window.koda.gitPush(cwd).then(refresh)} className="w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all" title="Push">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                {graphOpen && (
+                  <div className="flex-1 overflow-y-auto custom-scrollbar px-1 pb-3">
+                    {commits.map((commit, i) => (
+                      <div
+                        key={commit.hash}
+                        onMouseEnter={(e) => handleCommitMouseEnter(commit, e)}
+                        onMouseLeave={handleCommitMouseLeave}
+                        className="group w-full flex items-center gap-2 px-2 py-[5px] transition-colors text-left rounded-md hover:bg-white/5 cursor-default"
+                      >
+                        <div className="flex flex-col items-center shrink-0 self-stretch justify-start pt-[5px]" style={{ width: 12 }}>
+                          <div className={`w-2 h-2 rounded-full shrink-0 ring-1 ${i === 0 ? 'bg-indigo-400 ring-indigo-400/40' : 'bg-slate-600 ring-slate-600/40'}`} />
+                          {i < commits.length - 1 && <div className="w-px flex-1 bg-slate-700/50 mt-[2px]" />}
+                        </div>
+                        <span className="flex-1 text-[11px] text-slate-400 group-hover:text-slate-200 truncate transition-colors min-w-0">{commit.message}</span>
+                        {commit.branch && (
+                          <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 truncate max-w-16">{commit.branch}</span>
+                        )}
+                        <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black text-white ${avatarColor(commit.author)}`} title={commit.author}>
+                          {initials(commit.author)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

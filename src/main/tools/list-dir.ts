@@ -32,7 +32,7 @@ export class ListDirTool extends BaseTool {
 
   async execute(args: Record<string, unknown>): Promise<ToolResult> {
     const dirPath = resolve(
-      process.cwd(),
+      (args.__cwd as string) ?? process.cwd(),
       (args.path as string) || "."
     );
     const recursive = (args.recursive as boolean) || false;

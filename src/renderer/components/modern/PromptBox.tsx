@@ -1,8 +1,15 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Paperclip, ArrowUpIcon } from 'lucide-react'
 import { getIconForFile } from 'vscode-icons-js'
-import { AgentInfo, AttachedFile } from '../../types/index.js'
+import { AgentInfo, AttachedFile, Mode } from '../../types/index.js'
 import { GitBranchPicker } from './GitBranchPicker.js'
+
+const MODES: { id: Mode; label: string; icon: string; color: string }[] = [
+  { id: 'fast',    label: 'Fast',   icon: '⚡', color: 'text-cyan-400' },
+  { id: 'planner', label: 'Spec',   icon: '📝', color: 'text-amber-400' },
+  { id: 'colab',   label: 'Colab',  icon: '👥', color: 'text-indigo-400' },
+  { id: 'teach',   label: 'Teach',  icon: '🎓', color: 'text-emerald-400' },
+]
 
 interface PromptBoxProps {
   isDraggingOver: boolean
@@ -25,6 +32,8 @@ interface PromptBoxProps {
   handleStop: () => void
   handleSend: () => void
   renderModelDropdown: () => React.ReactNode
+  mode?: Mode
+  onModeChange?: (m: Mode) => void
   variant?: 'ide' | 'normal'
 }
 
@@ -49,9 +58,23 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
   handleStop,
   handleSend,
   renderModelDropdown,
+  mode,
+  onModeChange,
   variant = 'normal',
 }) => {
   const isIde = variant === 'ide'
+  const [showModeMenu, setShowModeMenu] = useState(false)
+  const modeMenuRef = useRef<HTMLDivElement>(null)
+  const activeMode = MODES.find(m => m.id === mode) ?? MODES[0]
+
+  useEffect(() => {
+    if (!showModeMenu) return
+    const h = (e: MouseEvent) => {
+      if (modeMenuRef.current && !modeMenuRef.current.contains(e.target as Node)) setShowModeMenu(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [showModeMenu])
 
   // Extrai só o nome da pasta raiz do projeto para exibição compacta
   const projectName = agentInfo.cwd
@@ -186,6 +209,36 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Mode selector */}
+          {mode && onModeChange && (
+            <div className="relative" ref={modeMenuRef}>
+              <button
+                onClick={() => setShowModeMenu(m => !m)}
+                className="flex items-center gap-1 text-slate-400 hover:text-slate-200 text-[12px] font-sans transition-colors cursor-pointer"
+                title="Switch mode"
+              >
+                <span>{activeMode.icon} {activeMode.label}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`text-zinc-500 transition-transform duration-150 ${showModeMenu ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              {showModeMenu && (
+                <div className="absolute bottom-full right-0 mb-1 w-44 bg-[#0d1117] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-150 z-50">
+                  <div className="p-1">
+                    {MODES.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => { onModeChange(m.id); setShowModeMenu(false) }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md transition-all text-left ${mode === m.id ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                      >
+                        <span className="text-xs">{m.icon}</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${mode === m.id ? m.color : 'text-slate-400'}`}>{m.label}</span>
+                        {mode === m.id && <div className={`ml-auto w-1 h-1 rounded-full ${m.color.replace('text-', 'bg-')}`} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => isProcessing ? handleStop() : handleSend()}

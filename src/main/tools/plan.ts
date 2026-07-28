@@ -1,7 +1,7 @@
 import { BaseTool, ToolParameter, ToolResult } from "./base.js";
 import { BrowserWindow } from "electron";
 import { writeFile } from "fs/promises";
-import { resolve } from "path";
+import { resolve as pathResolve } from "path";
 
 // ─── Shared Plan State (singleton per session) ────────────────────────────────
 
@@ -132,7 +132,7 @@ Only use this tool when planning the implementation steps of a coding task — N
 
     if (approved) {
       try {
-        const specsPath = resolve(process.cwd(), "specs.md");
+        const specsPath = pathResolve((args.__cwd as string) ?? process.cwd(), "specs.md");
         await writeFile(specsPath, plan, "utf-8");
         
         state.mode = "normal";

@@ -43,7 +43,7 @@ export class BrowserTool extends BaseTool {
       try {
         const settings = getSettings();
         // Resolve o runner a partir do CWD (raiz do projeto/build)
-        const runnerPath = join(process.cwd(), "operant-runner.js");
+        const runnerPath = join((args.__cwd as string) ?? process.cwd(), "operant-runner.js");
         
         // Dispara um processo node separado para evitar conflitos de loader do Vite/Electron
         const child = spawn("node", [runnerPath], {

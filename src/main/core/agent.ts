@@ -37,6 +37,8 @@ export class Agent {
   private isProcessing = false;
   private dynamicSystemPrompt: string;
   private abortController: AbortController | null = null;
+  /** CWD isolado por instância — nunca usa process.chdir() */
+  private cwd: string = process.cwd();
 
   constructor() {
     this.settings = getSettings();
@@ -45,6 +47,19 @@ export class Agent {
     // Build initial system prompt (without project rules - those load in initialize)
     this.dynamicSystemPrompt = PromptBuilder.build(this.settings.systemPrompt);
     this.conversation = new Conversation(this.dynamicSystemPrompt);
+  }
+
+  /**
+   * Define o diretório de trabalho deste agente sem afetar outros agentes.
+   * Substitui process.chdir() que era global e causava race conditions.
+   */
+  setCwd(cwd: string): void {
+    this.cwd = cwd;
+    this.tools.setCwd(cwd);
+  }
+
+  getCwd(): string {
+    return this.cwd;
   }
 
   private async createProviderAsync(): Promise<BaseProvider> {
@@ -91,16 +106,19 @@ export class Agent {
     // 1. Priority: Create provider and set it immediately so the agent is functional
     this.provider = await this.createProviderAsync();
 
-    // 2. Secondary: Gather project context (might be slow)
-    this.projectContext = await gatherProjectContext();
+    // 2. Propagate current CWD to tools before anything else
+    this.tools.setCwd(this.cwd);
 
-    // 3. Load MCP Tools
+    // 3. Secondary: Gather project context (might be slow) using agent-local cwd
+    this.projectContext = await gatherProjectContext(this.cwd);
+
+    // 4. Load MCP Tools
     await this.reloadMcpTools();
 
-    // 4. Update system prompt with new context and tools
+    // 5. Update system prompt with new context and tools
     await this.rebuildPrompt();
 
-    // 5. Inject project context: handled via System Prompt in rebuildPrompt()
+    // 6. Inject project context: handled via System Prompt in rebuildPrompt()
   }
 
   getInfo(): {
@@ -117,7 +135,7 @@ export class Agent {
       model: this.settings.model,
       advisorModel: this.settings.advisorModel,
       project: this.projectContext?.name ?? "...",
-      cwd: process.cwd(),
+      cwd: this.cwd,
     };
   }
 
@@ -155,7 +173,7 @@ export class Agent {
       }
       
       if (commandText === "/help") {
-        const allSkills = await skillManager.getAll();
+        const allSkills = await skillManager.getAll(this.cwd);
         const skillList = allSkills.length > 0
           ? '\n\n**Skills:**\n' + allSkills.map(s => `- \`/${s.name}\`${s.description ? ` — ${s.description}` : ''}`).join('\n')
           : '';
@@ -166,7 +184,7 @@ export class Agent {
       // Skill invocation: /skill-name [optional message]
       const slashParts = userMessage.trim().split(/\s+/);
       const skillName = slashParts[0].slice(1); // remove leading /
-      const skill = await skillManager.getByName(skillName);
+      const skill = await skillManager.getByName(skillName, this.cwd);
       if (skill) {
         const restOfMessage = slashParts.slice(1).join(' ').trim();
         const skillContext = `[SKILL ACTIVATED: ${skill.name}]\n\n${skill.content}`;
@@ -215,7 +233,7 @@ export class Agent {
 
       for (const filePath of mentions) {
         try {
-          const absPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+          const absPath = path.isAbsolute(filePath) ? filePath : path.join(this.cwd, filePath);
           const stats = await fs.stat(absPath);
           if (stats.isFile()) {
             // Limit file size to 50KB for mentions to avoid PayloadTooLarge errors
@@ -504,7 +522,7 @@ export class Agent {
   private async rebuildPrompt(): Promise<void> {
     // Load project rules from .agents/rules.md if trigger: always_on
     const { rulesManager } = await import('../services/rules-manager.js');
-    const projectRules = await rulesManager.getContent(process.cwd());
+    const projectRules = await rulesManager.getContent(this.cwd);
     
     this.dynamicSystemPrompt = PromptBuilder.build(
       this.settings.systemPrompt,

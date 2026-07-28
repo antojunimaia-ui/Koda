@@ -893,6 +893,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       handleStop={handleStop}
                       handleSend={handleSend}
                       renderModelDropdown={renderModelDropdown}
+                      mode={mode}
+                      onModeChange={setMode}
                       variant="ide"
                     />
                   </div>
@@ -1079,6 +1081,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
                     handleStop={handleStop}
                     handleSend={handleSend}
                     renderModelDropdown={renderModelDropdown}
+                    mode={mode}
+                    onModeChange={setMode}
                     variant="normal"
                   />
                 </div>
@@ -1110,7 +1114,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
       </div>
 
       {/* StatusBar - only in IDE mode */}
-      {isIDEWindow && <StatusBar mode={mode} onModeChange={setMode} />}
+      {isIDEWindow && <StatusBar onSettingsClick={onSettingsClick} onToggleSplit={onToggleSplit} isSplitEnabled={isSplitEnabled} />}
 
       {/* Source Control overlay */}
       {showSourceControl && (

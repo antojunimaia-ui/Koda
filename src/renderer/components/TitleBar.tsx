@@ -128,17 +128,12 @@ const TitleBar: React.FC<TitleBarProps> = ({
         )}
 
         <div className={`flex items-center gap-1 h-full ${uiMode === 'modern' && !showIconBar ? 'pl-0' : uiMode === 'modern' ? 'pl-3' : ''}`}>
-          {!isIDEWindow && (
-            <div className="no-drag h-full flex items-center">
-              {modeSelector}
-            </div>
-          )}
-
         <button
           id="tour-workspaces"
           onClick={onToggleSplit}
           className={`w-7 h-7 flex items-center justify-center rounded transition-all no-drag ml-1 ${isSplitEnabled ? 'text-cyan-400 bg-cyan-400/10' : 'text-slate-500 hover:text-cyan-400 hover:bg-white/5'}`}
           title={isSplitEnabled ? 'Disable Workspace Split' : 'Enable Workspace Split'}
+          style={{ display: isIDEWindow ? 'none' : undefined }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -171,7 +166,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
         )}
 
         {/* Modern UI: Settings button shown only when Iconbar is hidden (escape hatch) */}
-        {uiMode === 'modern' && !showIconBar && (
+        {uiMode === 'modern' && !showIconBar && !isIDEWindow && (
           <button
             onClick={onSettingsClick}
             className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-zinc-200 hover:bg-white/5 rounded transition-all no-drag ml-1"

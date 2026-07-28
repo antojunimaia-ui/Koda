@@ -34,7 +34,7 @@ export class FileReadTool extends BaseTool {
     const error = this.validateArgs(args);
     if (error) return this.failure(error);
 
-    const filePath = resolve(process.cwd(), args.path as string);
+    const filePath = resolve((args.__cwd as string) ?? process.cwd(), args.path as string);
 
     const blocked = checkKodaIgnore(args.path as string);
     if (blocked) return this.failure(blocked);

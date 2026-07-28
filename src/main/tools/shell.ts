@@ -202,7 +202,7 @@ export class ShellTool extends BaseTool {
     const command = args.command as string;
     const desc = args.description as string;
     const runInBackground = true; // Forced to true per user request
-    const cwd = (args.cwd as string) || process.cwd();
+    const cwd = (args.cwd as string) || (args.__cwd as string) || process.cwd();
     
     // Check if command or its base is already allowed
     const baseCommand = command.trim().split(/\s+/)[0];

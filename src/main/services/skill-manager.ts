@@ -89,15 +89,15 @@ class SkillManager {
   private cache: Skill[] | null = null;
 
   /** Skill directories in priority order: project-local overrides global */
-  private getDirs(): string[] {
+  private getDirs(cwd?: string): string[] {
     return [
       path.join(os.homedir(), '.koda', 'skills'),
-      path.join(process.cwd(), '.koda', 'skills'),
+      path.join(cwd ?? process.cwd(), '.koda', 'skills'),
     ];
   }
 
-  async getAll(): Promise<Skill[]> {
-    const dirs = this.getDirs();
+  async getAll(cwd?: string): Promise<Skill[]> {
+    const dirs = this.getDirs(cwd);
     const results = await Promise.all(dirs.map(loadSkillsFromDir));
     // Merge: later dirs (project-local) override earlier (global) by name
     const map = new Map<string, Skill>();
@@ -110,8 +110,8 @@ class SkillManager {
     return this.cache;
   }
 
-  async getByName(name: string): Promise<Skill | undefined> {
-    const all = await this.getAll();
+  async getByName(name: string, cwd?: string): Promise<Skill | undefined> {
+    const all = await this.getAll(cwd);
     return all.find(s => s.name.toLowerCase() === name.toLowerCase());
   }
 

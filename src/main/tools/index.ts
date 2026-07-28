@@ -24,6 +24,12 @@ import { resolve } from "path";
 export class ToolRegistry {
   private tools: Map<string, BaseTool> = new Map();
   private progressEmitter?: (event: string, toolName: string, data?: Record<string, unknown>) => void;
+  /** CWD isolado por instância de agente */
+  private cwd: string = process.cwd();
+
+  setCwd(cwd: string): void {
+    this.cwd = cwd;
+  }
 
   setProgressEmitter(fn: (event: string, toolName: string, data?: Record<string, unknown>) => void): void {
     this.progressEmitter = fn;
@@ -150,8 +156,11 @@ export class ToolRegistry {
       ? (event, data) => this.progressEmitter!(event, name, data)
       : undefined;
 
-    const result = await tool.execute(args);
-    this.afterExecute(name, args, result.success);
+    // Inject agent-local CWD so each tool resolves paths relative to its own workspace
+    const enrichedArgs = { ...args, __cwd: args.__cwd ?? this.cwd };
+
+    const result = await tool.execute(enrichedArgs);
+    this.afterExecute(name, enrichedArgs, result.success);
     return result;
   }
 
@@ -161,7 +170,7 @@ export class ToolRegistry {
     const FILE_WRITE_TOOLS = new Set(["file_write", "file_edit", "file_move", "file_delete"]);
     const pathArg = args.path as string | undefined || args.sourcePath as string | undefined;
     if (!pathArg) return;
-    const absPath = resolve(process.cwd(), pathArg);
+    const absPath = resolve(this.cwd, pathArg);
     if (FILE_WRITE_TOOLS.has(name)) {
       trackFile(absPath, "modified");
     } else if (FILE_READ_TOOLS.has(name)) {

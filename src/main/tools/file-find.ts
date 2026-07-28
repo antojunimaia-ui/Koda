@@ -33,7 +33,7 @@ export class FileFindTool extends BaseTool {
     if (error) return this.failure(error);
 
     const pattern = args.pattern as string;
-    const searchPath = resolve(process.cwd(), (args.path as string) || ".");
+    const searchPath = resolve((args.__cwd as string) ?? process.cwd(), (args.path as string) || ".");
     const maxResults = (args.max_results as number) || 100;
 
     try {
@@ -56,7 +56,7 @@ export class FileFindTool extends BaseTool {
       const relativeMatches = limitedMatches
         .map((match) => {
           const p = typeof match === "string" ? match : match.path;
-          return relative(process.cwd(), p);
+          return relative((args.__cwd as string) ?? process.cwd(), p);
         })
         .filter(rel => !checkKodaIgnore(rel)); // filtra .kodaignore
 

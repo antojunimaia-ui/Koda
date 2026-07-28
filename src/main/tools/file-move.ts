@@ -30,8 +30,8 @@ export class FileMoveTool extends BaseTool {
     const source = args.sourcePath as string;
     const target = args.targetPath as string;
 
-    const sourcePath = resolve(process.cwd(), source);
-    const targetPath = resolve(process.cwd(), target);
+    const sourcePath = resolve((args.__cwd as string) ?? process.cwd(), source);
+    const targetPath = resolve((args.__cwd as string) ?? process.cwd(), target);
 
     // Validate KodaIgnore constraints
     const blockedSource = checkKodaIgnore(source);

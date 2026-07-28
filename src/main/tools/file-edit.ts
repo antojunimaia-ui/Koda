@@ -35,7 +35,7 @@ export class FileEditTool extends BaseTool {
     const error = this.validateArgs(args);
     if (error) return this.failure(error);
 
-    const filePath = resolve(process.cwd(), args.path as string);
+    const filePath = resolve((args.__cwd as string) ?? process.cwd(), args.path as string);
     const target = args.target as string;
     const replacement = args.replacement as string;
 
