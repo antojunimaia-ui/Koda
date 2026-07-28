@@ -171,7 +171,7 @@ const BrowserPreview: React.FC<BrowserPreviewProps> = ({ initialUrl = 'http://lo
             src={url}
             style={{ width: '100%', height: '100%' }}
             className={isMobile ? 'rounded-xl' : ''}
-            allowpopups="true"
+            allowpopups={true}
             useragent={isMobile ? MOBILE_UA : DESKTOP_UA}
           />
         </div>

@@ -52,12 +52,21 @@ declare global {
       marketplaceUninstall: (skillName: string) => Promise<{ success: boolean; error?: string }>
       koClawStart: (config: { token: string; channelId?: string }) => Promise<{ success: boolean; error?: string }>
       koClawStop: () => Promise<{ success: boolean }>
-      koClawStatus: () => Promise<{ running: boolean; ready: boolean; username: string | null }>
+      koClawStatus: () => Promise<{ running: boolean; port: number | null }>
       discordEnable: () => Promise<{ success: boolean; error?: string }>
       discordDisable: () => Promise<{ success: boolean }>
       // Git
       gitInfo: (cwd: string) => Promise<{ success: boolean; branch: string | null; branches: string[] }>
       gitCheckout: (cwd: string, branch: string) => Promise<{ success: boolean; error?: string }>
+      gitStatus: (cwd: string) => Promise<{ success: boolean; files?: any[]; error?: string }>
+      gitStage: (cwd: string, filePath: string) => Promise<{ success: boolean; error?: string }>
+      gitUnstage: (cwd: string, filePath: string) => Promise<{ success: boolean; error?: string }>
+      gitStageAll: (cwd: string) => Promise<{ success: boolean; error?: string }>
+      gitCommit: (cwd: string, message: string) => Promise<{ success: boolean; error?: string }>
+      gitPush: (cwd: string) => Promise<{ success: boolean; error?: string }>
+      gitPull: (cwd: string) => Promise<{ success: boolean; error?: string }>
+      gitLog: (cwd: string) => Promise<{ success: boolean; commits?: any[]; currentBranch?: string; error?: string }>
+      openExternal: (url: string) => Promise<{ success: boolean; error?: string }>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>
