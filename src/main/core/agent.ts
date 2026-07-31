@@ -19,6 +19,7 @@ import { FireworksProvider } from "../providers/fireworks.js";
 import { ZhipuProvider } from "../providers/zhipu.js";
 import { MaritacaProvider } from "../providers/maritaca.js";
 import { KodaCloudProvider } from "../providers/koda-cloud.js";
+import { OpenCodeZenProvider } from "../providers/opencode-zen.js";
 import { mcpManager } from "../services/mcp-manager.js";
 import { MCPTool } from "../tools/mcp-tool.js";
 import { skillManager } from "../services/skill-manager.js";
@@ -97,6 +98,8 @@ export class Agent {
         return new MaritacaProvider(model, apiKey, maxTokens, temperature);
       case "koda-cloud":
         return new KodaCloudProvider(model);
+      case "opencode-zen":
+        return new OpenCodeZenProvider(model, apiKey, maxTokens, temperature);
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
@@ -271,6 +274,8 @@ export class Agent {
       }
 
       let iterations = 0;
+      const recentToolExecutions = new Map<string, { output: string; success: boolean }>();
+      let previousIterationSignatures = new Set<string>();
 
       while (true) {
         iterations++;
@@ -289,6 +294,7 @@ export class Agent {
 
         // Tool results collected during streaming (executed eagerly on tool_call_end)
         const toolResults: { id: string; name: string; output: string; success: boolean }[] = [];
+        const currentIterationSignatures = new Set<string>();
 
         // Stream response from LLM
         for await (const chunk of this.provider.chat(
@@ -333,12 +339,28 @@ export class Agent {
 
                 if (signal.aborted) break;
 
-                // Execute the tool immediately — don't wait for the stream to finish.
-                const result = await this.tools.execute(toolCall.name, toolCall.arguments);
-                const success = result.success;
-                const output = result.error || result.output;
-                onToolEnd(toolCall.name, output, success, toolCall.arguments);
-                toolResults.push({ id: toolCall.id, name: toolCall.name, output, success });
+                const signature = `${toolCall.name}:${JSON.stringify(toolCall.arguments || {})}`;
+                currentIterationSignatures.add(signature);
+
+                let resultOutput = "";
+                let resultSuccess = true;
+
+                // Check for consecutive duplicate call
+                if (previousIterationSignatures.has(signature) && recentToolExecutions.has(signature)) {
+                  const cached = recentToolExecutions.get(signature)!;
+                  resultSuccess = cached.success;
+                  resultOutput = `${cached.output}\n\n[System Note: You called '${toolCall.name}' with identical parameters in consecutive steps. The result above is cached from the previous call. Please analyze this result and move on to your next action or answer.]`;
+                  console.log(`[Agent] Deduplicated consecutive tool call: ${signature}`);
+                } else {
+                  // Execute the tool immediately — don't wait for the stream to finish.
+                  const result = await this.tools.execute(toolCall.name, toolCall.arguments);
+                  resultSuccess = result.success;
+                  resultOutput = result.error || result.output;
+                  recentToolExecutions.set(signature, { output: resultOutput, success: resultSuccess });
+                }
+
+                onToolEnd(toolCall.name, resultOutput, resultSuccess, toolCall.arguments);
+                toolResults.push({ id: toolCall.id, name: toolCall.name, output: resultOutput, success: resultSuccess });
               }
               break;
 
@@ -350,6 +372,8 @@ export class Agent {
               break;
           }
         }
+
+        previousIterationSignatures = currentIterationSignatures;
 
         if (signal.aborted) break;
 

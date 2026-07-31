@@ -569,6 +569,16 @@ ipcMain.handle('agent:update_approved_commands', async (_event, lists) => {
 ipcMain.handle('agent:getModels', async (event, provider: string, apiKey: string) => {
   console.log(`[Main] getModels called with provider: ${provider}, apiKey length: ${apiKey?.length || 0}`)
   try {
+    if (provider === 'opencode-zen') {
+      const headers: Record<string, string> = {}
+      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
+      const res = await efetch('https://opencode.ai/zen/v1/models', { headers })
+      if (!res.ok) throw new Error('Failed to fetch models from OpenCode Zen')
+      const data = await res.json()
+      const models = Array.isArray(data?.data) ? data.data.map((m: any) => m.id) : (Array.isArray(data) ? data.map((m: any) => m.id || m) : [])
+      return { success: true, models }
+    }
+
     if (provider === 'openrouter') {
       const res = await efetch('https://openrouter.ai/api/v1/models')
       if (!res.ok) throw new Error('Failed to fetch models from OpenRouter')

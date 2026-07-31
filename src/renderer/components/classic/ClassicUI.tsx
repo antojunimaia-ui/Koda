@@ -249,6 +249,8 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
       <div className="flex-1 relative flex flex-col min-h-0">
         <div className="flex flex-1 min-h-0 overflow-hidden relative">
           
+          {showLeft && renderPanelStack('left')}
+
           {showLeft && (
             <div
               onMouseDown={startResizing}
@@ -328,7 +330,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
               <div className="flex-1 min-h-0 relative mt-2 pr-2">
                 <Virtuoso
                   ref={virtuosoRef}
-                  className="h-full custom-scrollbar max-w-75 lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto"
+                  className="h-full custom-scrollbar w-full"
                   data={renderableMessages}
                   alignToBottom
                   increaseViewportBy={{ top: 200, bottom: 200 }}

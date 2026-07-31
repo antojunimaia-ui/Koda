@@ -111,7 +111,7 @@ export const ModelDropdown: React.FC<ModelDropdownProps> = ({
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-72 bg-[#1c1c1c] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[9999] animate-in fade-in slide-in-from-bottom-1 duration-150">
+        <div className="absolute bottom-full left-0 mb-2 w-72 bg-[#1c1c1c] border border-white/10 rounded-lg shadow-none overflow-hidden z-[9999] animate-in fade-in slide-in-from-bottom-1 duration-150">
 
           {/* Search */}
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/5">

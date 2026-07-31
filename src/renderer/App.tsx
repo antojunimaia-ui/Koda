@@ -25,6 +25,7 @@ import UpdateBanner from './components/UpdateBanner.js'
 import ContextPanel, { ContextPanelOverlay } from './components/context/ContextPanel.js'
 import { ExplorerPanelOverlay } from './components/context/ContextPanel.js'
 import SettingsUI, { DEFAULT_THEME } from './components/settings/SettingsUI.js'
+import { WelcomeWizardModal } from './components/modals/WelcomeWizardModal.js'
 import { KoDB } from './db/kodb.js'
 
 // ─── UI Modes ───────────────────────────────────────────────────────────────
@@ -175,6 +176,11 @@ const App: React.FC = () => {
 
   const [theme, setTheme] = useState<KodaTheme>(() => {
     return KoDB.get('theme')
+  })
+
+  // ── First Time Welcome Wizard state ──────────────────────────────────────────
+  const [showWelcomeWizard, setShowWelcomeWizard] = useState(() => {
+    return !localStorage.getItem('koda_welcome_wizard_done')
   })
 
   // ── Workspace Actions ───────────────────────────────────────────────────────
@@ -990,6 +996,49 @@ Your current task is: ${userMsg}`
           plan={activeWorkspace.pendingPlan}
           onApprove={() => window.koda.planResponse(true)}
           onReject={() => window.koda.planResponse(false)}
+        />
+      )}
+
+      {showWelcomeWizard && (
+        <WelcomeWizardModal
+          currentTheme={theme}
+          setTheme={setTheme}
+          loadedModels={loadedModels}
+          fetchModelsForProvider={fetchModelsForProvider}
+          onComplete={async (config) => {
+            setTheme(config.theme)
+            KoDB.set('theme', config.theme)
+
+            if (activeWorkspace) {
+              const res = await window.koda.setup(activeWorkspace.id, {
+                provider: config.provider,
+                model: config.model,
+                advisorModel: config.advisorModel,
+                apiKey: config.apiKey
+              })
+              if (res.success) {
+                updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
+              }
+            }
+
+            KoDB.set('provider', config.provider)
+            KoDB.set('model', config.model)
+            KoDB.set('apiKey', config.apiKey)
+            if (config.advisorModel) KoDB.set('advisorModel', config.advisorModel)
+
+            try {
+              const providersConfig = KoDB.get('providersConfig') || {}
+              providersConfig[config.provider] = {
+                apiKey: config.apiKey,
+                model: config.model,
+                advisorModel: config.advisorModel || config.model
+              }
+              KoDB.set('providersConfig', providersConfig)
+            } catch (e) {}
+
+            localStorage.setItem('koda_welcome_wizard_done', 'true')
+            setShowWelcomeWizard(false)
+          }}
         />
       )}
 

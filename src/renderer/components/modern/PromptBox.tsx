@@ -117,7 +117,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
       )}
 
     <div 
-      className={`relative bg-neutral-900/80 rounded-2xl border transition-all ${
+      className={`relative bg-neutral-900/80 rounded-xl border transition-all ${
         isDraggingOver 
           ? 'border-white bg-white/5' 
           : 'border-neutral-800'
@@ -199,7 +199,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
         />
       </div>
 
-      <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-2xl">
+      <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-xl">
         <div className="flex items-center gap-1.5">
           <button type="button" onClick={onFileAttach} className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1">
             <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
@@ -221,7 +221,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`text-zinc-500 transition-transform duration-150 ${showModeMenu ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
               </button>
               {showModeMenu && (
-                <div className="absolute bottom-full right-0 mb-1 w-44 bg-[#0d1117] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-150 z-50">
+                <div className="absolute bottom-full right-0 mb-1 w-44 bg-[#0d1117] border border-white/10 rounded-xl shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-150 z-50">
                   <div className="p-1">
                     {MODES.map(m => (
                       <button

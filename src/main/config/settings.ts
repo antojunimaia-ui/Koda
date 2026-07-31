@@ -32,7 +32,7 @@ try {
   // Ignore
 }
 
-export type LLMProvider = "openai" | "anthropic" | "google" | "openrouter" | "ollama" | "llamacpp" | "groq" | "deepseek" | "mistral" | "together" | "xai" | "zhipu" | "maritaca" | "koda-cloud" | "fireworks";
+export type LLMProvider = "openai" | "anthropic" | "google" | "openrouter" | "ollama" | "llamacpp" | "groq" | "deepseek" | "mistral" | "together" | "xai" | "zhipu" | "maritaca" | "koda-cloud" | "fireworks" | "opencode-zen";
 
 export interface AppSettings {
   provider: LLMProvider;
@@ -63,6 +63,7 @@ const DEFAULT_MODELS: Record<LLMProvider, string> = {
   maritaca: "sabia-4",
   "koda-cloud": "gemini-2.0-flash-exp",
   fireworks: "accounts/fireworks/models/llama-v3p1-405b-instruct",
+  "opencode-zen": "",
 };
 
 export function getSettings(): AppSettings {
@@ -84,6 +85,7 @@ export function getSettings(): AppSettings {
     maritaca: process.env.MARITACA_API_KEY || "",
     "koda-cloud": process.env.KODA_CLOUD_API_KEY || "",
     fireworks: process.env.FIREWORKS_API_KEY || "",
+    "opencode-zen": process.env.OPENCODE_ZEN_API_KEY || process.env.OPENCODE_API_KEY || "",
   };
 
   const modelOverride: Record<LLMProvider, string | undefined> = {
@@ -102,6 +104,7 @@ export function getSettings(): AppSettings {
     maritaca: process.env.MARITACA_MODEL,
     "koda-cloud": process.env.KODA_CLOUD_MODEL,
     fireworks: process.env.FIREWORKS_MODEL,
+    "opencode-zen": process.env.OPENCODE_ZEN_MODEL,
   };
 
   return {

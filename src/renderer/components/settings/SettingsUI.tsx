@@ -32,6 +32,7 @@ const PROVIDER_LIST = [
   { id: 'fireworks', name: 'Fireworks AI', requiresKey: true, placeholder: '...' },
   { id: 'zhipu', name: 'Zhipu AI', requiresKey: true, placeholder: '...' },
   { id: 'maritaca', name: 'Maritaca AI', requiresKey: true, placeholder: '...' },
+  { id: 'opencode-zen', name: 'OpenCode Zen', requiresKey: true, placeholder: 'opencode_...' },
   { id: 'ollama', name: 'Ollama (Local)', requiresKey: false, placeholder: 'Optional API key...' },
   { id: 'llamacpp', name: 'Llama.cpp (Local)', requiresKey: false, placeholder: 'Optional API key...' },
   { id: 'koda-cloud', name: 'Koda Cloud', requiresKey: false, placeholder: 'Cloud handles keys' },
@@ -52,6 +53,7 @@ const PROVIDER_DEFAULTS: Record<string, { model: string, advisorModel: string }>
   fireworks: { model: 'accounts/fireworks/models/llama-v3-8b-instruct', advisorModel: 'accounts/fireworks/models/llama-v3-8b-instruct' },
   zhipu: { model: 'glm-4-flash', advisorModel: 'glm-4-flash' },
   maritaca: { model: 'sabia-3', advisorModel: 'sabia-3' },
+  'opencode-zen': { model: '', advisorModel: '' },
   'koda-cloud': { model: 'gemini-1.5-flash', advisorModel: 'gemini-1.5-flash' },
 }
 
@@ -113,7 +115,7 @@ const SettingsUI = memo(({
   useEffect(() => {
     // Skip if models already loaded for this provider
     if (loadedModels[provider]) return
-    if (!apiKey && !['openrouter', 'ollama', 'llamacpp', 'koda-cloud'].includes(provider)) {
+    if (!apiKey && !['openrouter', 'opencode-zen', 'ollama', 'llamacpp', 'koda-cloud'].includes(provider)) {
       return
     }
     fetchModelsForProvider(provider, apiKey)
@@ -121,7 +123,7 @@ const SettingsUI = memo(({
 
   const handleFetchModels = (provId: string) => {
     const key = providersConfig[provId]?.apiKey || ''
-    const requiresKey = !['openrouter', 'ollama', 'llamacpp', 'koda-cloud'].includes(provId)
+    const requiresKey = !['openrouter', 'opencode-zen', 'ollama', 'llamacpp', 'koda-cloud'].includes(provId)
     if (requiresKey && !key) {
       return
     }

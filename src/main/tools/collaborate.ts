@@ -4,6 +4,7 @@ import { AnthropicProvider } from "../providers/anthropic.js";
 import { GoogleProvider } from "../providers/google.js";
 import { OpenRouterProvider } from "../providers/openrouter.js";
 import { OllamaProvider } from "../providers/ollama.js";
+import { OpenCodeZenProvider } from "../providers/opencode-zen.js";
 import { AppSettings } from "../config/settings.js";
 
 // Global state for the active collaboration session
@@ -53,6 +54,7 @@ export class StartColabTool extends BaseTool {
       case "google": advisorProviderCache = new GoogleProvider(advisorModel, apiKey, maxTokens, temperature); break;
       case "openrouter": advisorProviderCache = new OpenRouterProvider(advisorModel, apiKey, maxTokens, temperature); break;
       case "ollama": advisorProviderCache = new OllamaProvider(advisorModel, apiKey, maxTokens, temperature); break;
+      case "opencode-zen": advisorProviderCache = new OpenCodeZenProvider(advisorModel, apiKey, maxTokens, temperature); break;
       default: return this.failure(`Provider ${providerType} not supported for colab.`);
     }
 
