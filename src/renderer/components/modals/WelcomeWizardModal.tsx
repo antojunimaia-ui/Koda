@@ -24,9 +24,19 @@ const PROVIDERS = [
     popularModels: ['gemini-1.5-flash', 'gemini-1.5-pro']
   },
   { 
+    id: 'opencode-zen', 
+    name: 'OpenCode Zen', 
+    description: 'Curated AI gateway optimized for coding agents.', 
+    requiresKey: true, 
+    placeholder: 'opencode_...',
+    defaultModel: '',
+    defaultAdvisorModel: '',
+    popularModels: []
+  },
+  { 
     id: 'google', 
     name: 'Google Gemini', 
-    description: 'Gemini 1.5 Flash and Pro models from Google.', 
+    description: 'Gemini Flash and Pro models from Google.', 
     requiresKey: true, 
     placeholder: 'AIzaSy...',
     defaultModel: 'gemini-1.5-flash',
@@ -75,7 +85,7 @@ const PROVIDERS = [
   },
   { 
     id: 'groq', 
-    name: 'Groq (Ultra Fast)', 
+    name: 'Groq', 
     description: 'Ultra-low latency inference with Llama 3.', 
     requiresKey: true, 
     placeholder: 'gsk_...',
@@ -95,6 +105,13 @@ const PROVIDERS = [
   }
 ]
 
+const STEPS = [
+  { num: 1, label: 'Theme',    icon: Palette },
+  { num: 2, label: 'Provider', icon: Key     },
+  { num: 3, label: 'Model',    icon: Cpu     },
+  { num: 4, label: 'Advisor',  icon: Users   },
+]
+
 export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   currentTheme,
   setTheme,
@@ -103,7 +120,6 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   fetchModelsForProvider,
 }) => {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
-  
   const [selectedTheme, setSelectedTheme] = useState<KodaTheme>(currentTheme || THEMES[0])
   const [provider, setProvider] = useState<string>('koda-cloud')
   const [apiKey, setApiKey] = useState<string>('')
@@ -111,7 +127,6 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   const [advisorModel, setAdvisorModel] = useState<string>('gemini-1.5-flash')
   const fetchedRef = useRef<Set<string>>(new Set())
 
-  // Dispara o fetch uma única vez ao entrar nas etapas que exibem modelos
   useEffect(() => {
     if (step < 3) return
     const key = `${provider}::${apiKey}`
@@ -127,15 +142,15 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
 
   const handleSelectProvider = (provId: string) => {
     setProvider(provId)
-    const provInfo = PROVIDERS.find(p => p.id === provId)
-    if (provInfo) {
-      setModel(provInfo.defaultModel)
-      setAdvisorModel(provInfo.defaultAdvisorModel)
+    const prov = PROVIDERS.find(p => p.id === provId)
+    if (prov) {
+      setModel(prov.defaultModel)
+      setAdvisorModel(prov.defaultAdvisorModel)
     }
+    setApiKey('')
   }
 
   const selectedProvObj = PROVIDERS.find(p => p.id === provider) || PROVIDERS[0]
-  // Usa modelos carregados via API; cai para os popularModels estáticos como fallback
   const availableModels = loadedModels[provider] ?? selectedProvObj.popularModels
 
   const handleFinish = () => {
@@ -149,88 +164,111 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-[#09090b] text-zinc-100 flex flex-col justify-between select-none overflow-hidden animate-fadeIn">
-      
-      {/* Topo / Header em Tela Cheia */}
-      <header className="w-full px-8 py-6 border-b border-white/10 bg-neutral-900/40 flex items-center justify-center">
-        {/* Stepper Progress */}
+    <div className="fixed inset-0 z-[99999] flex flex-col font-sans select-none overflow-hidden" style={{ background: '#09090b' }}>
+
+      {/* Titlebar — drag region + window controls only */}
+      <div className="titlebar-drag w-full h-8 shrink-0 flex items-center justify-end pr-0 border-b border-white/5">
+        <button
+          onClick={() => window.koda.minimize()}
+          className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
+        >
+          <svg width="12" height="1" viewBox="0 0 12 1" fill="currentColor"><rect width="12" height="1"/></svg>
+        </button>
+        <button
+          onClick={() => window.koda.maximize()}
+          className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1"><rect x="1" y="1" width="8" height="8"/></svg>
+        </button>
+        <button
+          onClick={() => window.koda.close()}
+          className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-rose-600 hover:text-white transition-colors no-drag"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
+            <path d="M1 1L9 9M9 1L1 9"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Header — Stepper */}
+      <header className="relative z-10 w-full px-8 py-4 border-b border-white/5 flex items-center justify-between">
+        {/* Logo / Brand */}
         <div className="flex items-center gap-2">
-          {[
-            { num: 1, label: 'Theme', icon: Palette },
-            { num: 2, label: 'Provider & API', icon: Key },
-            { num: 3, label: 'Default Model', icon: Cpu },
-            { num: 4, label: 'Collab Model', icon: Users }
-          ].map(s => {
+          <div className="w-5 h-5 rounded-md bg-indigo-500/20 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-sm bg-indigo-400" />
+          </div>
+          <span className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Koda</span>
+        </div>
+
+        {/* Step pills */}
+        <div className="flex items-center gap-1.5">
+          {STEPS.map(s => {
             const active = step === s.num
-            const done = step > s.num
+            const done   = step > s.num
             return (
-              <button 
+              <button
                 key={s.num}
                 disabled={!done && !active}
                 onClick={() => { if (done) setStep(s.num as any) }}
-                className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-medium border transition-all ${
-                  active 
-                    ? 'bg-white/10 border-white/25 text-white' 
-                    : done 
-                      ? 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 cursor-pointer' 
-                      : 'bg-transparent border-transparent text-zinc-600'
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                  active
+                    ? 'bg-white/8 border border-white/10 text-white'
+                    : done
+                      ? 'text-zinc-400 hover:text-zinc-200 cursor-pointer border border-transparent hover:border-white/5'
+                      : 'text-zinc-700 border border-transparent cursor-default'
                 }`}
               >
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 ${
-                  done ? 'bg-white text-black' : active ? 'bg-white/20 text-white' : 'bg-white/5 text-zinc-600'
+                <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
+                  done ? 'bg-indigo-500/30 text-indigo-300' : active ? 'bg-white/10 text-white' : 'bg-white/5 text-zinc-600'
                 }`}>
-                  {done ? <Check className="w-3 h-3 stroke-[3]" /> : s.num}
+                  {done ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : s.num}
                 </div>
-                <span className="truncate font-semibold">{s.label}</span>
+                <span className="hidden sm:inline">{s.label}</span>
               </button>
             )
           })}
         </div>
+
+        <div className="w-24" /> {/* spacer */}
       </header>
 
-      {/* Conteúdo Centralizado de Tela Cheia */}
-      <main className="flex-1 w-full max-w-4xl mx-auto px-6 py-8 flex flex-col justify-center overflow-y-auto custom-scrollbar">
-        
-        {/* PASSO 1: Tema Visual */}
+      {/* Main content */}
+      <main className="relative z-10 flex-1 w-full max-w-3xl mx-auto px-6 py-10 flex flex-col justify-center overflow-y-auto custom-scrollbar">
+
+        {/* STEP 1: Theme */}
         {step === 1 && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="text-center max-w-lg mx-auto">
-              <h2 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-                <Palette className="w-5 h-5" />
-                Choose Your Visual Theme
-              </h2>
-              <p className="text-xs text-zinc-400 mt-1.5">
-                Select the color palette applied to the Koda interface in real time.
-              </p>
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-semibold text-white tracking-tight">Choose your theme</h2>
+              <p className="text-[12px] text-zinc-500">Select a color palette applied to the Koda interface.</p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {THEMES.map((t) => {
                 const isSelected = selectedTheme.name === t.name
                 return (
                   <button
                     key={t.name}
                     onClick={() => handleSelectTheme(t)}
-                    className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between gap-4 ${
+                    className={`group p-3.5 rounded-lg border text-left transition-all flex flex-col gap-3 ${
                       isSelected
-                        ? 'bg-white/10 border-white/40 ring-1 ring-white/20 text-white scale-[1.02]'
-                        : 'bg-neutral-900/60 border-white/5 hover:bg-white/5 hover:border-white/15 text-zinc-400'
+                        ? 'bg-white/5 border-white/20 text-white'
+                        : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-400'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-zinc-100">{t.name}</span>
+                      <span className="text-[11px] font-semibold text-zinc-200">{t.name}</span>
                       {isSelected && (
-                        <div className="w-4 h-4 rounded-full bg-white text-black flex items-center justify-center">
-                          <Check className="w-3 h-3 stroke-[3]" />
+                        <div className="w-3.5 h-3.5 rounded-full bg-indigo-500/30 flex items-center justify-center">
+                          <Check className="w-2 h-2 text-indigo-300 stroke-[3]" />
                         </div>
                       )}
                     </div>
-
-                    <div className="p-2.5 rounded-xl border border-white/10 bg-black/60 flex items-center justify-around">
-                      <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.bg }} title="BG" />
-                      <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.sidebar }} title="Sidebar" />
-                      <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.accent }} title="Accent" />
-                      <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.text }} title="Text" />
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10" style={{ backgroundColor: t.colors.bg }} />
+                      <div className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10" style={{ backgroundColor: t.colors.sidebar }} />
+                      <div className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10" style={{ backgroundColor: t.colors.accent }} />
+                      <div className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10" style={{ backgroundColor: t.colors.text }} />
                     </div>
                   </button>
                 )
@@ -239,165 +277,161 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
           </div>
         )}
 
-        {/* PASSO 2: Provedor & API Key */}
+        {/* STEP 2: Provider */}
         {step === 2 && (
-          <div className="space-y-6 animate-fadeIn max-w-2xl mx-auto w-full">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-                <Key className="w-5 h-5" />
-                AI Provider
-              </h2>
-              <p className="text-xs text-zinc-400 mt-1.5">
-                Choose to use <strong>Koda Cloud for free</strong> with no setup, or connect your own API key.
-              </p>
+          <div className="space-y-5 animate-fadeIn">
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-semibold text-white tracking-tight">AI Provider</h2>
+              <p className="text-[12px] text-zinc-500">Choose <span className="text-zinc-300">Koda Cloud</span> for zero setup, or connect your own API key.</p>
             </div>
 
-            {/* Card Destaque Koda Cloud */}
-            <div 
+            {/* Koda Cloud highlight */}
+            <div
               onClick={() => handleSelectProvider('koda-cloud')}
-              className={`p-5 rounded-2xl border cursor-pointer transition-all space-y-2 ${
+              className={`group p-4 rounded-lg border cursor-pointer transition-all ${
                 provider === 'koda-cloud'
-                  ? 'bg-white/10 border-white/40 ring-1 ring-white/20 text-white'
-                  : 'bg-neutral-900/60 border-white/5 hover:border-white/20 text-zinc-300'
+                  ? 'bg-indigo-500/10 border-indigo-500/30 text-white'
+                  : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-400'
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-sm">Koda Cloud</span>
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-200 border border-white/15">
-                    Recommended / No API Key
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[13px] font-semibold text-zinc-100">Koda Cloud</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">
+                    Recommended · Free
                   </span>
                 </div>
-                {provider === 'koda-cloud' && <Check className="w-5 h-5 text-white" />}
+                {provider === 'koda-cloud' && <Check className="w-4 h-4 text-indigo-400" />}
               </div>
             </div>
 
-            <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest pt-2">
-              Or choose another provider:
-            </div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Or choose another provider</div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {PROVIDERS.filter(p => p.id !== 'koda-cloud').map((p) => {
                 const isSelected = provider === p.id
                 return (
                   <div
                     key={p.id}
                     onClick={() => handleSelectProvider(p.id)}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                      isSelected 
-                        ? 'bg-white/10 border-white/40 text-white' 
-                        : 'bg-neutral-900/40 border-white/5 hover:border-white/15 text-zinc-400'
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-white/5 border-white/20 text-white'
+                        : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/8 text-zinc-500'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="font-semibold text-xs text-zinc-200">{p.name}</div>
-                      {isSelected && <Check className="w-4 h-4 text-white shrink-0 ml-2" />}
+                      <span className="text-[12px] font-medium text-zinc-200">{p.name}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-zinc-300 shrink-0" />}
                     </div>
                   </div>
                 )
               })}
             </div>
 
-            {/* Campo para API Key */}
             {selectedProvObj.requiresKey && (
-              <div className="pt-2 animate-fadeIn">
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  API Key ({selectedProvObj.name}):
+              <div className="pt-1 animate-fadeIn space-y-1.5">
+                <label className="block text-[11px] font-medium text-zinc-400">
+                  API Key — {selectedProvObj.name}
                 </label>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={selectedProvObj.placeholder || 'Paste your API Key here...'}
-                  className="w-full px-4 py-3 text-xs bg-neutral-900 border border-white/15 rounded-xl text-white placeholder-zinc-600 outline-none focus:border-white/40 font-mono transition-colors"
+                  placeholder={selectedProvObj.placeholder || 'Paste your API Key...'}
+                  className="w-full px-3.5 py-2.5 text-[12px] bg-white/[0.03] border border-white/8 rounded-lg text-white placeholder-zinc-700 outline-none focus:border-white/20 font-mono transition-colors"
                 />
               </div>
             )}
           </div>
         )}
 
-        {/* PASSO 3: Modelo Padrão */}
+        {/* STEP 3: Default Model */}
         {step === 3 && (
-          <div className="space-y-6 animate-fadeIn max-w-xl mx-auto w-full">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-                <Cpu className="w-5 h-5" />
-                Default Model (Primary Agent)
-              </h2>
-              <p className="text-xs text-zinc-400 mt-1.5">
-                This is the main model responsible for executing commands, reading files, and writing code.
-              </p>
-            </div>
+          <div className="space-y-5 animate-fadeIn">
 
-            <div className="grid grid-cols-2 gap-1.5">
-              {availableModels.map((m) => {
-                const isSel = model === m
-                return (
-                  <button
-                    key={m}
-                    onClick={() => setModel(m)}
-                    className={`group w-full px-3 py-2 rounded-lg border text-left flex items-center justify-between transition-all ${
-                      isSel 
-                        ? 'bg-white/10 border-white/30 text-white font-medium' 
-                        : 'bg-neutral-900/40 border-white/5 hover:border-white/15 text-zinc-400'
-                    }`}
-                  >
-                    <span className="text-[11px] font-medium truncate">{formatModelName(m)}</span>
-                    <span className="text-[9px] font-mono text-zinc-600 truncate hidden group-hover:block">{m}</span>
-                    {isSel && <Check className="w-3.5 h-3.5 text-white shrink-0 ml-1" />}
-                  </button>
-                )
-              })}
-            </div>
+            {availableModels.length === 0 ? (
+              <div className="py-8 text-center text-zinc-600 text-[12px] border border-white/5 rounded-lg bg-white/[0.02]">
+                {selectedProvObj.requiresKey && !apiKey
+                  ? 'Enter your API Key in the previous step to load models.'
+                  : 'Loading models...'}
+              </div>
+            ) : (
+              <div className="overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+                <div className="grid grid-cols-2 gap-1.5 pr-1">
+                  {availableModels.map((m) => {
+                    const isSel = model === m
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => setModel(m)}
+                        className={`group w-full px-3 py-2.5 rounded-lg border text-left flex items-center justify-between transition-all ${
+                          isSel
+                            ? 'bg-white/5 border-white/20 text-white'
+                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-500'
+                        }`}
+                      >
+                        <div className="flex flex-col gap-0.5 overflow-hidden">
+                          <span className="text-[11px] font-medium truncate text-zinc-200">{formatModelName(m)}</span>
+                          <span className="text-[9px] font-mono text-zinc-600 truncate">{m}</span>
+                        </div>
+                        {isSel && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-2" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* PASSO 4: Modelo Collab */}
+        {/* STEP 4: Advisor Model */}
         {step === 4 && (
-          <div className="space-y-6 animate-fadeIn max-w-xl mx-auto w-full">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-                <Users className="w-5 h-5" />
-                Collab Model (Advisor)
-              </h2>
-              <p className="text-xs text-zinc-400 mt-1.5">
-                Model used in collaboration mode to validate decisions and code architecture.
-              </p>
-            </div>
+          <div className="space-y-5 animate-fadeIn">
 
-            <div className="grid grid-cols-2 gap-1.5">
-              {availableModels.map((m) => {
-                const isSel = advisorModel === m
-                return (
-                  <button
-                    key={m}
-                    onClick={() => setAdvisorModel(m)}
-                    className={`group w-full px-3 py-2 rounded-lg border text-left flex items-center justify-between transition-all ${
-                      isSel 
-                        ? 'bg-white/10 border-white/30 text-white font-medium' 
-                        : 'bg-neutral-900/40 border-white/5 hover:border-white/15 text-zinc-400'
-                    }`}
-                  >
-                    <span className="text-[11px] font-medium truncate">{formatModelName(m)}</span>
-                    <span className="text-[9px] font-mono text-zinc-600 truncate hidden group-hover:block">{m}</span>
-                    {isSel && <Check className="w-3.5 h-3.5 text-white shrink-0 ml-1" />}
-                  </button>
-                )
-              })}
-            </div>
+            {availableModels.length === 0 ? (
+              <div className="py-8 text-center text-zinc-600 text-[12px] border border-white/5 rounded-lg bg-white/[0.02]">
+                No models available.
+              </div>
+            ) : (
+              <div className="overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+                <div className="grid grid-cols-2 gap-1.5 pr-1">
+                  {availableModels.map((m) => {
+                    const isSel = advisorModel === m
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => setAdvisorModel(m)}
+                        className={`group w-full px-3 py-2.5 rounded-lg border text-left flex items-center justify-between transition-all ${
+                          isSel
+                            ? 'bg-white/5 border-white/20 text-white'
+                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-500'
+                        }`}
+                      >
+                        <div className="flex flex-col gap-0.5 overflow-hidden">
+                          <span className="text-[11px] font-medium truncate text-zinc-200">{formatModelName(m)}</span>
+                          <span className="text-[9px] font-mono text-zinc-600 truncate">{m}</span>
+                        </div>
+                        {isSel && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-2" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
       </main>
 
-      {/* Rodapé Fixo Inferior em Tela Cheia */}
-      <footer className="w-full px-8 py-5 border-t border-white/10 bg-neutral-900/50 flex items-center justify-between">
+      {/* Footer */}
+      <footer className="relative z-10 w-full px-8 py-4 border-t border-white/5 flex items-center justify-between">
         {step > 1 ? (
           <button
             onClick={() => setStep((s) => (s - 1) as any)}
-            className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-200 transition-colors rounded-md hover:bg-white/5"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5" />
             Back
           </button>
         ) : (
@@ -407,18 +441,18 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
         {step < 4 ? (
           <button
             onClick={() => setStep((s) => (s + 1) as any)}
-            className="px-6 py-2.5 text-xs font-bold rounded-xl bg-white text-black hover:bg-zinc-200 transition-all flex items-center gap-2 shadow-md active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold rounded-md bg-white text-black hover:bg-zinc-100 transition-all active:scale-95"
           >
-            Next
-            <ChevronRight className="w-4 h-4" />
+            Continue
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         ) : (
           <button
             onClick={handleFinish}
-            className="px-7 py-3 text-xs font-bold rounded-xl bg-white text-black hover:bg-zinc-200 transition-all flex items-center gap-2 shadow-lg active:scale-95"
+            className="flex items-center gap-1.5 px-5 py-2 text-[11px] font-semibold rounded-md bg-white text-black hover:bg-zinc-100 transition-all active:scale-95"
           >
-            Finish & Launch Koda
-            <ArrowRight className="w-4 h-4 stroke-[3]" />
+            Launch Koda
+            <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
         )}
       </footer>

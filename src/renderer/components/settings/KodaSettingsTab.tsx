@@ -268,26 +268,18 @@ const KodaSettingsTab = memo(({ kodaSettings, setKodaSettings, uiMode }: KodaSet
         </div>
       </section>
 
-      {/* Onboarding & Reset Section */}
-      <section className="pt-4 border-t border-slate-800">
-        <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
-          <span className="w-1.5 h-4 bg-amber-400 rounded-full"></span>
-          Assistente de Boas-Vindas
-        </h3>
-        <p className="text-slate-400 text-[10px] leading-relaxed mb-4">
-          Caso queira refazer a configuração inicial de preferências (Tema, Provedor, Modelo Padrão e Advisor), clique no botão abaixo.
-        </p>
-
+      {/* Onboarding reset — subtle */}
+      <div className="pt-4 border-t border-slate-800">
         <button
           onClick={() => {
             localStorage.removeItem('koda_welcome_wizard_done')
             window.location.reload()
           }}
-          className="px-4 py-2.5 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-amber-400 rounded-xl text-xs font-bold transition-all"
+          className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors"
         >
-          ✨ Abrir Assistente de Boas-Vindas Novamente
+          Reabrir assistente de configuração inicial →
         </button>
-      </section>
+      </div>
 
     </div>
   )
