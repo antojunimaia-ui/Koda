@@ -751,6 +751,40 @@ const ModernUI: React.FC<ModernUIProps> = ({
             >
               {/* Chat Panel Content */}
               <div className="flex flex-col h-full">
+                {/* IDE Agent Panel Header */}
+                <div className="flex items-center justify-end px-3 py-1.5 shrink-0">
+                  {showChatHistory ? (
+                    <button
+                      onClick={() => setShowChatHistory(false)}
+                      className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors mr-auto"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                      </svg>
+                      <span className="text-[11px] font-medium">Sessions</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowChatHistory(true)}
+                      className="p-1 rounded-md text-slate-500 hover:text-slate-200 hover:bg-white/5 transition-all"
+                      title="Session history"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {/* Sessions view or Chat view */}
+                {showChatHistory ? (
+                  <ChatHistory
+                    projectPath={agentInfo?.cwd || ''}
+                    onNewSession={() => { onNewSession?.(); setShowChatHistory(false) }}
+                    onLoadSession={(id) => { onLoadSession?.(id); setShowChatHistory(false) }}
+                    isVisible={true}
+                  />
+                ) : (
                 <div className={`flex-1 flex flex-col ${isIDEMode && kodaSettings.showEditorPanel ? 'max-w-full' : 'max-w-5xl mx-auto'} w-full relative ${messages.length === 0 ? 'justify-center' : 'pt-4'}`}>
                   {/* Message List */}
                   <div className={`min-h-0 ${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-4'} ${messages.length === 0 ? 'hidden' : 'flex-1'}`}>
@@ -899,6 +933,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                     />
                   </div>
                 </div>
+                )}
               </div>
             </IDELayout>
           ) : (

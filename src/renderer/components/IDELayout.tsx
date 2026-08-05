@@ -618,107 +618,85 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       {showEditorPanel && (
         <>
           <div className="flex-1 border-r border-white/10 bg-[#141414] flex flex-col min-w-75">
-            {/* Tabs Bar */}
+            {/* Tabs Bar — pill style */}
             {tabs.length > 0 && (
-              <div className="flex items-center bg-[#252525] border-b border-white/10 overflow-x-auto custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
+              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[#1a1a1a] border-b border-white/5 overflow-x-auto custom-scrollbar" style={{ scrollbarWidth: 'none' }}>
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTabId
                   const isDeleted = tab.type === 'file' && tab.file?.isDeleted
-                  
-                  // Determine icon based on tab type
+
+                  // Icon per tab type
                   let iconElement: React.ReactNode
                   if (tab.type === 'browser') {
                     iconElement = (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="2" y1="12" x2="22" y2="12"></line>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                       </svg>
                     )
                   } else if (tab.type === 'terminal') {
                     iconElement = (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="4 17 10 11 4 5"></polyline>
-                        <line x1="12" y1="19" x2="20" y2="19"></line>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
                       </svg>
                     )
                   } else if (tab.type === 'markdown-preview') {
                     iconElement = (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                       </svg>
-                    )
-                  } else if (tab.type === 'image') {
-                    iconElement = (
-                      <img 
-                        src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${tab.icon}`}
-                        width="14" 
-                        height="14" 
-                        className="shrink-0"
-                        alt={tab.title}
-                        style={{ objectFit: 'contain' }}
-                      />
                     )
                   } else if (tab.icon) {
                     iconElement = (
-                      <img 
+                      <img
                         src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${tab.icon}`}
-                        width="14" 
-                        height="14" 
-                        className="shrink-0"
-                        alt={tab.title}
+                        width="12" height="12"
+                        className="shrink-0" alt={tab.title}
                         style={{ objectFit: 'contain' }}
                       />
                     )
                   }
-                  
+
                   return (
                     <div
                       key={tab.id}
-                      className={`group relative flex items-center gap-2 px-3 py-1.5 border-r border-white/5 cursor-pointer transition-all min-w-30 max-w-50 ${
-                        isDeleted
-                          ? 'bg-red-900/20 text-red-400 border-t-2 border-t-red-500'
-                          : isActive 
-                            ? 'bg-[#141414] text-slate-200 border-t-2 border-t-indigo-500' 
-                            : 'bg-[#252525] text-slate-400 hover:text-slate-200 hover:bg-[#2d2d2d] border-t-2 border-t-transparent'
-                      }`}
                       onClick={() => setActiveTabId(tab.id)}
                       title={tab.type === 'file' ? (isDeleted ? `${tab.file?.path} (deleted)` : tab.file?.path) : tab.title}
+                      className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer transition-all shrink-0 max-w-44 select-none ${
+                        isDeleted
+                          ? 'text-slate-400 ring-1 ring-red-500/60'
+                          : isActive && tab.type === 'file' && tab.file?.hasUnsavedChanges
+                            ? 'bg-white/10 text-white ring-1 ring-white'
+                            : isActive
+                            ? 'bg-white/10 text-white ring-1 ring-white/15'
+                            : tab.type === 'file' && tab.file?.hasUnsavedChanges
+                            ? 'text-slate-300 hover:bg-white/5 ring-1 ring-white/40'
+                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                      }`}
                     >
                       {/* Icon */}
-                      {iconElement}
-                      
-                      {/* Tab Title */}
-                      <span className={`flex-1 text-[10px] truncate font-medium ${
-                        isDeleted 
-                          ? 'line-through text-red-400' 
-                          : isActive ? 'text-slate-100' : ''
+                      <span className="shrink-0">{iconElement}</span>
+
+                      {/* Title */}
+                      <span className={`text-[10px] font-medium truncate leading-none ${
+                        isDeleted ? 'line-through' : ''
                       }`}>
                         {tab.title}
                       </span>
-                      
-                      {/* Deleted indicator or Unsaved Indicator or Close Button */}
-                      {tab.type === 'file' && tab.file?.hasUnsavedChanges && !isDeleted ? (
-                        <span className="w-1.5 h-1.5 bg-white rounded-full shrink-0" title="Unsaved changes" />
-                      ) : null}
-                      
+
+                      {/* Deleted warning */}
                       {isDeleted && (
-                        <span className="text-[9px] text-red-400 shrink-0 mr-1" title="File deleted from disk">
-                          ⚠
-                        </span>
+                        <span className="text-[9px] text-red-400 shrink-0" title="File deleted from disk">⚠</span>
                       )}
-                      
+
+                      {/* Close button */}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          closeTab(tab.id)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-white/10 rounded transition-all shrink-0"
+                        onClick={(e) => { e.stopPropagation(); closeTab(tab.id) }}
+                        className="opacity-0 group-hover:opacity-100 ml-0.5 p-0.5 rounded-full hover:bg-white/15 transition-all shrink-0"
                         title="Close (Ctrl+W)"
                       >
-                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                          <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+                          <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                         </svg>
                       </button>
                     </div>
