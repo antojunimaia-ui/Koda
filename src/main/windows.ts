@@ -81,6 +81,7 @@ export function createWindow(fileWatcherSetMainWindow: (win: BrowserWindow) => v
   mainWindow.once('ready-to-show', () => {
     mainWindow?.maximize()
     mainWindow?.show()
+    mainWindow?.webContents.setZoomFactor(0.9)
   })
 
   applyNavigationGuard(mainWindow)
@@ -132,6 +133,7 @@ export function createIDEWindow() {
   ideWindow.once('ready-to-show', () => {
     ideWindow?.maximize()
     ideWindow?.show()
+    ideWindow?.webContents.setZoomFactor(0.9)
   })
 
   applyNavigationGuard(ideWindow)
