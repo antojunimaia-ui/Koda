@@ -10,6 +10,8 @@ Thanks for your interest in contributing! A few things to keep in mind:
 
 ## Setup
 
+- **Node.js**: Requires Node.js 22 LTS (matching CI build workflow).
+
 ```bash
 git clone https://github.com/antojunimaia-ui/Koda.git
 cd Koda
@@ -18,6 +20,12 @@ cp .env.example .env
 npm run dev
 ```
 
+## Security & Dependencies
+
+- **Security Audits**: Run `npm audit` periodically to inspect dependencies for vulnerabilities.
+- **Native Modules**: Exercise caution when using `npm audit fix` to avoid breaking Electron native C/C++ modules (such as `node-pty`). Test native modules with `npm run build` / `npm run postinstall` after updating dependencies.
+- **Overrides**: Use `overrides` in `package.json` for transitive dependencies that cannot be updated directly.
+
 ## Commits
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
@@ -25,3 +33,4 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `f
 ## Questions
 
 Open an [issue](https://github.com/antojunimaia-ui/Koda/issues) or discuss on the PR directly.
+
