@@ -125,15 +125,18 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   const [apiKey, setApiKey] = useState<string>('')
   const [model, setModel] = useState<string>('gemini-1.5-flash')
   const [advisorModel, setAdvisorModel] = useState<string>('gemini-1.5-flash')
+  const [kodaCloudBaseUrl, setKodaCloudBaseUrl] = useState<string>('http://cn-01.hostzera.com.br:2137')
+  const [kodaCloudAccepted, setKodaCloudAccepted] = useState<boolean>(false)
   const fetchedRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (step < 3) return
-    const key = `${provider}::${apiKey}`
+    const keyToUse = provider === 'koda-cloud' ? kodaCloudBaseUrl : apiKey
+    const key = `${provider}::${keyToUse}`
     if (fetchedRef.current.has(key)) return
     fetchedRef.current.add(key)
-    fetchModelsForProvider(provider, apiKey)
-  }, [step, provider, apiKey, fetchModelsForProvider])
+    fetchModelsForProvider(provider, keyToUse)
+  }, [step, provider, apiKey, kodaCloudBaseUrl, fetchModelsForProvider])
 
   const handleSelectTheme = (t: KodaTheme) => {
     setSelectedTheme(t)
@@ -153,13 +156,16 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   const selectedProvObj = PROVIDERS.find(p => p.id === provider) || PROVIDERS[0]
   const availableModels = loadedModels[provider] ?? selectedProvObj.popularModels
 
+  const isKodaCloudBlocked = provider === 'koda-cloud' && (!kodaCloudAccepted || !kodaCloudBaseUrl.trim())
+
   const handleFinish = () => {
     onComplete({
       provider,
       model,
       advisorModel: advisorModel || model,
       apiKey: selectedProvObj.requiresKey ? apiKey : '',
-      theme: selectedTheme
+      theme: selectedTheme,
+      ...(provider === 'koda-cloud' ? { kodaCloudBaseUrl } : {})
     })
   }
 
@@ -305,6 +311,50 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
               </div>
             </div>
 
+            {/* Koda Cloud privacy notice — shown only when selected */}
+            {provider === 'koda-cloud' && (
+              <div className="space-y-3 animate-fadeIn">
+                <div className="p-3.5 rounded-lg border border-amber-500/25 bg-amber-500/5 space-y-3">
+                  <p className="text-[11px] font-semibold text-amber-300 uppercase tracking-wider">⚠ Data Privacy Notice</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Koda Cloud routes your conversation and local agent tool schemas to an operator-hosted proxy. Each message sends:
+                  </p>
+                  <ul className="text-[11px] text-zinc-400 space-y-0.5 list-disc list-inside">
+                    <li>Full conversation history (user + assistant messages)</li>
+                    <li>All local agent tool names and argument schemas</li>
+                  </ul>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-medium text-zinc-400">
+                      Proxy Base URL
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={kodaCloudBaseUrl}
+                        onChange={(e) => { setKodaCloudAccepted(false); setKodaCloudBaseUrl(e.target.value) }}
+                        placeholder="https://your-proxy.example.com:2137"
+                        className="w-full bg-neutral-950/60 border border-white/10 text-zinc-200 rounded-md px-2 py-1.5 outline-none focus:border-amber-500/40 transition-all font-mono text-[11px]"
+                      />
+                      {kodaCloudBaseUrl.startsWith('http://') && (
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-amber-400 uppercase tracking-wider">⚠ HTTP — unencrypted</span>
+                      )}
+                    </div>
+                  </div>
+                  <label className="flex items-start gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={kodaCloudAccepted}
+                      onChange={(e) => setKodaCloudAccepted(e.target.checked)}
+                      className="mt-0.5 accent-indigo-500 shrink-0"
+                    />
+                    <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors leading-relaxed">
+                      I understand that my conversation and tool schemas will be sent to the configured proxy endpoint.
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+
             <div className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Or choose another provider</div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -441,7 +491,12 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
         {step < 4 ? (
           <button
             onClick={() => setStep((s) => (s + 1) as any)}
-            className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold rounded-md bg-white text-black hover:bg-zinc-100 transition-all active:scale-95"
+            disabled={step === 2 && isKodaCloudBlocked}
+            className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold rounded-md transition-all active:scale-95 ${
+              step === 2 && isKodaCloudBlocked
+                ? 'bg-white/10 text-zinc-500 cursor-not-allowed'
+                : 'bg-white text-black hover:bg-zinc-100'
+            }`}
           >
             Continue
             <ChevronRight className="w-3.5 h-3.5" />

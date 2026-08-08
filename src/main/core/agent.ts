@@ -97,7 +97,7 @@ export class Agent {
       case "maritaca":
         return new MaritacaProvider(model, apiKey, maxTokens, temperature);
       case "koda-cloud":
-        return new KodaCloudProvider(model);
+        return new KodaCloudProvider(model, this.settings.kodaCloudBaseUrl ?? "");
       case "opencode-zen":
         return new OpenCodeZenProvider(model, apiKey, maxTokens, temperature);
       default:
@@ -460,11 +460,12 @@ export class Agent {
     this.provider = await this.createProviderAsync();
   }
 
-  async updateSettings(updates: { provider?: any, model?: string, advisorModel?: string, apiKey?: string }): Promise<void> {
+  async updateSettings(updates: { provider?: any, model?: string, advisorModel?: string, apiKey?: string, kodaCloudBaseUrl?: string }): Promise<void> {
     if (updates.provider) this.settings.provider = String(updates.provider).toLowerCase() as any;
     if (updates.model) this.settings.model = updates.model;
     if (updates.advisorModel) this.settings.advisorModel = updates.advisorModel;
     if (updates.apiKey !== undefined) this.settings.apiKey = updates.apiKey;
+    if (updates.kodaCloudBaseUrl !== undefined) this.settings.kodaCloudBaseUrl = updates.kodaCloudBaseUrl;
     
     this.provider = await this.createProviderAsync();
   }

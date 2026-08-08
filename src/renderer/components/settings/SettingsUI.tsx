@@ -59,7 +59,7 @@ const PROVIDER_DEFAULTS: Record<string, { model: string, advisorModel: string }>
 
 interface SettingsUIProps {
   onClose: () => void
-  onSave: (config: { provider: string; model: string; advisorModel: string; apiKey: string }) => void
+  onSave: (config: { provider: string; model: string; advisorModel: string; apiKey: string; kodaCloudBaseUrl?: string }) => void
   defaultProvider: string
   defaultModel: string
   defaultAdvisorModel: string
@@ -84,6 +84,7 @@ const SettingsUI = memo(({
   const [model, setModel] = useState(defaultModel || 'gpt-4o')
   const [advisorModel, setAdvisorModel] = useState(defaultAdvisorModel || 'gpt-4o')
   const [apiKey, setApiKey] = useState(() => KoDB.get('apiKey'))
+  const [kodaCloudBaseUrl, setKodaCloudBaseUrl] = useState(() => KoDB.get('kodaCloudBaseUrl') || '')
 
   const [providersConfig, setProvidersConfig] = useState<Record<string, { apiKey: string, model: string, advisorModel: string }>>(() => {
     const parsed = KoDB.get('providersConfig')
@@ -115,14 +116,15 @@ const SettingsUI = memo(({
   useEffect(() => {
     // Skip if models already loaded for this provider
     if (loadedModels[provider]) return
-    if (!apiKey && !['openrouter', 'opencode-zen', 'ollama', 'llamacpp', 'koda-cloud'].includes(provider)) {
+    const keyToUse = provider === 'koda-cloud' ? kodaCloudBaseUrl : apiKey
+    if (!keyToUse && !['openrouter', 'opencode-zen', 'ollama', 'llamacpp', 'koda-cloud'].includes(provider)) {
       return
     }
-    fetchModelsForProvider(provider, apiKey)
-  }, [provider, apiKey, fetchModelsForProvider, loadedModels])
+    fetchModelsForProvider(provider, keyToUse)
+  }, [provider, apiKey, kodaCloudBaseUrl, fetchModelsForProvider, loadedModels])
 
   const handleFetchModels = (provId: string) => {
-    const key = providersConfig[provId]?.apiKey || ''
+    const key = provId === 'koda-cloud' ? kodaCloudBaseUrl : (providersConfig[provId]?.apiKey || '')
     const requiresKey = !['openrouter', 'opencode-zen', 'ollama', 'llamacpp', 'koda-cloud'].includes(provId)
     if (requiresKey && !key) {
       return
@@ -168,7 +170,8 @@ const SettingsUI = memo(({
     KoDB.set('provider', provider)
     KoDB.set('model', model)
     KoDB.set('advisorModel', advisorModel)
-    onSave({ provider, model, advisorModel, apiKey })
+    KoDB.set('kodaCloudBaseUrl', kodaCloudBaseUrl)
+    onSave({ provider, model, advisorModel, apiKey, kodaCloudBaseUrl })
   }
 
 
@@ -271,16 +274,30 @@ const SettingsUI = memo(({
                           {isSelected && <span className={badgeClass}>Active</span>}
                         </div>
                         
-                        {/* API Key Input */}
+                        {/* API Key / Base URL Input */}
                         <div className="col-span-5 relative">
-                          <input
-                            type="password"
-                            disabled={p.id === 'koda-cloud'}
-                            value={providersConfig[p.id]?.apiKey || ''}
-                            onChange={e => updateProviderConfig(p.id, { apiKey: e.target.value })}
-                            placeholder={p.placeholder}
-                            className={inputClass}
-                          />
+                          {p.id === 'koda-cloud' ? (
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={kodaCloudBaseUrl}
+                                onChange={e => setKodaCloudBaseUrl(e.target.value)}
+                                placeholder="http://your-proxy:2137"
+                                className={`w-full bg-neutral-950/40 border border-white/5 text-zinc-300 rounded-md px-2 py-1 outline-none focus:border-amber-500/30 transition-all font-mono text-[11px] ${uiMode === 'modern' ? '' : 'bg-slate-800 border-slate-700'}`}
+                              />
+                              {kodaCloudBaseUrl.startsWith('http://') && (
+                                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] font-bold text-amber-400 uppercase tracking-wide whitespace-nowrap">⚠ HTTP</span>
+                              )}
+                            </div>
+                          ) : (
+                            <input
+                              type="password"
+                              value={providersConfig[p.id]?.apiKey || ''}
+                              onChange={e => updateProviderConfig(p.id, { apiKey: e.target.value })}
+                              placeholder={p.placeholder}
+                              className={inputClass}
+                            />
+                          )}
                         </div>
 
                         {/* Advisor Model Input */}

@@ -45,6 +45,7 @@ export interface AppSettings {
   webhookEnabled: boolean;
   webhookPort: number;
   webhookToken: string;
+  kodaCloudBaseUrl: string;
 }
 
 const DEFAULT_MODELS: Record<LLMProvider, string> = {
@@ -118,6 +119,7 @@ export function getSettings(): AppSettings {
     webhookEnabled: process.env.WEBHOOK_ENABLED === 'true',
     webhookPort: parseInt(process.env.WEBHOOK_PORT || "3141", 10),
     webhookToken: process.env.WEBHOOK_TOKEN || "",
+    kodaCloudBaseUrl: process.env.KODA_CLOUD_BASE_URL || "",
   };
 }
 

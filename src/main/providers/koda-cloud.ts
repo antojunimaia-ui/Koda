@@ -2,20 +2,34 @@ import { BaseProvider, Message, StreamChunk } from "./base.js";
 import { ToolRegistry } from "../tools/index.js";
 
 /**
- * KodaCloudProvider — Proxy Koda Cloud (Hostzera).
- * O proxy retorna SSE com eventos: { type: 'text', content }, { type: 'tool_call_start', toolCall },
- * { type: 'tool_call_end', toolCall }, { type: 'done' }, { type: 'error', error }.
+ * KodaCloudProvider — Koda Cloud proxy (operator-hosted).
+ *
+ * PRIVACY NOTICE: Each request sends the full conversation history and all
+ * local agent tool schemas (names + argument definitions) to the configured
+ * `baseUrl` endpoint via POST /v1/chat over the network.
+ *
+ * `baseUrl` MUST be explicitly configured by the user — there is no silent
+ * default. If empty, `chat()` will yield an error instead of sending data.
  */
 export class KodaCloudProvider extends BaseProvider {
   public providerName = "Koda Cloud";
   private baseUrl: string;
 
-  constructor(model: string, baseUrl: string = "http://cn-01.hostzera.com.br:2137") {
+  constructor(model: string, baseUrl: string = "") {
     super(model, "", 4096, 0.7);
     this.baseUrl = baseUrl;
   }
 
   async *chat(messages: Message[], tools?: ToolRegistry): AsyncGenerator<StreamChunk> {
+    if (!this.baseUrl) {
+      yield {
+        type: "error",
+        error:
+          "Koda Cloud: Base URL is not configured. Open Settings → Koda Cloud and enter the proxy endpoint before sending messages.",
+      };
+      return;
+    }
+
     try {
       const openAIMessages = this.convertMessages(messages);
       const openAITools = tools ? tools.toOpenAITools() : [];

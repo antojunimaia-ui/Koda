@@ -178,7 +178,7 @@ export function registerAgentHandlers(
     return { success: true, info: agent.getInfo() }
   })
 
-  ipcMain.handle('agent:setup', async (_event, workspaceId: string, config: { provider?: string; model?: string; advisorModel?: string; apiKey?: string }) => {
+  ipcMain.handle('agent:setup', async (_event, workspaceId: string, config: { provider?: string; model?: string; advisorModel?: string; apiKey?: string; kodaCloudBaseUrl?: string }) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     try {
@@ -402,7 +402,9 @@ export function registerAgentHandlers(
 
       if (provider === 'koda-cloud') {
         try {
-          const res = await efetch('http://cn-01.hostzera.com.br:2137/v1/models')
+          const baseUrl = apiKey || '' // apiKey slot carries baseUrl for koda-cloud
+          if (!baseUrl) return { success: true, models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'] }
+          const res = await efetch(`${baseUrl}/v1/models`)
           if (res.ok) {
             const data = await res.json()
             return { success: true, models: data.models || data.data.map((m: any) => m.id) }

@@ -63,10 +63,11 @@ export function useAgentInit({
     if (!window.koda) return
     if (workspaces.length > 0) return
 
-    const savedKey      = KoDB.get('apiKey')
-    const savedProvider = KoDB.get('provider')
-    const savedModel    = KoDB.get('model')
-    const savedAdvisor  = KoDB.get('advisorModel')
+    const savedKey            = KoDB.get('apiKey')
+    const savedProvider       = KoDB.get('provider')
+    const savedModel          = KoDB.get('model')
+    const savedAdvisor        = KoDB.get('advisorModel')
+    const savedKodaCloudUrl   = KoDB.get('kodaCloudBaseUrl')
 
     const initialId = Math.random().toString(36).substring(7)
 
@@ -97,13 +98,14 @@ export function useAgentInit({
           currentSessionId: null,
         })
 
-        if (savedKey || savedProvider || savedModel) {
+        if (savedKey || savedProvider || savedModel || savedKodaCloudUrl) {
           try {
             const setupRes = await window.koda.setup(initialId, {
               apiKey: savedKey || undefined,
               provider: savedProvider || undefined,
               model: savedModel || undefined,
               advisorModel: savedAdvisor || undefined,
+              kodaCloudBaseUrl: savedKodaCloudUrl || undefined,
             })
             if (setupRes.success) {
               lastLoadedCwdPerWs.current.set(initialId, setupRes.info.cwd)

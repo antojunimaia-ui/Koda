@@ -16,7 +16,7 @@ declare global {
       setApiKey: (workspaceId: string, key: string) => Promise<{ success: boolean; info?: any; error?: string }>
       setModel: (workspaceId: string, model: string) => Promise<{ success: boolean; info?: any; error?: string }>
       getModels: (provider: string, apiKey: string) => Promise<{ success: boolean; models?: string[]; error?: string }>
-      setup: (workspaceId: string, config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
+      setup: (workspaceId: string, config: { provider?: string, model?: string, advisorModel?: string, apiKey?: string, kodaCloudBaseUrl?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
       openFile: (workspaceId: string, filePath: string, line?: number) => Promise<{ success: boolean; error?: string }>
       onUpdate: (callback: (update: any) => void) => (() => void)
       removeUpdateListener: () => void

@@ -11,6 +11,8 @@ export interface KoDBSchema {
   model: string
   advisorModel: string
   providersConfig: Record<string, { apiKey: string, model: string, advisorModel: string }>
+  kodaCloudBaseUrl: string
+  kodaCloudAccepted: boolean
 }
 
 export interface DBMetadata {
@@ -63,6 +65,20 @@ export const KODB_METADATA: Record<keyof KoDBSchema, DBMetadata & { defaultValue
     category: 'API',
     description: 'Stored configurations (keys, models) for all providers',
     defaultValue: {},
+  },
+  kodaCloudBaseUrl: {
+    id: 'koda_cloud_base_url',
+    name: 'Koda Cloud Base URL',
+    category: 'API',
+    description: 'The operator-configured HTTP endpoint for the Koda Cloud proxy',
+    defaultValue: '',
+  },
+  kodaCloudAccepted: {
+    id: 'koda_cloud_accepted',
+    name: 'Koda Cloud Privacy Accepted',
+    category: 'Settings',
+    description: 'Whether the user has acknowledged Koda Cloud data-sharing terms',
+    defaultValue: false,
   },
 }
 

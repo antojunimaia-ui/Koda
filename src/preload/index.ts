@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld('koda', {
   setApiKey: (workspaceId: string, key: string) => ipcRenderer.invoke('agent:apikey', workspaceId, key),
   setModel: (workspaceId: string, model: string) => ipcRenderer.invoke('agent:model', workspaceId, model),
   getModels: (provider: string, apiKey: string) => ipcRenderer.invoke('agent:getModels', provider, apiKey),
-  setup: (workspaceId: string, config: { provider?: string, model?: string, apiKey?: string }) => ipcRenderer.invoke('agent:setup', workspaceId, config),
+  setup: (workspaceId: string, config: { provider?: string, model?: string, apiKey?: string, kodaCloudBaseUrl?: string }) => ipcRenderer.invoke('agent:setup', workspaceId, config),
   openFile: (filePath: string, line?: number) => ipcRenderer.invoke('agent:open_file', filePath, line),
   onUpdate: (callback: (update: any) => void) => {
     const listener = (_event: any, update: any) => callback(update)

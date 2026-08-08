@@ -410,9 +410,15 @@ const App: React.FC = () => {
           onComplete={async (config) => {
             setTheme(config.theme)
             KoDB.set('theme', config.theme)
+            const kodaCloudBaseUrl = (config as any).kodaCloudBaseUrl || ''
+            if (kodaCloudBaseUrl) {
+              KoDB.set('kodaCloudBaseUrl', kodaCloudBaseUrl)
+              KoDB.set('kodaCloudAccepted', true)
+            }
             const res = await window.koda.setup(activeWorkspace.id, {
               provider: config.provider, model: config.model,
               advisorModel: config.advisorModel, apiKey: config.apiKey,
+              kodaCloudBaseUrl: kodaCloudBaseUrl || undefined,
             })
             if (res.success) updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
             KoDB.set('provider', config.provider)
