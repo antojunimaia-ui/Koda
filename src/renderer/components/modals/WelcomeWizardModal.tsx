@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Check, Key, Palette, Cpu, Users, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react'
+import { Check, Key, Palette, Cpu, Users, ChevronRight, ChevronLeft, ArrowRight, ShieldAlert, X } from 'lucide-react'
 import { KodaTheme } from '../../types/index.js'
 import { THEMES } from '../settings/SettingsUI.js'
 import { formatModelName } from '../../utils/formatModelName.js'
@@ -127,6 +127,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   const [advisorModel, setAdvisorModel] = useState<string>('gemini-1.5-flash')
   const [kodaCloudBaseUrl, setKodaCloudBaseUrl] = useState<string>('http://cn-01.hostzera.com.br:2137')
   const [kodaCloudAccepted, setKodaCloudAccepted] = useState<boolean>(false)
+  const [showKodaCloudModal, setShowKodaCloudModal] = useState<boolean>(false)
   const fetchedRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -156,7 +157,15 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   const selectedProvObj = PROVIDERS.find(p => p.id === provider) || PROVIDERS[0]
   const availableModels = loadedModels[provider] ?? selectedProvObj.popularModels
 
-  const isKodaCloudBlocked = provider === 'koda-cloud' && (!kodaCloudAccepted || !kodaCloudBaseUrl.trim())
+  const handleContinue = () => {
+    if (step === 2 && provider === 'koda-cloud' && !kodaCloudAccepted) {
+      setShowKodaCloudModal(true)
+      return
+    }
+    if (step < 4) {
+      setStep((s) => (s + 1) as any)
+    }
+  }
 
   const handleFinish = () => {
     onComplete({
@@ -200,10 +209,10 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
       <header className="relative z-10 w-full px-8 py-4 border-b border-white/5 flex items-center justify-between">
         {/* Logo / Brand */}
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-indigo-500/20 flex items-center justify-center">
-            <div className="w-2 h-2 rounded-sm bg-indigo-400" />
+          <div className="w-5 h-5 rounded-md bg-white/10 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-sm bg-white" />
           </div>
-          <span className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Koda</span>
+          <span className="text-[11px] font-bold tracking-widest text-zinc-400 uppercase">Koda</span>
         </div>
 
         {/* Step pills */}
@@ -218,14 +227,14 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                 onClick={() => { if (done) setStep(s.num as any) }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all ${
                   active
-                    ? 'bg-white/8 border border-white/10 text-white'
+                    ? 'bg-white/10 border border-white/15 text-white'
                     : done
                       ? 'text-zinc-400 hover:text-zinc-200 cursor-pointer border border-transparent hover:border-white/5'
                       : 'text-zinc-700 border border-transparent cursor-default'
                 }`}
               >
                 <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
-                  done ? 'bg-indigo-500/30 text-indigo-300' : active ? 'bg-white/10 text-white' : 'bg-white/5 text-zinc-600'
+                  done ? 'bg-white/20 text-white' : active ? 'bg-white/10 text-white' : 'bg-white/5 text-zinc-600'
                 }`}>
                   {done ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : s.num}
                 </div>
@@ -265,8 +274,8 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-semibold text-zinc-200">{t.name}</span>
                       {isSelected && (
-                        <div className="w-3.5 h-3.5 rounded-full bg-indigo-500/30 flex items-center justify-center">
-                          <Check className="w-2 h-2 text-indigo-300 stroke-[3]" />
+                        <div className="w-3.5 h-3.5 rounded-full bg-white/20 flex items-center justify-center">
+                          <Check className="w-2 h-2 text-white stroke-[3]" />
                         </div>
                       )}
                     </div>
@@ -291,69 +300,49 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
               <p className="text-[12px] text-zinc-500">Choose <span className="text-zinc-300">Koda Cloud</span> for zero setup, or connect your own API key.</p>
             </div>
 
-            {/* Koda Cloud highlight */}
+            {/* Koda Cloud card */}
             <div
               onClick={() => handleSelectProvider('koda-cloud')}
               className={`group p-4 rounded-lg border cursor-pointer transition-all ${
                 provider === 'koda-cloud'
-                  ? 'bg-indigo-500/10 border-indigo-500/30 text-white'
+                  ? 'bg-white/5 border-white/20 text-white'
                   : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-400'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <span className="text-[13px] font-semibold text-zinc-100">Koda Cloud</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">
+                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10">
                     Recommended · Free
                   </span>
+                  {provider === 'koda-cloud' && (
+                    kodaCloudAccepted ? (
+                      <span className="text-[9px] font-semibold px-2 py-0.5 rounded bg-white/10 text-zinc-200 border border-white/10">
+                        Terms Accepted ✓
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-semibold px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
+                        Requires Confirmation
+                      </span>
+                    )
+                  )}
                 </div>
-                {provider === 'koda-cloud' && <Check className="w-4 h-4 text-indigo-400" />}
+                <div className="flex items-center gap-2">
+                  {provider === 'koda-cloud' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowKodaCloudModal(true)
+                      }}
+                      className="text-[10px] font-medium text-zinc-400 hover:text-white underline decoration-white/20 px-1 py-0.5"
+                    >
+                      {kodaCloudAccepted ? 'Edit Proxy & Terms' : 'View Terms'}
+                    </button>
+                  )}
+                  {provider === 'koda-cloud' && <Check className="w-4 h-4 text-white" />}
+                </div>
               </div>
             </div>
-
-            {/* Koda Cloud privacy notice — shown only when selected */}
-            {provider === 'koda-cloud' && (
-              <div className="space-y-3 animate-fadeIn">
-                <div className="p-3.5 rounded-lg border border-amber-500/25 bg-amber-500/5 space-y-3">
-                  <p className="text-[11px] font-semibold text-amber-300 uppercase tracking-wider">⚠ Data Privacy Notice</p>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Koda Cloud routes your conversation and local agent tool schemas to an operator-hosted proxy. Each message sends:
-                  </p>
-                  <ul className="text-[11px] text-zinc-400 space-y-0.5 list-disc list-inside">
-                    <li>Full conversation history (user + assistant messages)</li>
-                    <li>All local agent tool names and argument schemas</li>
-                  </ul>
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-medium text-zinc-400">
-                      Proxy Base URL
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={kodaCloudBaseUrl}
-                        onChange={(e) => { setKodaCloudAccepted(false); setKodaCloudBaseUrl(e.target.value) }}
-                        placeholder="https://your-proxy.example.com:2137"
-                        className="w-full bg-neutral-950/60 border border-white/10 text-zinc-200 rounded-md px-2 py-1.5 outline-none focus:border-amber-500/40 transition-all font-mono text-[11px]"
-                      />
-                      {kodaCloudBaseUrl.startsWith('http://') && (
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-amber-400 uppercase tracking-wider">⚠ HTTP — unencrypted</span>
-                      )}
-                    </div>
-                  </div>
-                  <label className="flex items-start gap-2 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={kodaCloudAccepted}
-                      onChange={(e) => setKodaCloudAccepted(e.target.checked)}
-                      className="mt-0.5 accent-indigo-500 shrink-0"
-                    />
-                    <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors leading-relaxed">
-                      I understand that my conversation and tool schemas will be sent to the configured proxy endpoint.
-                    </span>
-                  </label>
-                </div>
-              </div>
-            )}
 
             <div className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Or choose another provider</div>
 
@@ -372,7 +361,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[12px] font-medium text-zinc-200">{p.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-zinc-300 shrink-0" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
                     </div>
                   </div>
                 )
@@ -425,7 +414,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                           <span className="text-[11px] font-medium truncate text-zinc-200">{formatModelName(m)}</span>
                           <span className="text-[9px] font-mono text-zinc-600 truncate">{m}</span>
                         </div>
-                        {isSel && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-2" />}
+                        {isSel && <Check className="w-3.5 h-3.5 text-white shrink-0 ml-2" />}
                       </button>
                     )
                   })}
@@ -462,7 +451,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                           <span className="text-[11px] font-medium truncate text-zinc-200">{formatModelName(m)}</span>
                           <span className="text-[9px] font-mono text-zinc-600 truncate">{m}</span>
                         </div>
-                        {isSel && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-2" />}
+                        {isSel && <Check className="w-3.5 h-3.5 text-white shrink-0 ml-2" />}
                       </button>
                     )
                   })}
@@ -490,13 +479,8 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
 
         {step < 4 ? (
           <button
-            onClick={() => setStep((s) => (s + 1) as any)}
-            disabled={step === 2 && isKodaCloudBlocked}
-            className={`flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold rounded-md transition-all active:scale-95 ${
-              step === 2 && isKodaCloudBlocked
-                ? 'bg-white/10 text-zinc-500 cursor-not-allowed'
-                : 'bg-white text-black hover:bg-zinc-100'
-            }`}
+            onClick={handleContinue}
+            className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-semibold rounded-md transition-all active:scale-95 bg-white text-black hover:bg-zinc-100"
           >
             Continue
             <ChevronRight className="w-3.5 h-3.5" />
@@ -511,6 +495,111 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
           </button>
         )}
       </footer>
+
+      {/* Koda Cloud Data Privacy Modal Overlay */}
+      {showKodaCloudModal && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-lg bg-[#09090b] border border-white/10 rounded-xl shadow-2xl overflow-hidden flex flex-col font-sans select-none">
+            {/* Header */}
+            <div className="px-6 py-4 bg-white/[0.03] border-b border-white/8 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-white shrink-0">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-[13px] font-bold text-white tracking-tight">Koda Cloud — Data Privacy & Terms</h3>
+                  <p className="text-[11px] text-zinc-400 font-medium">Operator proxy & privacy notice</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowKodaCloudModal(false)}
+                className="text-zinc-500 hover:text-zinc-300 p-1 rounded-md hover:bg-white/5 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 rounded-lg border border-white/8 bg-white/[0.02] space-y-2">
+                <p className="text-[12px] text-zinc-300 leading-relaxed font-medium">
+                  When using <strong className="text-white font-semibold">Koda Cloud</strong>, your conversation messages and local agent tool schemas are routed through an operator-hosted proxy.
+                </p>
+                <div className="text-[11px] text-zinc-400 space-y-1 pt-1">
+                  <p className="font-semibold text-zinc-300">Each request sends:</p>
+                  <ul className="list-disc list-inside space-y-0.5 pl-1">
+                    <li>Full conversation history (user + assistant messages)</li>
+                    <li>All local agent tool names and argument schemas</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Proxy URL input */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block text-[11px] font-medium text-zinc-400">
+                  Proxy Base URL
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={kodaCloudBaseUrl}
+                    onChange={(e) => {
+                      setKodaCloudAccepted(false)
+                      setKodaCloudBaseUrl(e.target.value)
+                    }}
+                    placeholder="https://your-proxy.example.com:2137"
+                    className="w-full bg-white/[0.03] border border-white/8 text-white rounded-lg px-3 py-2 text-[12px] outline-none focus:border-white/20 font-mono transition-all"
+                  />
+                  {kodaCloudBaseUrl.startsWith('http://') && (
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400 uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
+                      ⚠ HTTP — UNENCRYPTED
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Checkbox */}
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-white/8 bg-white/[0.02] cursor-pointer group hover:bg-white/[0.04] transition-colors">
+                <input
+                  type="checkbox"
+                  checked={kodaCloudAccepted}
+                  onChange={(e) => setKodaCloudAccepted(e.target.checked)}
+                  className="mt-0.5 accent-white w-4 h-4 rounded shrink-0 cursor-pointer"
+                />
+                <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 transition-colors leading-relaxed">
+                  I understand that my conversation and tool schemas will be sent to the configured proxy endpoint.
+                </span>
+              </label>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3.5 bg-white/[0.02] border-t border-white/8 flex items-center justify-end gap-2.5">
+              <button
+                onClick={() => setShowKodaCloudModal(false)}
+                className="px-4 py-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!kodaCloudAccepted || !kodaCloudBaseUrl.trim()}
+                onClick={() => {
+                  setShowKodaCloudModal(false)
+                  setStep(3)
+                }}
+                className={`flex items-center gap-1.5 px-5 py-2 text-[11px] font-semibold rounded-md transition-all ${
+                  kodaCloudAccepted && kodaCloudBaseUrl.trim()
+                    ? 'bg-white text-black hover:bg-zinc-100 active:scale-95'
+                    : 'bg-white/10 text-zinc-500 cursor-not-allowed'
+                }`}
+              >
+                Accept & Continue
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   )
