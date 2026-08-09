@@ -259,15 +259,24 @@ const App: React.FC = () => {
     window.koda.softReset(activeId)
   }, [activeId, updateWorkspace])
 
-  const handleLoadSession = useCallback(async (sessionId: string) => {
+  const handleLoadSession = useCallback(async (sessionId: string, targetProjectPath?: string) => {
     if (!activeId || !activeWorkspace) return
-    const session = kodaSessionStorage.get(activeWorkspace.agentInfo.cwd, sessionId)
+    const pPath = targetProjectPath || activeWorkspace.agentInfo.cwd
+    const session = kodaSessionStorage.get(pPath, sessionId)
     if (session) {
       sessionIdRef.current.set(activeId, sessionId)
-      updateWorkspace(activeId, { messages: session.messages || [], pinnedFiles: session.pinnedFiles || [], inputFiles: [], currentSessionId: sessionId })
+      updateWorkspace(activeId, {
+        messages: session.messages || [],
+        pinnedFiles: session.pinnedFiles || [],
+        inputFiles: [],
+        currentSessionId: sessionId,
+        ...(targetProjectPath && targetProjectPath !== activeWorkspace.agentInfo.cwd ? { agentInfo: { ...activeWorkspace.agentInfo, cwd: targetProjectPath } } : {})
+      })
       await window.koda.softReset(activeId)
+
     }
   }, [activeId, activeWorkspace, updateWorkspace])
+
 
   // ── File context helpers ──────────────────────────────────────────────────
   const handleInjectFile  = (path: string) => setInput(prev => prev + ` @[${path}] `)

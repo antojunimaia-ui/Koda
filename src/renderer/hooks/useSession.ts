@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
 import { MessageEntry } from '../types/index.js'
-import { nextId } from './useAgentStream.js'
 import { sessionStorage } from './useSessionStorage.js'
 
 interface UseSessionOptions {
@@ -16,7 +15,6 @@ export function useSession({ setMessages, setPinnedFiles }: UseSessionOptions) {
     if (session) {
       setMessages(session.messages || [], workspaceId)
       setPinnedFiles(session.pinnedFiles || [], workspaceId)
-      // Retorna o sessionId para ser setado no ref
       return session.id
     } else {
       setMessages([], workspaceId)
@@ -26,5 +24,17 @@ export function useSession({ setMessages, setPinnedFiles }: UseSessionOptions) {
     }
   }, [setMessages, setPinnedFiles])
 
-  return { loadSession }
+  const loadSpecificSession = useCallback((projectPath: string, sessionId: string, workspaceId?: string) => {
+    if (!projectPath || !sessionId) return null
+    const session = sessionStorage.get(projectPath, sessionId)
+    if (session) {
+      setMessages(session.messages || [], workspaceId)
+      setPinnedFiles(session.pinnedFiles || [], workspaceId)
+      return session.id
+    }
+    return null
+  }, [setMessages, setPinnedFiles])
+
+  return { loadSession, loadSpecificSession }
 }
+

@@ -14,7 +14,37 @@ interface SessionIndexEntry {
   timestamp: number
 }
 
+export interface ProjectSummary {
+  path: string
+  name: string
+  lastActive: number
+  sessions: StoredSession[]
+}
+
 // ── Key helpers ───────────────────────────────────────────────────────────────
+
+function getProjectName(projectPath: string): string {
+  if (!projectPath) return 'Untitled Project'
+  const normalized = projectPath.replace(/\\/g, '/').replace(/\/+$/, '')
+  const parts = normalized.split('/')
+  return parts[parts.length - 1] || projectPath
+}
+
+function registerProject(projectPath: string): void {
+  if (!projectPath) return
+  try {
+    const raw = localStorage.getItem('koda_projects_registry')
+    const registry: Array<{ path: string; name: string; lastActive: number }> = raw ? JSON.parse(raw) : []
+    const idx = registry.findIndex(p => p.path === projectPath)
+    const entry = { path: projectPath, name: getProjectName(projectPath), lastActive: Date.now() }
+    if (idx >= 0) {
+      registry[idx] = entry
+    } else {
+      registry.unshift(entry)
+    }
+    localStorage.setItem('koda_projects_registry', JSON.stringify(registry))
+  } catch {}
+}
 
 function hashPath(projectPath: string): string {
   let hash = 0
@@ -101,6 +131,7 @@ export const sessionStorage = {
    * Reads only the lightweight index — does NOT load message arrays.
    */
   list(projectPath: string): StoredSession[] {
+    if (projectPath) registerProject(projectPath)
     const index = readIndex(projectPath)
     return index
       .sort((a, b) => b.timestamp - a.timestamp)
@@ -111,6 +142,41 @@ export const sessionStorage = {
         messages: [],    // not loaded — use get() for full data
         pinnedFiles: [],
       }))
+  },
+
+  /** Returns all projects registered in session storage and their sessions. */
+  listAllProjects(): ProjectSummary[] {
+    try {
+      const raw = localStorage.getItem('koda_projects_registry')
+      const registry: Array<{ path: string; name: string; lastActive: number }> = raw ? JSON.parse(raw) : []
+      const results: ProjectSummary[] = []
+
+      for (const proj of registry) {
+        const sessions = readIndex(proj.path)
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .map(entry => ({
+            id: entry.id,
+            title: entry.title,
+            timestamp: entry.timestamp,
+            messages: [],
+            pinnedFiles: [],
+          }))
+
+        if (sessions.length > 0) {
+          const newestTime = Math.max(...sessions.map(s => s.timestamp), proj.lastActive)
+          results.push({
+            path: proj.path,
+            name: proj.name,
+            lastActive: newestTime,
+            sessions,
+          })
+        }
+      }
+
+      return results.sort((a, b) => b.lastActive - a.lastActive)
+    } catch {
+      return []
+    }
   },
 
   /** Loads a single session by ID — O(1), reads only that session's key. */
@@ -129,6 +195,7 @@ export const sessionStorage = {
    */
   save(projectPath: string, session: Omit<StoredSession, 'id' | 'title'> & { id?: string; title?: string }): string {
     migrateIfNeeded(projectPath)
+    if (projectPath) registerProject(projectPath)
     const id = session.id || generateId()
     const title = session.title || session.messages.find(m => m.type === 'user')?.text?.slice(0, 50) || 'Untitled'
 
@@ -182,3 +249,4 @@ export const sessionStorage = {
     return sessionStorage.get(projectPath, sorted[0].id)
   },
 }
+

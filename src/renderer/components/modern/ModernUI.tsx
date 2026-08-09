@@ -184,7 +184,7 @@ interface ModernUIProps {
   onSplitWith?: (id: string) => void
   handleSendForWs?: (text: string, images: AttachedFile[], wsId: string) => void
   onNewSession?: () => void
-  onLoadSession?: (sessionId: string) => void
+  onLoadSession?: (sessionId: string, targetProjectPath?: string) => void
   handleRollbackForWs?: (msgId: number, wsId: string) => void
   pendingQuestions?: import('../../types/index.js').Question[] | null
   onQuestionsSubmit?: (answers: import('../../types/index.js').QuestionAnswer[]) => void
@@ -670,7 +670,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
             <ChatHistory
               projectPath={agentInfo?.cwd || ''}
               onNewSession={() => onNewSession?.()}
-              onLoadSession={(sessionId) => onLoadSession?.(sessionId)}
+              onLoadSession={(sessionId, targetPath) => onLoadSession?.(sessionId, targetPath)}
               isVisible={true}
             />
 
@@ -781,7 +781,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                   <ChatHistory
                     projectPath={agentInfo?.cwd || ''}
                     onNewSession={() => { onNewSession?.(); setShowChatHistory(false) }}
-                    onLoadSession={(id) => { onLoadSession?.(id); setShowChatHistory(false) }}
+                    onLoadSession={(id, targetPath) => { onLoadSession?.(id, targetPath); setShowChatHistory(false) }}
                     isVisible={true}
                   />
                 ) : (
