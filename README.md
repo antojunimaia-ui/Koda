@@ -1,3 +1,5 @@
+
+
 <div align="center"><pre>
 :::    ::: ::::::::  :::::::::      :::
 :+:   :+: :+:    :+: :+:    :+:   :+: :+:
@@ -204,7 +206,7 @@ All tools extend `BaseTool` and are registered in `ToolRegistry`. The registry e
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 20 or higher
+- [Node.js](https://nodejs.org/) 22 or higher
 - Git in your `PATH`
 - An API key from any supported provider (or use Koda Cloud)
 
