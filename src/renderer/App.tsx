@@ -265,15 +265,26 @@ const App: React.FC = () => {
     const session = kodaSessionStorage.get(pPath, sessionId)
     if (session) {
       sessionIdRef.current.set(activeId, sessionId)
-      updateWorkspace(activeId, {
-        messages: session.messages || [],
-        pinnedFiles: session.pinnedFiles || [],
-        inputFiles: [],
-        currentSessionId: sessionId,
-        ...(targetProjectPath && targetProjectPath !== activeWorkspace.agentInfo.cwd ? { agentInfo: { ...activeWorkspace.agentInfo, cwd: targetProjectPath } } : {})
-      })
-      await window.koda.softReset(activeId)
-
+      
+      if (targetProjectPath && targetProjectPath !== activeWorkspace.agentInfo.cwd) {
+        const cdRes = await window.koda.cd(activeId, targetProjectPath)
+        const updatedInfo = cdRes?.info || { ...activeWorkspace.agentInfo, cwd: targetProjectPath }
+        updateWorkspace(activeId, {
+          agentInfo: updatedInfo,
+          messages: session.messages || [],
+          pinnedFiles: session.pinnedFiles || [],
+          inputFiles: [],
+          currentSessionId: sessionId
+        })
+      } else {
+        await window.koda.softReset(activeId)
+        updateWorkspace(activeId, {
+          messages: session.messages || [],
+          pinnedFiles: session.pinnedFiles || [],
+          inputFiles: [],
+          currentSessionId: sessionId
+        })
+      }
     }
   }, [activeId, activeWorkspace, updateWorkspace])
 

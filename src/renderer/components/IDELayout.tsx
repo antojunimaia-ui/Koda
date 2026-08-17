@@ -930,15 +930,43 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" 
-                      strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-4 text-slate-600">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    <p className="text-slate-500 text-[12px] mb-1">No file selected</p>
-                    <p className="text-slate-600 text-[10px]">Click on a file in the explorer to open it</p>
-                  </div>
+                  <svg
+                    width="220"
+                    height="220"
+                    viewBox="0 0 200 200"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="text-slate-700 opacity-30"
+                  >
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="78"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <ellipse
+                      cx="97"
+                      cy="70"
+                      rx="9"
+                      ry="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      transform="rotate(-8 97 70)"
+                    />
+                    <ellipse
+                      cx="128"
+                      cy="70"
+                      rx="9"
+                      ry="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      transform="rotate(-8 128 70)"
+                    />
+                  </svg>
                 </div>
               )}
             </div>

@@ -1,4 +1,5 @@
 import { BrowserWindow, shell } from 'electron'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -37,6 +38,9 @@ function applyNavigationGuard(win: BrowserWindow) {
 
 export function createWindow(fileWatcherSetMainWindow: (win: BrowserWindow) => void) {
   const preloadPath = path.join(__dirname, 'preload/index.mjs')
+  const iconPath = process.env.VITE_DEV_SERVER_URL
+    ? path.join(__dirname, '../../public/icon.png')
+    : path.join(process.resourcesPath, 'icon.png')
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -45,6 +49,7 @@ export function createWindow(fileWatcherSetMainWindow: (win: BrowserWindow) => v
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
     show: false,
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
     webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,
@@ -95,6 +100,9 @@ export function createWindow(fileWatcherSetMainWindow: (win: BrowserWindow) => v
 
 export function createIDEWindow() {
   const preloadPath = path.join(__dirname, 'preload/index.mjs')
+  const iconPath = process.env.VITE_DEV_SERVER_URL
+    ? path.join(__dirname, '../../public/icon.png')
+    : path.join(process.resourcesPath, 'icon.png')
 
   ideWindow = new BrowserWindow({
     width: 1400,
@@ -103,6 +111,7 @@ export function createIDEWindow() {
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
     show: false,
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
     webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,

@@ -221,9 +221,44 @@ const TitleBar: React.FC<TitleBarProps> = ({
           <button
             onClick={onToggleIDEMode}
             title={isIDEWindow ? 'Open Agent Chat' : 'Open IDE Window'}
-            className="w-7 h-7 flex items-center justify-center rounded transition-all no-drag hover:bg-white/5"
+            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white rounded transition-colors no-drag"
           >
-            <img src="/icon.png" className="w-4.5 h-4.5 object-contain filter brightness-90" />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 200 200"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="100"
+                cy="100"
+                r="78"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="15"
+              />
+              <ellipse
+                cx="97"
+                cy="70"
+                rx="9"
+                ry="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="11"
+                transform="rotate(-8 97 70)"
+              />
+              <ellipse
+                cx="128"
+                cy="70"
+                rx="9"
+                ry="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="11"
+                transform="rotate(-8 128 70)"
+              />
+            </svg>
           </button>
         )}
 

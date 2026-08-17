@@ -48,13 +48,13 @@ const UserMessage = memo(({ text, images, onRollback, remote, uiMode }: UserMess
         )}
 
         {/* Bubble */}
-        <div className="max-w-[80%] bg-neutral-800/80 border border-white/5 rounded-2xl rounded-tr-sm px-4 py-2.5">
+        <div className="max-w-[80%] bg-zinc-800/60 border border-white/8 rounded-2xl px-3.5 py-2">
           {remote && (
             <span className="inline-flex items-center gap-1 mr-2 text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-900/30 border border-emerald-500/30 px-1.5 py-0.5 rounded align-middle">
               🌐 Remote
             </span>
           )}
-          <span className="text-slate-100 text-sm leading-relaxed whitespace-pre-wrap">{text}</span>
+          <span className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap">{text}</span>
         </div>
 
         {/* Actions — aparecem no hover */}
