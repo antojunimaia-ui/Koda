@@ -1,25 +1,15 @@
-<div align="center"><pre>
-:::    ::: ::::::::  :::::::::      :::
-:+:   :+: :+:    :+: :+:    :+:   :+: :+:
-+:+  +:+  +:+    +:+ +:+    +:+  +:+   +:+
-+#++:++   +#+    +:+ +#+    +:+ +#++:++#++:
-+#+  +#+  +#+    +#+ +#+    +#+ +#+     +#+
-#+#   #+# #+#    #+# #+#    #+# #+#     #+#
-###    ### ########  #########  ###     ###
-</pre></div>
+<div align="center">
+  <img src="public/readme-banner.png" alt="Koda Banner" width="100%" />
+</div>
 
 <div align="center">
 
 **Koda is your ideal development partner.**
 
-[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-v26.1.5-cyan)](package.json)
-[![Electron](https://img.shields.io/badge/Electron-41.x-47848F?logo=electron&logoColor=white)](https://electronjs.org/)
-[![React](https://img.shields.io/badge/React-19.x-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/7FtCkNunYF)
 [![Support the project](https://img.shields.io/badge/Support-the%20project-ff69b4?logo=github-sponsors&logoColor=white)](https://apoie.pedrodev.top)
-[![Website](https://img.shields.io/badge/Website-koda-22d3ee?logo=googlechrome&logoColor=white)](https://koda-hmwq.onrender.com/)
+[![Website](https://img.shields.io/badge/Website-koda-22d3ee?logo=googlechrome&logoColor=white)](https://koda.harpiaresearch.cc/)
 
 Koda is an Open-Source Agent Development Environment (ADE) for AI-assisted software engineering. No IDE extensions, no cloud servers, no clipboard gymnastics — it reads your codebase, edits files, runs commands, and ships code directly in your local environment.
 
