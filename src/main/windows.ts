@@ -78,7 +78,7 @@ export function createWindow(fileWatcherSetMainWindow: (win: BrowserWindow) => v
 
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
-    mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
@@ -133,7 +133,7 @@ export function createIDEWindow() {
 
   if (process.env.VITE_DEV_SERVER_URL) {
     ideWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}?window=ide`)
-    ideWindow.webContents.openDevTools()
+    ideWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     const indexPath = path.join(__dirname, '../dist/index.html')
     ideWindow.loadURL(`file:///${indexPath.replace(/\\/g, '/')}?window=ide`)

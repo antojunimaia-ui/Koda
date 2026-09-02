@@ -158,8 +158,8 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
 
   return (
     <>
-      <div id="tour-workspaces" className="flex items-center h-8 select-none border-b border-white/5 bg-[#0a0a0b]">
-        <div className="flex items-center gap-1 px-2 h-full flex-1 overflow-x-auto no-scrollbar">
+      <div id="tour-workspaces" className="flex items-center h-9 select-none bg-[#0a0a0b] border-b border-white/[0.06]">
+        <div className="flex items-center gap-0.5 px-2 h-full flex-1 overflow-x-auto no-scrollbar">
           {workspaces.map((ws) => {
             const isActive = activeId === ws.id
             const isSplit = splitIds?.includes(ws.id)
@@ -169,27 +169,35 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
                 onClick={() => onSwitch(ws.id)}
                 onContextMenu={(e) => { e.preventDefault(); setContextMenu({ tabId: ws.id, x: e.clientX, y: e.clientY }) }}
                 className={`
-                  group relative flex items-center gap-1.5 h-6 px-3 rounded-md cursor-pointer
-                  transition-all duration-150 text-[10px] font-semibold tracking-wide
-                  min-w-[100px] max-w-[180px]
+                  group relative flex items-center gap-1.5 h-full px-3 cursor-pointer
+                  transition-all duration-150 text-[11px] font-medium tracking-wide
+                  min-w-[100px] max-w-[200px]
                   ${isActive
-                    ? 'bg-white/8 text-slate-100 shadow-sm'
+                    ? 'text-slate-100'
                     : isSplit
-                    ? 'bg-indigo-500/10 text-indigo-300'
-                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                    ? 'text-indigo-400 hover:text-indigo-300'
+                    : 'text-slate-500 hover:text-slate-300'
                   }
                 `}
               >
-                {/* Active/split indicator pill */}
-                {(isActive || isSplit) && (
-                  <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-3 rounded-full ${isActive ? 'bg-indigo-400' : 'bg-indigo-500/60'}`} />
+                {/* Active bottom accent bar */}
+                {isActive && (
+                  <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-t-full bg-indigo-400" />
+                )}
+                {isSplit && !isActive && (
+                  <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-t-full bg-indigo-500/40" />
+                )}
+
+                {/* Subtle active bg */}
+                {isActive && (
+                  <span className="absolute inset-0 bg-white/[0.04] rounded-t-md pointer-events-none" />
                 )}
 
                 {/* Workspace icon */}
                 <svg
                   width="10" height="10" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  className={isActive ? 'text-indigo-400' : isSplit ? 'text-indigo-500' : 'text-slate-600'}
+                  className={`shrink-0 ${isActive ? 'text-indigo-400' : isSplit ? 'text-indigo-500' : 'text-slate-600'}`}
                 >
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   <line x1="3" y1="9" x2="21" y2="9" />
@@ -201,7 +209,7 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
                 {workspaces.length > 1 && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onClose(ws.id) }}
-                    className="opacity-0 group-hover:opacity-100 ml-0.5 rounded hover:bg-white/10 p-0.5 text-slate-500 hover:text-rose-400 transition-all"
+                    className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 transition-all"
                     title="Close workspace"
                   >
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -216,10 +224,10 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
           {/* New workspace button */}
           <button
             onClick={onAdd}
-            className="flex items-center justify-center w-6 h-6 ml-1 rounded hover:bg-white/8 text-slate-600 hover:text-indigo-400 transition-all"
+            className="flex items-center justify-center w-6 h-6 ml-1 rounded-md text-slate-600 hover:text-indigo-400 hover:bg-indigo-400/10 transition-all shrink-0"
             title="New Workspace"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -241,6 +249,7 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
     </>
   )
 }
+
 
 // ─── Unified export ───────────────────────────────────────────────────────────
 const WorkspaceTabs: React.FC<WorkspaceTabsProps> = ({ variant = 'classic', ...props }) => {

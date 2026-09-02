@@ -6,6 +6,7 @@ const STATIC_COMMANDS = [
   { name: '/clear',  description: 'Clear chat messages',         icon: '🗑️' },
   { name: '/reset',  description: 'Reset conversation memory',   icon: '♻️' },
   { name: '/tokens', description: 'Show token usage estimate',   icon: '📊' },
+  { name: '/hyperedit', description: 'Coordinate isolated editing agents', icon: '⚡' },
   { name: '/model',  description: 'View or switch active model', icon: '🤖' },
   { name: '/apikey', description: 'Set API key inline',          icon: '🔑' },
 ]

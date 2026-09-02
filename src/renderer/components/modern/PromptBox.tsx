@@ -117,11 +117,11 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
       )}
 
     <div 
-      className={`relative bg-neutral-900/80 rounded-xl border transition-all ${
+      className={`relative bg-white/[0.06] rounded-xl border transition-all ${
         isDraggingOver 
-          ? 'border-white bg-white/5' 
-          : 'border-neutral-800'
-      } backdrop-blur-xl focus-within:border-neutral-700`}
+          ? 'border-white/20 bg-white/10' 
+          : 'border-white/[0.06]'
+      } backdrop-blur-xl focus-within:border-white/[0.06]`}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -194,7 +194,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
           onPaste={onPaste}
           id="tour-input"
           placeholder={inputFiles.length === 0 ? "Ask Koda anything..." : ""}
-          className="flex-1 min-w-50 bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-5 resize-none leading-snug align-top"
+          className="flex-1 min-w-50 bg-transparent border-none text-neutral-100 text-sm focus:outline-none placeholder:text-neutral-300 placeholder:text-sm min-h-5 resize-none leading-snug align-top"
           style={{ overflow: "hidden" }}
         />
       </div>

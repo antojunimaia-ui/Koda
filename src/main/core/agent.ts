@@ -26,6 +26,7 @@ import { skillManager } from "../services/skill-manager.js";
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs/promises';
+import { HyperEditPlan, runHyperEdit } from '../services/hyperedit.js';
 
 
 
@@ -180,9 +181,22 @@ export class Agent {
         const skillList = allSkills.length > 0
           ? '\n\n**Skills:**\n' + allSkills.map(s => `- \`/${s.name}\`${s.description ? ` — ${s.description}` : ''}`).join('\n')
           : '';
-        onText(`🛠️ **Available Koda Commands:**\n\n- \`/clear\` or \`/reset\`: Clears current conversation history and agent memory\n- \`/tokens\` or \`/cost\`: Displays an estimate of LLM token usage and cost\n- \`/help\`: Displays this help menu\n- \`/<skill-name> [message]\`: Activates a skill and optionally sends a message${skillList}\n\n*Tip: Click on the **PATH** display in the header to change your working directory natively.*`);
-        return;
-      }
+         onText(`🛠️ **Available Koda Commands:**\n\n- \`/clear\` or \`/reset\`: Clears current conversation history and agent memory\n- \`/tokens\` or \`/cost\`: Displays an estimate of LLM token usage and cost\n- \`/hyperedit <task> --files <files> [--agents 1-5]\`: Runs isolated editing agents on authorized files\n- \`/help\`: Displays this help menu\n- \`/<skill-name> [message]\`: Activates a skill and optionally sends a message${skillList}\n\n*Tip: Click on the **PATH** display in the header to change your working directory natively.*`);
+         return;
+       }
+
+       if (commandText.startsWith("/hyperedit")) {
+         const request = userMessage.trim().slice('/hyperedit'.length).trim();
+         try {
+           const summary = await runHyperEdit(request, this.cwd, event => {
+             onText(`\n> ${event.message}\n`);
+           }, (task, candidates, requestedAgents) => this.createHyperEditPlan(task, candidates, requestedAgents));
+           onText(summary);
+         } catch (error) {
+           onError(`HyperEdit: ${(error as Error).message}`);
+         }
+         return;
+       }
 
       // Skill invocation: /skill-name [optional message]
       const slashParts = userMessage.trim().split(/\s+/);
@@ -274,8 +288,33 @@ export class Agent {
       }
 
       let iterations = 0;
-      const recentToolExecutions = new Map<string, { output: string; success: boolean }>();
-      let previousIterationSignatures = new Set<string>();
+      // ── Doom Loop detection (OpenCode-inspired) ────────────────────────
+      // Threshold 3 = 3 chamadas idênticas consecutivas travam o loop.
+      // Usa stable stringify + strip de campos voláteis (_rawPart, thought_signature)
+      const DOOM_LOOP_THRESHOLD = 3;
+      const recentSignatures: string[] = []; // histórico linear de assinaturas
+
+      const stripVolatile = (args: Record<string, unknown>): Record<string, unknown> => {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(args || {})) {
+          if (k === "_rawPart" || k === "thought_signature" || k === "_thought_signature") continue;
+          out[k] = v;
+        }
+        return out;
+      };
+
+      const stableStringify = (value: unknown): string => {
+        if (value === null || typeof value !== "object") return JSON.stringify(value);
+        if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+        const obj = value as Record<string, unknown>;
+        const keys = Object.keys(obj).sort();
+        return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(",")}}`;
+      };
+
+      const buildSignature = (name: string, args: Record<string, unknown>): string => {
+        const clean = stripVolatile(args || {});
+        return `${name}:${stableStringify(clean)}`;
+      };
 
       while (true) {
         iterations++;
@@ -294,7 +333,7 @@ export class Agent {
 
         // Tool results collected during streaming (executed eagerly on tool_call_end)
         const toolResults: { id: string; name: string; output: string; success: boolean }[] = [];
-        const currentIterationSignatures = new Set<string>();
+        const currentIterationSignatures: string[] = [];
 
         // Stream response from LLM
         for await (const chunk of this.provider.chat(
@@ -339,25 +378,40 @@ export class Agent {
 
                 if (signal.aborted) break;
 
-                const signature = `${toolCall.name}:${JSON.stringify(toolCall.arguments || {})}`;
-                currentIterationSignatures.add(signature);
+                const signature = buildSignature(toolCall.name, (toolCall.arguments || {}) as Record<string, unknown>);
 
                 let resultOutput = "";
                 let resultSuccess = true;
 
-                // Check for consecutive duplicate call
-                if (previousIterationSignatures.has(signature) && recentToolExecutions.has(signature)) {
-                  const cached = recentToolExecutions.get(signature)!;
-                  resultSuccess = cached.success;
-                  resultOutput = `${cached.output}\n\n[System Note: You called '${toolCall.name}' with identical parameters in consecutive steps. The result above is cached from the previous call. Please analyze this result and move on to your next action or answer.]`;
-                  console.log(`[Agent] Deduplicated consecutive tool call: ${signature}`);
+                // ── Doom Loop check (OpenCode: processor.ts:353-379) ──────
+                // Considera histórico linear + iteração atual. Se as últimas
+                // (THRESHOLD-1) assinaturas forem iguais à atual, bloqueia.
+                const isIntraIterationDuplicate = currentIterationSignatures.includes(signature);
+                const tail = recentSignatures.slice(-(DOOM_LOOP_THRESHOLD - 1));
+                const isConsecutiveLoop =
+                  tail.length === DOOM_LOOP_THRESHOLD - 1 && tail.every((s) => s === signature);
+
+                if (isIntraIterationDuplicate) {
+                  // Duplicata dentro da mesma resposta (parallel tool calls idênticos)
+                  resultSuccess = false;
+                  resultOutput = `[Doom Loop Detected] You called '${toolCall.name}' with identical parameters twice in the same step. The second call was blocked. Please use the result from the first call and move on.`;
+                  console.warn(`[Agent][DoomLoop] Intra-iteration duplicate blocked: ${signature}`);
+                } else if (isConsecutiveLoop) {
+                  // 3ª chamada consecutiva idêntica — espelha OpenCode doom_loop: "ask" mas sem UI modal:
+                  // bloqueia e instrui o modelo a mudar de estratégia em vez de cachear output obsoleto.
+                  resultSuccess = false;
+                  resultOutput = `[Doom Loop Detected] You have called '${toolCall.name}' with identical parameters ${DOOM_LOOP_THRESHOLD} times consecutively. This indicates you are stuck in a loop. The call was NOT executed. Analyze the previous output, try a different approach, or ask the user for clarification. Args: ${stableStringify(stripVolatile((toolCall.arguments || {}) as Record<string, unknown>))}`;
+                  console.warn(`[Agent][DoomLoop] Consecutive loop blocked (${DOOM_LOOP_THRESHOLD}x): ${signature}`);
                 } else {
-                  // Execute the tool immediately — don't wait for the stream to finish.
+                  // Execução normal — immediately, sem cache
                   const result = await this.tools.execute(toolCall.name, toolCall.arguments);
                   resultSuccess = result.success;
                   resultOutput = result.error || result.output;
-                  recentToolExecutions.set(signature, { output: resultOutput, success: resultSuccess });
                 }
+
+                // Registra assinatura para próximas verificações (mesmo quando bloqueado)
+                recentSignatures.push(signature);
+                currentIterationSignatures.push(signature);
 
                 onToolEnd(toolCall.name, resultOutput, resultSuccess, toolCall.arguments);
                 toolResults.push({ id: toolCall.id, name: toolCall.name, output: resultOutput, success: resultSuccess });
@@ -372,8 +426,6 @@ export class Agent {
               break;
           }
         }
-
-        previousIterationSignatures = currentIterationSignatures;
 
         if (signal.aborted) break;
 
@@ -408,6 +460,41 @@ export class Agent {
     } finally {
       this.isProcessing = false;
       this.abortController = null;
+    }
+  }
+
+  private async createHyperEditPlan(task: string, candidates: string[], requestedAgents: number): Promise<HyperEditPlan> {
+    if (!this.provider) throw new Error('Agente coordenador não está pronto.')
+    const maxAgents = Math.max(1, Math.min(5, requestedAgents))
+    const planningPrompt = `Você é o coordenador da HyperEdit do Koda. Analise a tarefa e divida o trabalho entre no máximo 5 agentes.
+
+TAREFA:
+${task}
+
+ARQUIVOS CANDIDATOS:
+${candidates.join('\n')}
+
+Retorne SOMENTE JSON válido, sem markdown, neste formato:
+{"agents":[{"files":["caminho/relativo.ts"],"prompt":"instruções específicas para este agente"}]}
+
+Regras: use entre 1 e ${maxAgents} agentes; selecione apenas arquivos candidatos; não repita arquivos entre agentes; cada prompt deve ser específico; não inclua explicações fora do JSON.`
+    const messages = [
+      { role: 'system' as const, content: 'Você coordena tarefas de edição de código. Responda apenas com o JSON solicitado.' },
+      { role: 'user' as const, content: planningPrompt },
+    ]
+    let response = ''
+    for await (const chunk of this.provider.chat(messages, this.tools)) {
+      if (chunk.type === 'text') response += chunk.content || ''
+    }
+    const json = response.match(/\{[\s\S]*\}/)?.[0]
+    if (!json) throw new Error('O coordenador não retornou um plano HyperEdit válido.')
+    const parsed = JSON.parse(json) as HyperEditPlan
+    if (!Array.isArray(parsed.agents)) throw new Error('Plano HyperEdit inválido: agents ausente.')
+    return {
+      agents: parsed.agents.slice(0, 5).map(agent => ({
+        files: Array.isArray(agent.files) ? agent.files.map(String) : [],
+        prompt: String(agent.prompt || task),
+      })),
     }
   }
 

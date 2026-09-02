@@ -124,7 +124,7 @@ export function useMessageActions({
     if (userMsg.startsWith('/')) {
       const parts = userMsg.toLowerCase().split(' ')
       const cmd = parts[0]
-      const knownCmds = ['/clear', '/help', '/reset', '/model', '/apikey', '/tokens', '/cost', '/debug']
+      const knownCmds = ['/clear', '/help', '/reset', '/model', '/apikey', '/tokens', '/cost', '/debug', '/hyperedit']
       const handled = await runSlashCommand(cmd, parts, ws)
       if (handled) return
       if (!knownCmds.includes(cmd)) {

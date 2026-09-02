@@ -488,30 +488,15 @@ const ModernUI: React.FC<ModernUIProps> = ({
   }, [messages, isProcessing]);
 
   const VirtuosoFooter = useCallback(() => {
-    // Show the animated avatar in the footer only when the agent is working
-    // but there are no tool messages at the end (avatar is shown inside CompactToolView in that case)
+    return <div className="pb-2" />;
+  }, []);
+
+  // Avatar shown outside Virtuoso so it's always visible regardless of scroll position
+  const showAvatar = useMemo(() => {
     const lastMsg = messages[messages.length - 1];
     const lastIsAssistant = lastMsg?.type === 'assistant';
     const lastIsTool = lastMsg?.type === 'tool';
-    const showAvatar = isProcessing && !lastIsAssistant && !lastIsTool;
-
-    return (
-      <div className="pb-8">
-        {showAvatar && (
-          <div className="flex items-center gap-2 ml-4 mt-2 animate-in fade-in duration-300">
-            <video
-              src="/Loading.webm"
-              autoPlay
-              loop
-              muted
-              className="w-7 h-7 object-contain"
-              style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-            />
-            <span className="font-bold text-slate-300 text-sm">Koda</span>
-          </div>
-        )}
-      </div>
-    );
+    return isProcessing && !lastIsAssistant && !lastIsTool;
   }, [isProcessing, messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -675,7 +660,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
             />
 
             {/* Todos os botões na parte inferior */}
-            <div className="border-t border-white/5 py-2 px-2 flex flex-row gap-0.5 justify-center mt-auto">
+            <div className="py-2 px-1 flex flex-row gap-0 justify-start mt-auto">
               <button
                 onClick={onSettingsClick}
                 className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-zinc-200 hover:bg-white/5 transition-all"
@@ -785,9 +770,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
                     isVisible={true}
                   />
                 ) : (
-                <div className={`flex-1 flex flex-col ${isIDEMode && kodaSettings.showEditorPanel ? 'max-w-full' : 'max-w-5xl mx-auto'} w-full relative ${messages.length === 0 ? 'justify-center' : 'pt-4'}`}>
+                <div className={`flex-1 flex flex-col ${isIDEMode && kodaSettings.showEditorPanel ? 'max-w-full' : 'max-w-5xl mx-auto'} w-full relative ${messages.length === 0 && !isProcessing ? 'justify-center' : 'pt-4'}`}>
                   {/* Message List */}
-                  <div className={`min-h-0 ${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-4'} ${messages.length === 0 ? 'hidden' : 'flex-1'}`}>
+                  <div className={`min-h-0 ${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-4'} ${messages.length === 0 && !isProcessing ? 'hidden' : 'flex-1'}`}>
                     <Virtuoso
                       ref={virtuosoRef}
                       data={renderableMessages}
@@ -795,7 +780,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       increaseViewportBy={{ top: 200, bottom: 200 }}
                       className="custom-scrollbar pr-2"
                       itemContent={(index, item: any) => (
-                        <div className="mb-6">
+                        <div className="mb-6 w-full max-w-5xl mx-auto px-4">
                           {item.type === 'tool_group' ? (
                             <CompactToolView 
                               tools={item.tools} 
@@ -821,9 +806,17 @@ const ModernUI: React.FC<ModernUIProps> = ({
                     />
                   </div>
 
+                  {/* Loading avatar — outside Virtuoso so it's always visible */}
+                  {showAvatar && (
+                    <div className="flex items-center gap-2 px-6 pb-1 animate-in fade-in duration-300">
+                      <video src="/Loading.webm" autoPlay loop muted className="w-7 h-7 object-contain" style={{ border: 'none', outline: 'none', boxShadow: 'none' }} />
+                      <span className="font-bold text-slate-300 text-sm">Koda</span>
+                    </div>
+                  )}
+
                   {/* Input Area */}
-                  <div className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-6'} ${messages.length === 0 ? 'pt-0 pb-6' : 'pt-2 pb-2'}`}>
-                    {messages.length === 0 && (
+                  <div className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-6'} ${messages.length === 0 && !isProcessing ? 'pt-0 pb-6' : 'pt-2 pb-2'}`}>
+                    {messages.length === 0 && !isProcessing && (
                       <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
                         What are we building today?
                       </p>
@@ -968,45 +961,53 @@ const ModernUI: React.FC<ModernUIProps> = ({
             </div>
           ) : (
             <div className="flex flex-col flex-1 relative min-h-0">
-              <div className={`flex-1 flex flex-col max-w-5xl mx-auto w-full relative ${messages.length === 0 ? 'justify-center' : 'pt-4'}`}>
-                {/* Message List */}
-                <div className={`min-h-0 px-4 ${messages.length === 0 ? 'hidden' : 'flex-1'}`}>
-                  <Virtuoso
-                    ref={virtuosoRef}
-                    data={renderableMessages}
-                    alignToBottom
-                    increaseViewportBy={{ top: 200, bottom: 200 }}
-                    className="custom-scrollbar pr-2"
-                    itemContent={(index, item: any) => (
-                      <div className="mb-6">
-                        {item.type === 'tool_group' ? (
-                          <CompactToolView 
-                            tools={item.tools} 
-                            settings={kodaSettings} 
-                            agentInfo={agentInfo} 
-                            uiMode="modern" 
-                            isLastAndActive={isProcessing && index === renderableMessages.length - 1}
-                          />
-                        ) : (
-                          <MessageRow 
-                            msg={item} 
-                            agentInfo={agentInfo}
-                            kodaSettings={kodaSettings} 
-                            uiMode="modern"
-                            onRollback={item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined}
-                          />
-                        )}
-                      </div>
-                    )}
-                    components={{
-                      Footer: VirtuosoFooter
-                    }}
-                  />
-                </div>
+              {/* Message List — full width so scrollbar sits at window edge */}
+              <div className={`min-h-0 ${messages.length === 0 && !isProcessing ? 'hidden' : 'flex-1'} pt-4`}>
+                <Virtuoso
+                  ref={virtuosoRef}
+                  data={renderableMessages}
+                  alignToBottom
+                  increaseViewportBy={{ top: 200, bottom: 200 }}
+                  className="custom-scrollbar h-full"
+                  style={{ scrollbarGutter: 'stable' }}
+                  itemContent={(index, item: any) => (
+                    <div className="mb-6 px-4 max-w-5xl mx-auto">
+                      {item.type === 'tool_group' ? (
+                        <CompactToolView 
+                          tools={item.tools} 
+                          settings={kodaSettings} 
+                          agentInfo={agentInfo} 
+                          uiMode="modern" 
+                          isLastAndActive={isProcessing && index === renderableMessages.length - 1}
+                        />
+                      ) : (
+                        <MessageRow 
+                          msg={item} 
+                          agentInfo={agentInfo}
+                          kodaSettings={kodaSettings} 
+                          uiMode="modern"
+                          onRollback={item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined}
+                        />
+                      )}
+                    </div>
+                  )}
+                  components={{
+                    Footer: VirtuosoFooter
+                  }}
+                />
+              </div>
 
-                {/* Input Area */}
-                <div className={`px-6 pb-6 ${messages.length === 0 ? 'pt-0' : 'pt-2'}`}>
-                  {messages.length === 0 && (
+              {/* Loading avatar — outside Virtuoso so it's always visible */}
+              {showAvatar && (
+                <div className="flex items-center gap-2 max-w-5xl mx-auto w-full px-6 pb-1 animate-in fade-in duration-300">
+                  <video src="/Loading.webm" autoPlay loop muted className="w-7 h-7 object-contain" style={{ border: 'none', outline: 'none', boxShadow: 'none' }} />
+                  <span className="font-bold text-slate-300 text-sm">Koda</span>
+                </div>
+              )}
+
+              {/* Input Area */}
+              <div className={`max-w-5xl mx-auto w-full px-6 pb-6 ${messages.length === 0 && !isProcessing ? 'flex-1 flex flex-col justify-center pt-0' : 'pt-2'}`}>
+                  {messages.length === 0 && !isProcessing && (
                     <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
                       What are we building today?
                     </p>
@@ -1121,7 +1122,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
                     variant="normal"
                   />
                 </div>
-              </div>
             </div>
           )}
 
