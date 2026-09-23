@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc --noEmit",
     "clean": "npx rimraf dist-electron dist",
     "dev:clean": "npx rimraf dist-electron && vite",
     "build": "vite build",

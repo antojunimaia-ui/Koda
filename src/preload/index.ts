@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('koda', {
   shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => ipcRenderer.invoke('agent:shell_response', approved, alwaysAllowBase, alwaysAllowFull),
   getApprovedCommands: () => ipcRenderer.invoke('agent:get_approved_commands'),
   updateApprovedCommands: (lists: { base?: string[], full?: string[] }) => ipcRenderer.invoke('agent:update_approved_commands', lists),
+  getSlashCommands: () => ipcRenderer.invoke('agent:get_slash_commands'),
   ptySendCtrlC: (pid: number) => ipcRenderer.invoke('pty:ctrl_c', pid),
   ptyKill: (pid: number) => ipcRenderer.invoke('pty:kill', pid),
   ptyStart: (workspaceId?: string, cwd?: string) => ipcRenderer.invoke('pty:start', workspaceId, cwd),

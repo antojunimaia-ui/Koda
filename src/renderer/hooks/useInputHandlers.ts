@@ -1,15 +1,5 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { SlashItem } from '../types/index.js'
-
-const STATIC_COMMANDS = [
-  { name: '/help',   description: 'Show available commands',     icon: '❓' },
-  { name: '/clear',  description: 'Clear chat messages',         icon: '🗑️' },
-  { name: '/reset',  description: 'Reset conversation memory',   icon: '♻️' },
-  { name: '/tokens', description: 'Show token usage estimate',   icon: '📊' },
-  { name: '/hyperedit', description: 'Coordinate isolated editing agents', icon: '⚡' },
-  { name: '/model',  description: 'View or switch active model', icon: '🤖' },
-  { name: '/apikey', description: 'Set API key inline',          icon: '🔑' },
-]
 
 interface UseInputHandlersOptions {
   input: string
@@ -39,6 +29,15 @@ export function useInputHandlers({
   const [history, setHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
 
+  // Native commands fetched once from main process — always up to date
+  const [nativeCommands, setNativeCommands] = useState<Array<{ name: string; description: string; icon: string }>>([])
+
+  useEffect(() => {
+    window.koda.getSlashCommands().then((res: any) => {
+      if (res?.success) setNativeCommands(res.commands)
+    }).catch(() => {/* non-fatal */})
+  }, [])
+
   const handleInputChange = useCallback(async (val: string) => {
     setInput(val)
     const cursor = inputRef.current?.selectionStart ?? val.length
@@ -48,13 +47,18 @@ export function useInputHandlers({
     const slashMatch = val.match(/^\/(\S*)/)
     if (slashMatch) {
       const query = slashMatch[1].toLowerCase()
-      const skillItems = availableSkills.map(s => ({
+      const nativeItems: SlashItem[] = nativeCommands.map(c => ({
+        name: `/${c.name}`,
+        description: c.description,
+        icon: c.icon,
+      }))
+      const skillItems: SlashItem[] = availableSkills.map(s => ({
         name: `/${s.name}`,
         description: s.description,
         icon: '🎯',
         isSkill: true as const,
       }))
-      const allItems = [...STATIC_COMMANDS, ...skillItems]
+      const allItems = [...nativeItems, ...skillItems]
       const filtered = query ? allItems.filter(c => c.name.slice(1).startsWith(query)) : allItems
       setSlashItems(filtered)
       setShowSlashMenu(filtered.length > 0)
@@ -82,7 +86,7 @@ export function useInputHandlers({
     } else {
       setShowSuggestions(false)
     }
-  }, [input, inputRef, availableSkills, allFiles, isFetchingFiles, setInput])
+  }, [input, inputRef, availableSkills, nativeCommands, allFiles, isFetchingFiles, setInput])
 
   const selectSuggestion = useCallback((file: string) => {
     const textBeforeAt = input.slice(0, suggestionTriggerPos)

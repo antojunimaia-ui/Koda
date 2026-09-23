@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { Agent } from '../core/agent.js'
+import { AppSettings } from '../config/settings.js'
 
 export interface HyperEditEvent {
   type: 'start' | 'agent_start' | 'agent_done' | 'complete' | 'error'
@@ -87,7 +88,8 @@ export async function runHyperEdit(
   request: string,
   cwd: string,
   onEvent: (event: HyperEditEvent) => void,
-  coordinator?: (task: string, candidates: string[], requestedAgents: number) => Promise<HyperEditPlan>
+  coordinator?: (task: string, candidates: string[], requestedAgents: number) => Promise<HyperEditPlan>,
+  settings?: AppSettings
 ): Promise<string> {
   const parsed = parseRequest(request)
   if (!parsed.task) throw new Error('Use: /hyperedit <tarefa> --files arquivo1 arquivo2 [--agents 1-5]')
@@ -123,7 +125,7 @@ export async function runHyperEdit(
       const relativeFiles = group.files.map(file => path.relative(cwd, file).replace(/\\/g, '/'))
       onEvent({ type: 'agent_start', agentId: id, message: `${id} editando: ${relativeFiles.join(', ')}` })
 
-      const worker = new Agent()
+      const worker = new Agent(settings)
       worker.setCwd(workerRoot)
       await worker.initialize()
       const output: string[] = []

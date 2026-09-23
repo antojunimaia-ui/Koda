@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Workspace, AttachedFile } from '../types/index.js'
 import { nextId } from './useAgentStream.js'
 import { KoDB } from '../db/kodb.js'
@@ -45,6 +45,19 @@ export function useMessageActions({
   taskStartsRef,
   scheduleScroll,
 }: UseMessageActionsOptions) {
+
+  // Native slash command names — fetched once from main process
+  const knownCmdsRef = useRef<Set<string>>(new Set([
+    '/clear', '/help', '/reset', '/model', '/apikey', '/tokens', '/cost', '/debug', '/hyperedit',
+  ]))
+
+  useEffect(() => {
+    window.koda.getSlashCommands().then((res: any) => {
+      if (res?.success) {
+        knownCmdsRef.current = new Set(res.commands.map((c: { name: string }) => `/${c.name}`))
+      }
+    }).catch(() => {/* non-fatal */})
+  }, [])
 
   // ── Slash command handler ──────────────────────────────────────────────────
   const runSlashCommand = useCallback(async (cmd: string, parts: string[], ws: Workspace) => {
@@ -124,10 +137,10 @@ export function useMessageActions({
     if (userMsg.startsWith('/')) {
       const parts = userMsg.toLowerCase().split(' ')
       const cmd = parts[0]
-      const knownCmds = ['/clear', '/help', '/reset', '/model', '/apikey', '/tokens', '/cost', '/debug', '/hyperedit']
+      const knownCmds = knownCmdsRef.current
       const handled = await runSlashCommand(cmd, parts, ws)
       if (handled) return
-      if (!knownCmds.includes(cmd)) {
+      if (!knownCmds.has(cmd)) {
         updateWorkspace(ws.id, prev => ({ ...prev, messages: [...prev.messages, { id: nextId(), type: 'system', text: `🎯 Activating skill: ${cmd.slice(1)}...` }] }))
       }
     }

@@ -27,6 +27,7 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs/promises';
 import { HyperEditPlan, runHyperEdit } from '../services/hyperedit.js';
+import { NATIVE_SLASH_COMMANDS } from './slash-commands.js';
 
 
 
@@ -42,8 +43,8 @@ export class Agent {
   /** CWD isolado por instância — nunca usa process.chdir() */
   private cwd: string = process.cwd();
 
-  constructor() {
-    this.settings = getSettings();
+  constructor(settings?: AppSettings) {
+    this.settings = settings ?? getSettings();
     this.tools = new ToolRegistry(this.settings);
     
     // Build initial system prompt (without project rules - those load in initialize)
@@ -62,6 +63,10 @@ export class Agent {
 
   getCwd(): string {
     return this.cwd;
+  }
+
+  getSettings(): AppSettings {
+    return this.settings;
   }
 
   private async createProviderAsync(): Promise<BaseProvider> {
@@ -178,19 +183,22 @@ export class Agent {
       
       if (commandText === "/help") {
         const allSkills = await skillManager.getAll(this.cwd);
+        const nativeList = NATIVE_SLASH_COMMANDS
+          .map(c => `- \`/${c.name}\`: ${c.description}`)
+          .join('\n');
         const skillList = allSkills.length > 0
           ? '\n\n**Skills:**\n' + allSkills.map(s => `- \`/${s.name}\`${s.description ? ` — ${s.description}` : ''}`).join('\n')
           : '';
-         onText(`🛠️ **Available Koda Commands:**\n\n- \`/clear\` or \`/reset\`: Clears current conversation history and agent memory\n- \`/tokens\` or \`/cost\`: Displays an estimate of LLM token usage and cost\n- \`/hyperedit <task> --files <files> [--agents 1-5]\`: Runs isolated editing agents on authorized files\n- \`/help\`: Displays this help menu\n- \`/<skill-name> [message]\`: Activates a skill and optionally sends a message${skillList}\n\n*Tip: Click on the **PATH** display in the header to change your working directory natively.*`);
-         return;
-       }
+        onText(`🛠️ **Available Koda Commands:**\n\n${nativeList}${skillList}\n\n*Tip: Click on the **PATH** display in the header to change your working directory natively.*`);
+        return;
+      }
 
        if (commandText.startsWith("/hyperedit")) {
          const request = userMessage.trim().slice('/hyperedit'.length).trim();
          try {
            const summary = await runHyperEdit(request, this.cwd, event => {
              onText(`\n> ${event.message}\n`);
-           }, (task, candidates, requestedAgents) => this.createHyperEditPlan(task, candidates, requestedAgents));
+           }, (task, candidates, requestedAgents) => this.createHyperEditPlan(task, candidates, requestedAgents), this.settings);
            onText(summary);
          } catch (error) {
            onError(`HyperEdit: ${(error as Error).message}`);

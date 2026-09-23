@@ -4,6 +4,7 @@ import { Agent } from '../core/agent.js'
 import { createSnapshot, restoreSnapshot } from '../services/snapshot.js'
 import { clearTrackedFiles } from '../services/file-tracker.js'
 import { sessionManager } from '../services/session-manager.js'
+import { NATIVE_SLASH_COMMANDS } from '../core/slash-commands.js'
 import { fileWatcher } from '../services/file-watcher.js'
 import { resolvePlanApproval } from '../tools/plan.js'
 import { resolveQuestions } from '../tools/questions.js'
@@ -229,6 +230,10 @@ export function registerAgentHandlers(
   ipcMain.handle('agent:update_approved_commands', async (_event, lists) => {
     ShellTool.updateApprovedCommands(lists)
     return { success: true }
+  })
+
+  ipcMain.handle('agent:get_slash_commands', async () => {
+    return { success: true, commands: NATIVE_SLASH_COMMANDS }
   })
 
   ipcMain.handle('agent:getModels', async (_event, provider: string, apiKey: string) => {

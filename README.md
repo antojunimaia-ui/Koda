@@ -225,12 +225,15 @@ TEMPERATURE=0.3
 
 ## Native Commands
 
+Commands are defined in `src/main/core/slash-commands.ts` and auto-discovered by the frontend at startup — no hardcoded lists in the UI.
+
 | Command | Description |
 | :--- | :--- |
 | `/help` | Shows the command reference |
 | `/clear` | Clears chat messages |
 | `/reset` | Resets conversation memory |
 | `/tokens` | Displays estimated token usage |
+| `/hyperedit <task> --files <files> [--agents N]` | Coordinates isolated parallel editing agents (1–5) |
 | `/model --<name>` | Switches the active model |
 | `/apikey <key>` | Sets the API key inline |
 | `/<skill-name> [message]` | Activates a skill |
@@ -306,7 +309,7 @@ src/
 │   │   └── koda-asset.ts          # koda-asset:// custom protocol (serves local files to webview)
 │   ├── ipc/                       # IPC handlers split by domain
 │   │   ├── index.ts               # Barrel — registers all handler groups
-│   │   ├── agent.ts               # Agent lifecycle, getModels, snapshot/rollback
+│   │   ├── agent.ts               # Agent lifecycle, getModels, snapshot/rollback, get_slash_commands
 │   │   ├── window.ts              # Window controls, updater install, directory picker
 │   │   ├── project.ts             # Filesystem operations (read, write, delete, rename, create)
 │   │   ├── pty.ts                 # PTY terminal handlers (start, write, resize, kill)
@@ -317,6 +320,7 @@ src/
 │   │   └── koclaw.ts              # KoClaw webhook server handlers
 │   ├── core/
 │   │   ├── agent.ts               # Agent class: provider lifecycle, message loop, tool orchestration
+│   │   ├── slash-commands.ts      # ★ Canonical slash command definitions — single source of truth
 │   │   ├── conversation.ts        # Message history, microCompact, trimIfNeeded, rollback
 │   │   ├── prompt-builder.ts      # Dynamic system prompt assembly (env + project + tools)
 │   │   └── context.ts             # Project detection (language, framework, package manager)
@@ -338,16 +342,30 @@ src/
 │   │   ├── maritaca.ts
 │   │   ├── ollama.ts
 │   │   └── llamacpp.ts
-│   ├── tools/                     # 21 agent tools (all extend BaseTool)
+│   ├── tools/                     # 25 agent tools (all extend BaseTool)
 │   │   ├── index.ts               # ToolRegistry: registration, mode filtering, plan-mode lock
 │   │   ├── shell.ts               # ShellTool + PTY registry + KillPty/ListPty/ShellInput/ShellWait
+│   │   ├── file-read.ts           # File reading with optional line range
+│   │   ├── file-write.ts          # File creation/overwrite
 │   │   ├── file-edit.ts           # String-replace edit with unified diff output
+│   │   ├── file-move.ts           # File/directory move and rename
+│   │   ├── file-delete.ts         # File deletion
+│   │   ├── file-find.ts           # Glob-pattern file search via globby
+│   │   ├── list-dir.ts            # Directory listing with file sizes
+│   │   ├── search.ts              # Regex search across files (ripgrep when available)
+│   │   ├── browser.ts             # Browser agent via operant-runner.js
+│   │   ├── lsp.ts                 # LSP semantic queries (hover, goToDefinition)
+│   │   ├── diagnostics.ts         # TypeScript/LSP diagnostics
+│   │   ├── web-search.ts          # Web search tool
+│   │   ├── web-fetch.ts           # HTTP fetch tool
+│   │   ├── skill.ts               # Skill loader tool
 │   │   ├── collaborate.ts         # Advisor LLM session (StartColab/SendColab/EndColab)
 │   │   ├── plan.ts                # Plan mode state machine + approval Promise
 │   │   ├── questions.ts           # Questions tool — wizard panel, blocks via Promise
 │   │   └── mcp-tool.ts            # Dynamic MCP tool wrapper
 │   ├── services/
 │   │   ├── snapshot.ts            # In-memory workspace snapshots (create/restore/list)
+│   │   ├── hyperedit.ts           # HyperEdit — parallel multi-agent file editing coordinator
 │   │   ├── mcp-manager.ts         # MCP server lifecycle + JSON-RPC tool discovery
 │   │   ├── lsp-client.ts          # typescript-language-server client
 │   │   ├── file-tracker.ts        # In-session file access tracker
@@ -367,16 +385,18 @@ src/
 │       └── logger.ts              # Logging utilities
 ├── preload/
 │   └── index.ts                   # contextBridge — exposes window.koda API to renderer
+│                                  # includes getSlashCommands() for auto-discovery
 └── renderer/                      # React 19 + Tailwind CSS 4
     ├── App.tsx                    # Root composition layer (~300 lines, hooks + render only)
     ├── types/index.ts             # Workspace, AgentInfo, MessageEntry and all shared interfaces
+    ├── global.d.ts                # window.koda type declarations
     ├── db/
     │   └── kodb.ts                # Typed localStorage wrapper (KoDB)
     ├── hooks/
     │   ├── useWorkspaces.ts       # Workspace CRUD, split view, tab switching, activeId
     │   ├── useTheme.ts            # CSS custom property application + KoDB persistence
     │   ├── useAgentInit.ts        # Agent bootstrap, provider model auto-fetch, updater, skills
-    │   ├── useInputHandlers.ts    # Slash command menu, @file suggestions, input history
+    │   ├── useInputHandlers.ts    # Slash menu (auto-discovered via IPC), @file suggestions, history
     │   ├── useMessageActions.ts   # handleSend, handleRollback, handleStop, handlePathClick, handlePaste
     │   ├── useAgentStream.ts      # IPC event subscriber — per-workspace chunk buffers + RAF flush loops
     │   ├── useSession.ts          # Project session load — workspace-isolated CWD tracking

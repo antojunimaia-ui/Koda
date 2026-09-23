@@ -25,6 +25,7 @@ declare global {
       shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => Promise<{ success: boolean }>
       getApprovedCommands: () => Promise<{ base: string[], full: string[] }>
       updateApprovedCommands: (lists: { base?: string[], full?: string[] }) => Promise<{ success: boolean }>
+      getSlashCommands: () => Promise<{ success: boolean; commands: Array<{ name: string; description: string; icon: string }> }>
       ptySendCtrlC: (pid: number) => Promise<{ success: boolean; error?: string }>
       ptyKill: (pid: number) => Promise<{ success: boolean; error?: string }>
       ptyStart: (workspaceId?: string, cwd?: string) => Promise<{ success: boolean; pid: number }>
