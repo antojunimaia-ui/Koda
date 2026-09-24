@@ -220,7 +220,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
         {onToggleIDEMode && (
           <button
             onClick={onToggleIDEMode}
-            title={isIDEWindow ? 'Open Agent Chat' : 'Open IDE Window'}
+            title={isIDEWindow ? 'Open ADE' : 'Open IDE'}
             className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white rounded transition-colors no-drag"
           >
             <svg

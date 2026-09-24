@@ -33,6 +33,14 @@ export function registerWindowHandlers(
     }
   })
 
+  ipcMain.handle('window:open_ade', () => {
+    const win = getMainWindow()
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
+  })
+
   ipcMain.handle('window:open_external', async (_event, url: string) => {
     try {
       await shell.openExternal(url)

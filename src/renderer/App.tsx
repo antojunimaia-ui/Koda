@@ -83,7 +83,7 @@ const App: React.FC = () => {
     [kodaSettings, isIDEWindow]
   )
   const handleToggleIDEMode = useCallback(() => {
-    isIDEWindow ? window.koda?.openAgent?.() : window.koda?.openIDE?.()
+    isIDEWindow ? window.koda?.openADE?.() : window.koda?.openIDE?.()
   }, [isIDEWindow])
 
   // ── UI visibility ─────────────────────────────────────────────────────────

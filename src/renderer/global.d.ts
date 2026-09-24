@@ -76,6 +76,7 @@ declare global {
       onUpdaterEvent: (callback: (event: string, data?: any) => void) => (() => void)
       openIDE: () => Promise<void>
       openAgent: () => Promise<void>
+      openADE: () => Promise<void>
     }
   }
 }
