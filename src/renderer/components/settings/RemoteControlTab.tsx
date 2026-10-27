@@ -9,6 +9,7 @@ function generateToken(): string {
 
 const RemoteControlTab = memo(() => {
   const [port, setPort] = useState(() => Number(localStorage.getItem('koda_koclaw_port') || DEFAULT_PORT))
+  const [allowRemoteAccess, setAllowRemoteAccess] = useState(() => localStorage.getItem('koda_koclaw_remote') === 'true')
   const [token] = useState(() => {
     let t = localStorage.getItem('koda_koclaw_token')
     if (!t) {
@@ -33,7 +34,8 @@ const RemoteControlTab = memo(() => {
   const handleToggle = async () => {
     setError('')
     if (!status.running) {
-      const res = await window.koda.koClawStart({ port, token } as any)
+      localStorage.setItem('koda_koclaw_remote', String(allowRemoteAccess))
+      const res = await window.koda.koClawStart({ port, token, allowRemoteAccess } as any)
       if (!(res as any).success) {
         setError((res as any).error || 'Failed to start')
         return
@@ -106,6 +108,24 @@ const RemoteControlTab = memo(() => {
             className="w-28 bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-indigo-500 transition-colors disabled:opacity-40"
           />
           {status.running && <p className="text-[10px] text-slate-500">Stop the server to change the port.</p>}
+        </div>
+
+        {/* Allow Remote Access checkbox */}
+        <div className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allowRemoteAccess}
+              onChange={(e) => setAllowRemoteAccess(e.target.checked)}
+              disabled={status.running}
+              className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:cursor-not-allowed"
+            />
+            <span className="text-xs font-medium text-slate-300">Allow network access</span>
+          </label>
+          <p className="text-[10px] text-slate-500 leading-relaxed">
+            Enable connections from other devices on your network (0.0.0.0). Default is localhost only (127.0.0.1).
+            <span className="text-amber-400"> ⚠ Only enable on trusted networks.</span>
+          </p>
         </div>
 
         <div className="flex flex-col gap-1.5">

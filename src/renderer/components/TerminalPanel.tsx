@@ -28,7 +28,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = memo(({ onClose, cwd, worksp
         selectionBackground: '#334D5C',
       },
       fontSize: 12,
-      fontFamily: '"Cascadia Code", "Fira Code", monospace',
+      fontFamily: 'var(--font-mono)',
       letterSpacing: 0,
       lineHeight: 1.2,
     })

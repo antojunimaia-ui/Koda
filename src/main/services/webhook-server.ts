@@ -6,6 +6,7 @@ export interface WebhookConfig {
   port: number;
   token: string;
   enabled: boolean;
+  allowRemoteAccess?: boolean; // Allow connections from network (0.0.0.0) instead of localhost only
 }
 
 let server: http.Server | null = null;
@@ -15,8 +16,6 @@ function json(res: http.ServerResponse, status: number, data: unknown) {
   const body = JSON.stringify(data);
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   });
   res.end(body);
 }
@@ -56,7 +55,6 @@ export function startWebhookServer(
       // CORS preflight
       if (method === 'OPTIONS') {
         res.writeHead(204, {
-          'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type,Authorization',
         });
@@ -190,8 +188,9 @@ export function startWebhookServer(
       }
     });
 
-    server.listen(config.port, '0.0.0.0', () => {
-      console.log(`[KoClaw] Server listening on 0.0.0.0:${config.port}`);
+    const host = config.allowRemoteAccess ? '0.0.0.0' : '127.0.0.1';
+    server.listen(config.port, host, () => {
+      console.log(`[KoClaw] Server listening on ${host}:${config.port}`);
       resolve();
     });
   });

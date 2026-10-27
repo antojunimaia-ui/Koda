@@ -5,7 +5,7 @@ export function registerKoclawHandlers(
   agents: Map<string, Agent>,
   getWindows: () => (BrowserWindow | null)[]
 ) {
-  ipcMain.handle('koclaw:start', async (_event, config: { port: number; token: string }) => {
+  ipcMain.handle('koclaw:start', async (_event, config: { port: number; token: string; allowRemoteAccess?: boolean }) => {
     try {
       const { startWebhookServer } = await import('../services/webhook-server.js')
       const getAgentWithId = () => {
@@ -14,7 +14,7 @@ export function registerKoclawHandlers(
         return { agent: entry[1] as Agent, workspaceId: entry[0] as string }
       }
       await startWebhookServer(
-        { port: config.port, token: config.token, enabled: true },
+        { port: config.port, token: config.token, enabled: true, allowRemoteAccess: config.allowRemoteAccess },
         getAgentWithId,
         () => getWindows().filter((w): w is BrowserWindow => !!w)
       )

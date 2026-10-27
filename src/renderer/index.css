@@ -3,6 +3,9 @@
 @import "./codicons.css";
 
 :root {
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
   --koda-bg:           #0f172a;
   --koda-bg-alt:       #0d1117;
   --koda-sidebar:      #16161e;
@@ -33,6 +36,9 @@
 }
 
 @theme {
+  --font-family-ui: var(--font-ui);
+  --font-family-mono: var(--font-mono);
+
   --color-cyan:      var(--koda-accent);
   --color-magenta:   var(--koda-accent-alt);
   --color-slate-900: var(--koda-bg);
@@ -54,8 +60,16 @@
     height: 100vh;
     width: 100vw;
     overflow: hidden;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: var(--font-ui);
   }
+}
+
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
 }
 
 .titlebar-drag {

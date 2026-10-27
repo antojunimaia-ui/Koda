@@ -38,8 +38,12 @@ dist-electron
 
 # Custom CLI data
 .koda/
+.agents/
 Release Messages/
 FUTURE.md
 RULES.md
 Messageslog.md
 Designs/
+
+# Ideas and internal notes
+ideias.md

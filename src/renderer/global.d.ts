@@ -51,7 +51,7 @@ declare global {
       marketplaceFetch: () => Promise<{ success: boolean; skills: any[]; error?: string }>
       marketplaceInstall: (skillName: string, version?: string) => Promise<{ success: boolean; error?: string }>
       marketplaceUninstall: (skillName: string) => Promise<{ success: boolean; error?: string }>
-      koClawStart: (config: { token: string; channelId?: string }) => Promise<{ success: boolean; error?: string }>
+      koClawStart: (config: { port: number; token: string; allowRemoteAccess?: boolean }) => Promise<{ success: boolean; error?: string }>
       koClawStop: () => Promise<{ success: boolean }>
       koClawStatus: () => Promise<{ running: boolean; port: number | null }>
       discordEnable: () => Promise<{ success: boolean; error?: string }>
