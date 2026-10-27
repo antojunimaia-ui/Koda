@@ -36,7 +36,6 @@ export interface ExplorerPanelOverlayProps {
   onClose: () => void
   explorerTabPosition: 'iconbar' | 'titlebar'
   onMoveTo: (pos: ExplorerPosition) => void
-  zIndex?: number
   width: number
   onStartResize: () => void
 }

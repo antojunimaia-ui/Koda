@@ -179,7 +179,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[99999] flex flex-col font-sans select-none overflow-hidden" style={{ background: '#09090b' }}>
+    <div className="fixed inset-0 z-wizard flex flex-col font-sans select-none overflow-hidden" style={{ background: '#09090b' }}>
 
       {/* Titlebar — drag region + window controls only */}
       <div className="titlebar-drag w-full h-8 shrink-0 flex items-center justify-end pr-0 border-b border-white/5">
@@ -206,7 +206,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
       </div>
 
       {/* Header — Stepper */}
-      <header className="relative z-10 w-full px-8 py-4 border-b border-white/5 flex items-center justify-between">
+      <header className="relative z-raised w-full px-8 py-4 border-b border-white/5 flex items-center justify-between">
         {/* Logo / Brand */}
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-md bg-white/10 flex items-center justify-center">
@@ -248,7 +248,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
       </header>
 
       {/* Main content */}
-      <main className="relative z-10 flex-1 w-full max-w-3xl mx-auto px-6 py-10 flex flex-col justify-center overflow-y-auto custom-scrollbar">
+      <main className="relative z-raised flex-1 w-full max-w-3xl mx-auto px-6 py-10 flex flex-col justify-center overflow-y-auto custom-scrollbar">
 
         {/* STEP 1: Theme */}
         {step === 1 && (
@@ -464,7 +464,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 w-full px-8 py-4 border-t border-white/5 flex items-center justify-between">
+      <footer className="relative z-raised w-full px-8 py-4 border-t border-white/5 flex items-center justify-between">
         {step > 1 ? (
           <button
             onClick={() => setStep((s) => (s - 1) as any)}
@@ -498,7 +498,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
 
       {/* Koda Cloud Data Privacy Modal Overlay */}
       {showKodaCloudModal && (
-        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+        <div className="fixed inset-0 z-wizard-modal flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
           <div className="w-full max-w-lg bg-[#09090b] border border-white/10 rounded-xl shadow-2xl overflow-hidden flex flex-col font-sans select-none">
             {/* Header */}
             <div className="px-6 py-4 bg-white/[0.03] border-b border-white/8 flex items-center justify-between">

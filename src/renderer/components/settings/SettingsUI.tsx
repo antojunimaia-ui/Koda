@@ -188,7 +188,7 @@ const SettingsUI = memo(({
   }
 
   return (
-    <div className={`absolute inset-0 z-9999 flex items-center justify-center animate-in fade-in duration-150 ${uiMode === 'modern' ? 'bg-black/75' : 'bg-black/85'}`} onClick={onClose}>
+    <div className={`absolute inset-0 z-modal flex items-center justify-center animate-in fade-in duration-150 ${uiMode === 'modern' ? 'bg-black/75' : 'bg-black/85'}`} onClick={onClose}>
       <div className={`flex w-240 h-160 border rounded-xl overflow-hidden shadow-2xl ${uiMode === 'modern' ? 'bg-[#141414] border-white/8' : 'bg-slate-900 border-slate-700/50'}`} onClick={handleWrapperClick}>
 
         {/* Sidebar */}

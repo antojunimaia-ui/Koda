@@ -87,7 +87,7 @@ export const GitBranchPicker: React.FC<GitBranchPickerProps> = ({ cwd, onCheckou
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[9999] animate-in fade-in slide-in-from-bottom-1 duration-150">
+        <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-dropdown animate-in fade-in slide-in-from-bottom-1 duration-150">
           <div className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-zinc-600 border-b border-white/5">
             Switch Branch
           </div>

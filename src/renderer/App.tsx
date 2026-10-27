@@ -518,7 +518,6 @@ const App: React.FC = () => {
           onClose={() => setShowExplorer(false)}
           explorerTabPosition="titlebar" onMoveTo={() => {}}
           width={explorerWidth} onStartResize={startResizingExplorer}
-          zIndex={100}
         />
       )}
     </div>

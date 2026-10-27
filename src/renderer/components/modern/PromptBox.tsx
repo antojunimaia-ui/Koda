@@ -148,7 +148,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
               )}
               <button 
                 onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
-                className={`absolute bg-rose-500 text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg transition-opacity z-10 ${
+                className={`absolute bg-rose-500 text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg transition-opacity z-raised ${
                   isIde 
                     ? '-top-1.5 -right-1.5 border-2 border-neutral-900' 
                     : '-top-2 -right-2 border-2 border-[#141414] opacity-0 group-hover:opacity-100'
@@ -221,7 +221,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`text-zinc-500 transition-transform duration-150 ${showModeMenu ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
               </button>
               {showModeMenu && (
-                <div className="absolute bottom-full right-0 mb-1 w-44 bg-[#0d1117] border border-white/10 rounded-xl shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-150 z-50">
+                <div className="absolute bottom-full right-0 mb-1 w-44 bg-[#0d1117] border border-white/10 rounded-xl shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-150 z-dropdown">
                   <div className="p-1">
                     {MODES.map(m => (
                       <button

@@ -72,7 +72,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
       </button>
 
       {showDropdown && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 z-1100">
+        <div className="absolute top-full left-0 mt-1 w-64 bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 z-dropdown">
           <div className="p-1">
             {MODES.map((m) => (
               <button
@@ -102,14 +102,14 @@ const TitleBar: React.FC<TitleBarProps> = ({
   )
 
   return (
-    <div className={`relative h-8 flex items-center justify-between select-none titlebar-drag shrink-0 z-1000 ${uiMode === 'modern' ? 'bg-transparent pr-3' : 'bg-slate-900 border-b border-white/5 px-3'}`}>
+    <div className={`relative h-8 flex items-center justify-between select-none titlebar-drag shrink-0 z-chrome ${uiMode === 'modern' ? 'bg-transparent pr-3' : 'bg-slate-900 border-b border-white/5 px-3'}`}>
       
       {/* Custom bottom border for Modern UI (starts after Iconbar) */}
       {uiMode === 'modern' && (
         <div className={`absolute bottom-0 right-0 h-px bg-white/5 ${showIconBar ? 'left-64' : 'left-0'}`} />
       )}
 
-      <div className="flex items-center h-full relative z-10">
+      <div className="flex items-center h-full relative z-raised">
         
         {/* Visual extension of the IconBar directly inside the TitleBar */}
         {uiMode === 'modern' && (

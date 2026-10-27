@@ -166,7 +166,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
                 )}
                 <button 
                   onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
-                  className="absolute -top-2 -right-2 bg-[#ff4b4b] text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-[#141414] opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  className="absolute -top-2 -right-2 bg-[#ff4b4b] text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-[#141414] opacity-0 group-hover:opacity-100 transition-opacity z-raised"
                 >✕</button>
               </div>
             ))}
@@ -249,7 +249,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
           ))}
         </div>
       )}
-      <div className={`terminal-input-container items-start transition-all ${isFocused ? 'bg-slate-900/95' : 'bg-slate-900/40 opacity-70'} backdrop-blur-sm z-20 border-t border-white/5`}>
+      <div className={`terminal-input-container items-start transition-all ${isFocused ? 'bg-slate-900/95' : 'bg-slate-900/40 opacity-70'} backdrop-blur-sm z-sticky border-t border-white/5`}>
         <span className={`font-bold mt-[6px] ${isProcessing ? 'text-amber-400' : 'text-cyan-400'}`}>❯</span>
         <textarea
           ref={textareaRef}
@@ -414,7 +414,7 @@ const SplitView: React.FC<SplitViewProps> = ({
       {/* Divider */}
       <div
         onMouseDown={handleMouseDown}
-        className="w-1 flex-shrink-0 cursor-col-resize flex items-center justify-center group hover:bg-indigo-500/40 transition-colors z-10"
+        className="w-1 flex-shrink-0 cursor-col-resize flex items-center justify-center group hover:bg-indigo-500/40 transition-colors z-raised"
         style={{ backgroundColor: 'var(--koda-border)' }}
       >
       </div>

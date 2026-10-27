@@ -219,12 +219,12 @@ export const ContextPanelOverlay: React.FC<ContextPanelOverlayProps> = ({
 }) => {
   return (
     <div
-      className="absolute top-10 bottom-0 right-0 z-50 animate-in slide-in-from-right duration-200 flex bg-[#141414] border-l border-white/5"
+      className="absolute top-10 bottom-0 right-0 z-panel animate-in slide-in-from-right duration-200 flex bg-[#141414] border-l border-white/5"
       style={{ width }}
     >
       <div
         onMouseDown={onStartResize}
-        className={`w-1 h-full cursor-col-resize transition-all z-[100] flex-shrink-0 flex items-center justify-center group ${
+        className={`w-1 h-full cursor-col-resize transition-all z-raised flex-shrink-0 flex items-center justify-center group ${
           isResizing ? 'bg-indigo-500 w-1.5' : 'bg-white/5 hover:bg-indigo-500/50'
         }`}
       />

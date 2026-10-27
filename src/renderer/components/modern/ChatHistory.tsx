@@ -189,7 +189,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
                           {menuOpenId === session.id && (
                             <div
                               ref={menuRef}
-                              className="absolute right-1 top-7 z-50 bg-[#18181b] border border-white/10 rounded-md shadow-2xl py-1 w-32"
+                              className="absolute right-1 top-7 z-dropdown bg-[#18181b] border border-white/10 rounded-md shadow-2xl py-1 w-32"
                             >
                               <button
                                 onClick={(e) => handleDelete(e, project.path, session.id)}

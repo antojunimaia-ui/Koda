@@ -608,7 +608,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
               document.addEventListener('mousemove', handleMouseMove)
               document.addEventListener('mouseup', handleMouseUp)
             }}
-            className="w-1 cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
+            className="w-1 cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
           >
           </div>
         </>
@@ -916,7 +916,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                         document.addEventListener('mousemove', handleMouseMove)
                         document.addEventListener('mouseup', handleMouseUp)
                       }}
-                      className="h-1 w-full cursor-row-resize transition-all z-100 shrink-0 flex items-center justify-center group bg-white/5 hover:bg-indigo-500/50"
+                      className="h-1 w-full cursor-row-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-white/5 hover:bg-indigo-500/50"
                     >
                     </div>
                   )}
@@ -994,7 +994,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                 document.addEventListener('mousemove', handleMouseMove)
                 document.addEventListener('mouseup', handleMouseUp)
               }}
-              className="w-1 cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
+              className="w-1 cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
             >
             </div>
           )}

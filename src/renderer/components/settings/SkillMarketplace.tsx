@@ -114,7 +114,7 @@ const SkillMarketplace: React.FC = () => {
     <div className="flex flex-col gap-4 animate-in slide-in-from-left-2 duration-300 relative">
       {/* Toast */}
       {toast && (
-        <div className="absolute top-0 right-0 z-50 bg-slate-800 border border-slate-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-0 right-0 z-toast bg-slate-800 border border-slate-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           {toast}
         </div>
       )}

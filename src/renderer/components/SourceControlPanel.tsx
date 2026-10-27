@@ -216,7 +216,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
   ]
 
   return (
-    <div ref={panelRef} className="absolute top-8 bottom-0 right-0 flex bg-[#141414] border-l border-white/5" style={{ width, zIndex: 100 }}>
+    <div ref={panelRef} className="absolute top-8 bottom-0 right-0 flex bg-[#141414] border-l border-white/5 z-panel" style={{ width }}>
       {/* Resize handle */}
       <div onMouseDown={onStartResize} className={`w-1 h-full cursor-col-resize shrink-0 transition-colors ${isResizing ? 'bg-indigo-500' : 'bg-transparent hover:bg-indigo-500/50'}`} />
 
@@ -268,7 +268,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
                   </div>
                 )}
                 {showMenu && (
-                  <div className="absolute top-full right-0 mt-1 w-44 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="absolute top-full right-0 mt-1 w-44 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-dropdown animate-in fade-in slide-in-from-top-1 duration-150">
                     {menuItems.map(item => (
                       <button key={item.label} onClick={item.action} className="w-full text-left px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 transition-colors">{item.label}</button>
                     ))}
@@ -377,7 +377,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
           ref={detailRef}
           onMouseEnter={handlePopoverMouseEnter}
           onMouseLeave={handlePopoverMouseLeave}
-          className="absolute bg-[#1c1c1c] border border-white/10 rounded-lg flex flex-col z-50 animate-in fade-in duration-100"
+          className="absolute bg-[#1c1c1c] border border-white/10 rounded-lg flex flex-col z-dropdown animate-in fade-in duration-100"
           style={{
             right: width + 8,
             top: Math.min(

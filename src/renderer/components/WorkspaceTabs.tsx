@@ -41,7 +41,7 @@ const TabContextMenu: React.FC<{
   return (
     <div
       ref={ref}
-      className="fixed z-[9999] bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl py-1 min-w-[180px] animate-in fade-in slide-in-from-top-1 duration-100"
+      className="fixed z-dropdown bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl py-1 min-w-[180px] animate-in fade-in slide-in-from-top-1 duration-100"
       style={{ left: state.x, top: state.y }}
     >
       {onSplitWith && (

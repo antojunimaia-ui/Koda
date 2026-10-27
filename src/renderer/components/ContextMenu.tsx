@@ -132,7 +132,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClo
   return (
     <div
       ref={menuRef}
-      className="fixed z-[9999] min-w-[160px] py-0.5 bg-[#1e1e1e] border border-white/10 rounded shadow-2xl"
+      className="fixed z-dropdown min-w-[160px] py-0.5 bg-[#1e1e1e] border border-white/10 rounded shadow-2xl"
       style={{
         left: position.x,
         top: position.y,

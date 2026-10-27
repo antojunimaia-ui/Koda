@@ -103,7 +103,7 @@ const MarkdownWebview: React.FC<MarkdownWebviewProps> = ({ content, filePath }) 
   return (
     <div className="h-full w-full bg-[#141414] relative flex flex-col">
       {error && (
-        <div className="absolute top-0 left-0 right-0 bg-red-500/10 border-b border-red-500/30 text-red-400 px-4 py-2 text-xs z-10">
+        <div className="absolute top-0 left-0 right-0 bg-red-500/10 border-b border-red-500/30 text-red-400 px-4 py-2 text-xs z-raised">
           {error}
         </div>
       )}

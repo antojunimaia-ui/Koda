@@ -128,14 +128,14 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
           <div className="shrink-0 min-h-25 relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
             <BrowserPreview onClose={() => onBrowserClick()} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-              <div className={`absolute inset-0 z-100 ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+              <div className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
           </div>
         )}
         {hasBrowser && hasTerminal && (
           <div
             onMouseDown={startResizingHeight}
-            className={`h-1 w-full cursor-row-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-cyan-500 h-1.5' : 'bg-white/5 hover:bg-cyan-500/50'}`}
+            className={`h-1 w-full cursor-row-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-cyan-500 h-1.5' : 'bg-white/5 hover:bg-cyan-500/50'}`}
           >
           </div>
         )}
@@ -143,7 +143,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
           <div className="flex-1 overflow-hidden" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
             <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} workspaceId={activeId || undefined} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-              <div className={`absolute inset-0 z-100 ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+              <div className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
           </div>
         )}
@@ -207,7 +207,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
     >
       {/* Drag overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-100 border-2 border-dashed border-cyan-400/60 bg-cyan-900/20 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-raised border-2 border-dashed border-cyan-400/60 bg-cyan-900/20 flex items-center justify-center pointer-events-none">
           <div className="text-center">
             <div className="text-4xl mb-2">📂</div>
             <div className="text-cyan-300 font-bold text-lg">Drop files or images here</div>
@@ -254,7 +254,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
           {showLeft && (
             <div
               onMouseDown={startResizing}
-              className={`w-1 h-full cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizing ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
+              className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizing ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
               style={{ backgroundColor: isResizing ? 'var(--koda-accent)' : undefined }}
             >
             </div>
@@ -279,7 +279,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
             </div>
           ) : (
             <div className="flex flex-col flex-1 px-2 py-4 overflow-hidden relative min-w-0">
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-base">
                 <pre className="text-slate-500/10 text-[11px] md:text-sm lg:text-base leading-[1.1] select-none font-mono text-center filter blur-[0.2px] opacity-80">
                   {`:::    :::  ::::::::  :::::::::      :::
 :+:   :+:  :+:    :+: :+:    :+:   :+: :+:
@@ -291,7 +291,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                 </pre>
               </div>
 
-              <div className="terminal-header uppercase tracking-wider relative z-10">
+              <div className="terminal-header uppercase tracking-wider relative z-raised">
                 <div className="terminal-box flex flex-col gap-1">
                   <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-bold">
                     <span style={{ color: 'var(--koda-text-dim)' }}>Project: <span style={{ color: 'var(--koda-status-busy)' }}>{agentInfo.project}</span></span>
@@ -435,7 +435,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     </div>
                   )}
                   {showSlashMenu && slashItems.length > 0 && (
-                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-slate-800 border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden z-50">
+                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-slate-800 border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden z-dropdown">
                       {slashItems.map((item, i) => (
                         <button
                           key={item.name}
@@ -453,7 +453,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   )}
 
                   {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute bottom-full left-0 mb-2 w-72 bg-slate-800 border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col min-h-5 max-h-50">
+                    <div className="absolute bottom-full left-0 mb-2 w-72 bg-slate-800 border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden z-dropdown flex flex-col min-h-5 max-h-50">
                       <div className="px-3 py-1.5 border-b border-slate-700/50 text-[10px] font-bold text-slate-400 bg-slate-900/50 uppercase tracking-wider flex items-center justify-between">
                         <span className="text-[10px] font-bold">Suggestions</span>
                         <button onClick={() => setSuggestionIndex(-1)} className="text-[10px] text-slate-600 hover:text-rose-400 transition-colors">✕ clear</button>
@@ -475,7 +475,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     </div>
                   )}
 
-                  <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-20 ${initializing ? 'terminal-input-disabled' : ''}`}>
+                  <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-sticky ${initializing ? 'terminal-input-disabled' : ''}`}>
                     <span className={`font-bold mt-1.5 ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
                     {initializing ? (
                       <span className="text-slate-600 animate-pulse italic text-sm">Initializing...</span>
@@ -506,7 +506,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
           {showRight && (
             <div
               onMouseDown={startResizingRight}
-              className={`w-1 h-full cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizingRight ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
+              className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingRight ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
               style={{ backgroundColor: isResizingRight ? 'var(--koda-accent)' : undefined }}
             >
             </div>

@@ -146,7 +146,7 @@ function useTour(steps: TourStep[], visible: boolean) {
 // ─── Shared render ────────────────────────────────────────────────────────────
 
 function TourOverlay({
-  steps, step, pos, ready, tooltipRef, onDismiss, onNext, zBase = 2000
+  steps, step, pos, ready, tooltipRef, onDismiss, onNext
 }: {
   steps: TourStep[]
   step: number
@@ -155,7 +155,6 @@ function TourOverlay({
   tooltipRef: React.RefObject<HTMLDivElement | null>
   onDismiss: () => void
   onNext: () => void
-  zBase?: number
 }) {
   const current = steps[step]
   const targetRect = pos.targetRect
@@ -185,19 +184,19 @@ function TourOverlay({
 
   return (
     <>
-      <div className="fixed inset-0 pointer-events-none" style={{ background: 'rgba(0,0,0,0.45)', zIndex: zBase }} />
+      <div className="fixed inset-0 pointer-events-none z-tour" style={{ background: 'rgba(0,0,0,0.45)' }} />
       {targetRect && (
-        <div className="fixed rounded-lg pointer-events-none" style={{
+        <div className="fixed rounded-lg pointer-events-none z-tour-spotlight" style={{
           top: targetRect.top - 4, left: targetRect.left - 4,
           width: targetRect.width + 8, height: targetRect.height + 8,
           boxShadow: '0 0 0 9999px rgba(0,0,0,0.45), 0 0 0 2px rgba(99,102,241,0.8)',
-          transition: 'all 0.25s ease', zIndex: zBase + 1,
+          transition: 'all 0.25s ease',
         }} />
       )}
-      <div ref={tooltipRef} className="fixed pointer-events-auto" style={{
+      <div ref={tooltipRef} className="fixed pointer-events-auto z-tour-tooltip" style={{
         top: pos.top, left: pos.left,
         opacity: ready ? 1 : 0, transition: 'opacity 0.2s ease',
-        width: tw, zIndex: zBase + 2,
+        width: tw,
       }}>
         <div className="bg-[#0a0a0b] border border-white/10 rounded-2xl shadow-2xl p-4 relative">
           {targetRect && <div className={`absolute w-0 h-0 ${arrowClass}`} style={arrowStyle()} />}
@@ -236,7 +235,6 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ show, mode, active, onD
         pos={sPos}
         ready={sReady}
         tooltipRef={sRef}
-        zBase={9000}
         onDismiss={() => { localStorage.setItem('koda_settings_tour_done', '1'); onDone?.() }}
         onNext={() => {
           if (sStep < SETTINGS_STEPS.length - 1) {

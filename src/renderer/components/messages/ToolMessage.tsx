@@ -204,7 +204,7 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
               </button>
 
               {showDropdown && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-[100] overflow-hidden animate-in slide-in-from-top-1 duration-200">
+                <div className="absolute right-0 top-full mt-1.5 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-popover overflow-hidden animate-in slide-in-from-top-1 duration-200">
                   <button
                     onClick={async () => {
                       await window.koda.shellResponse(true, true, false)

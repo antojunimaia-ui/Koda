@@ -88,7 +88,7 @@ const ShellApprovalPanel = memo(({ command, baseCommand, variant = 'modern' }: S
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 bottom-full mb-1.5 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-[200] overflow-hidden animate-in slide-in-from-bottom-1 duration-200">
+              <div className="absolute right-0 bottom-full mb-1.5 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-popover overflow-hidden animate-in slide-in-from-bottom-1 duration-200">
                 <button
                   onClick={async () => {
                     await window.koda.shellResponse(true, true, false)

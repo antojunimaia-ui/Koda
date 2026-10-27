@@ -84,7 +84,7 @@ const ExplorerButton: React.FC<{
       {menu && (
         <div
           ref={menuRef}
-          className="fixed z-9999 bg-[#141414] border border-white/10 rounded-xl shadow-2xl py-1 w-52"
+          className="fixed z-dropdown bg-[#141414] border border-white/10 rounded-xl shadow-2xl py-1 w-52"
           style={{ top: menu.y, left: menu.x }}
         >
           <div className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-600">Move to</div>
@@ -576,14 +576,14 @@ const ModernUI: React.FC<ModernUIProps> = ({
           <div className="shrink-0 min-h-25 relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
             <BrowserPreview onClose={() => onBrowserClick()} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-                <div className={`absolute inset-0 z-100 ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+                <div className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
           </div>
         )}
         {hasBrowser && hasTerminal && (
           <div
             onMouseDown={startResizingHeight}
-            className={`h-1 w-full cursor-row-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
+            className={`h-1 w-full cursor-row-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
           >
           </div>
         )}
@@ -591,7 +591,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
           <div className="flex-1 min-h-25 relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
             <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-                <div className={`absolute inset-0 z-100 ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+                <div className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
             )}
           </div>
         )}
@@ -649,7 +649,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
         {kodaSettings.showIconBar && (
           <div
             id="tour-iconbar"
-            className="w-64 bg-[#141414] border-r border-white/5 flex flex-col shrink-0 z-1100 overflow-hidden"
+            className="w-64 bg-[#141414] border-r border-white/5 flex flex-col shrink-0 z-chrome overflow-hidden"
           >
             {/* Sessions — inline, sempre visível */}
             <ChatHistory
@@ -937,7 +937,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
           {showLeft && (
             <div
               onMouseDown={startResizing}
-              className={`w-1 h-full cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
+              className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
             >
             </div>
           )}
@@ -1129,7 +1129,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
           {showRight && (
             <div
               onMouseDown={startResizingRight}
-              className={`w-1 h-full cursor-col-resize transition-all z-100 shrink-0 flex items-center justify-center group ${isResizingRight ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
+              className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingRight ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
             >
             </div>
           )}

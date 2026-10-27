@@ -33,7 +33,41 @@
 
   --koda-user-msg:     rgba(30, 41, 59, 0.4);
   --koda-tool-msg:     rgba(15, 23, 42, 0.6);
+
+  /* Z-index scale — single source of truth for stacking layers */
+  --koda-z-base:          0;
+  --koda-z-raised:        10;
+  --koda-z-sticky:        20;
+  --koda-z-panel:        100;
+  --koda-z-chrome:       150;
+  --koda-z-dropdown:     200;
+  --koda-z-popover:      300;
+  --koda-z-modal:        400;
+  --koda-z-toast:        500;
+  --koda-z-tour:         600;
+  --koda-z-wizard:       700;
+  --koda-z-wizard-modal: 800;
 }
+
+/* ─── Z-index utilities ──────────────────────────────────────────────────────
+   Semantic layering instead of arbitrary values. Order, low → high:
+   base < raised < sticky < panel < chrome < dropdown < popover < modal < toast <
+   tour < wizard < wizard-modal
+   ────────────────────────────────────────────────────────────────────────── */
+@utility z-base           { z-index: var(--koda-z-base); }
+@utility z-raised         { z-index: var(--koda-z-raised); }
+@utility z-sticky         { z-index: var(--koda-z-sticky); }
+@utility z-panel          { z-index: var(--koda-z-panel); }
+@utility z-chrome         { z-index: var(--koda-z-chrome); }
+@utility z-dropdown       { z-index: var(--koda-z-dropdown); }
+@utility z-popover        { z-index: var(--koda-z-popover); }
+@utility z-modal          { z-index: var(--koda-z-modal); }
+@utility z-toast          { z-index: var(--koda-z-toast); }
+@utility z-tour           { z-index: var(--koda-z-tour); }
+@utility z-tour-spotlight { z-index: calc(var(--koda-z-tour) + 1); }
+@utility z-tour-tooltip   { z-index: calc(var(--koda-z-tour) + 2); }
+@utility z-wizard         { z-index: var(--koda-z-wizard); }
+@utility z-wizard-modal   { z-index: var(--koda-z-wizard-modal); }
 
 @theme {
   --font-family-ui: var(--font-ui);

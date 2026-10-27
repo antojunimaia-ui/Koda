@@ -70,7 +70,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = memo(({
       {/* Drop indicator line - BEFORE */}
       {showBeforeLine && (
         <div
-          className="absolute left-0 right-0 h-[2px] bg-cyan-400 z-10"
+          className="absolute left-0 right-0 h-[2px] bg-cyan-400 z-raised"
           style={{
             top: '-1px',
             marginLeft: `${6 + depth * 14}px`,
@@ -196,7 +196,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = memo(({
       {/* Drop indicator line - AFTER */}
       {showAfterLine && (
         <div
-          className="absolute left-0 right-0 h-[2px] bg-cyan-400 z-10"
+          className="absolute left-0 right-0 h-[2px] bg-cyan-400 z-raised"
           style={{
             bottom: '-1px',
             marginLeft: `${6 + depth * 14}px`,
