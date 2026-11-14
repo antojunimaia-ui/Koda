@@ -24,20 +24,20 @@ export function useAgentInit({
   const [loadingState, setLoadingState] = useState<Record<string, boolean>>({})
 
   const fetchModelsForProvider = useCallback(async (provId: string, apiKey: string) => {
-    setLoadingState(prev => {
+    setLoadingState((prev) => {
       if (prev[provId]) return prev
       ;(async () => {
         try {
           const res = await window.koda.getModels(provId, apiKey)
           if (res.success && res.models) {
-            setLoadedModels(prevModels => ({ ...prevModels, [provId]: res.models as string[] }))
+            setLoadedModels((prevModels) => ({ ...prevModels, [provId]: res.models as string[] }))
           } else {
             console.warn(`[App] Failed to fetch models for ${provId}:`, res.error)
           }
         } catch (err) {
           console.error(`[App] Error fetching models for ${provId}:`, err)
         } finally {
-          setLoadingState(prevLoading => ({ ...prevLoading, [provId]: false }))
+          setLoadingState((prevLoading) => ({ ...prevLoading, [provId]: false }))
         }
       })()
       return { ...prev, [provId]: true }
@@ -55,7 +55,6 @@ export function useAgentInit({
     } catch (e) {
       console.error('Error auto-fetching models:', e)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Main agent bootstrap
@@ -63,11 +62,11 @@ export function useAgentInit({
     if (!window.koda) return
     if (workspaces.length > 0) return
 
-    const savedKey            = KoDB.get('apiKey')
-    const savedProvider       = KoDB.get('provider')
-    const savedModel          = KoDB.get('model')
-    const savedAdvisor        = KoDB.get('advisorModel')
-    const savedKodaCloudUrl   = KoDB.get('kodaCloudBaseUrl')
+    const savedKey = KoDB.get('apiKey')
+    const savedProvider = KoDB.get('provider')
+    const savedModel = KoDB.get('model')
+    const savedAdvisor = KoDB.get('advisorModel')
+    const savedKodaCloudUrl = KoDB.get('kodaCloudBaseUrl')
 
     const initialId = Math.random().toString(36).substring(7)
 
@@ -112,7 +111,9 @@ export function useAgentInit({
               setWorkspaces([makeWs(setupRes.info)])
               setActiveId(initialId)
             }
-          } catch { /* fall through to default */ }
+          } catch {
+            /* fall through to default */
+          }
         } else {
           lastLoadedCwdPerWs.current.set(initialId, res.info.cwd)
           setWorkspaces([makeWs(res.info)])
@@ -130,10 +131,12 @@ export function useAgentInit({
 
     const unsubUpdater = window.koda.onUpdaterEvent?.((event: string, data: any) => {
       if (event === 'update-available') setUpdateInfo({ version: data?.version, downloaded: false })
-      if (event === 'update-downloaded') setUpdateInfo(prev => prev ? { ...prev, downloaded: true } : { downloaded: true })
+      if (event === 'update-downloaded')
+        setUpdateInfo((prev) => (prev ? { ...prev, downloaded: true } : { downloaded: true }))
     })
-    return () => { unsubUpdater?.() }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      unsubUpdater?.()
+    }
   }, [])
 
   // Refresh skills when marketplace installs/uninstalls

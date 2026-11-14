@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-// @ts-ignore
+// @ts-expect-error - CSS import without type declarations; emitted by Vite
 import 'highlight.js/styles/tokyo-night-dark.css'
 import { VirtuosoHandle } from 'react-virtuoso'
 
@@ -31,16 +31,29 @@ import { KoDB } from './db/kodb.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SYMBOLS = {
-  brain: '🧠', bullet: '●', circle: '○', dir: '📂', arrow: '❯',
+  brain: '🧠',
+  bullet: '●',
+  circle: '○',
+  dir: '📂',
+  arrow: '❯',
 }
 
 const App: React.FC = () => {
   // ── Core workspace state ─────────────────────────────────────────────────
   const {
-    workspaces, setWorkspaces, activeId, setActiveId,
-    activeWorkspace, updateWorkspace, createNewWorkspace,
-    onCloseWorkspace, onSplitWith, handleSwitchWorkspace,
-    isSplitEnabled, toggleSplit, splitViewIds,
+    workspaces,
+    setWorkspaces,
+    activeId,
+    setActiveId,
+    activeWorkspace,
+    updateWorkspace,
+    createNewWorkspace,
+    onCloseWorkspace,
+    onSplitWith,
+    handleSwitchWorkspace,
+    isSplitEnabled,
+    toggleSplit,
+    splitViewIds,
   } = useWorkspaces()
 
   // ── Theme ────────────────────────────────────────────────────────────────
@@ -50,22 +63,41 @@ const App: React.FC = () => {
   const [kodaSettings, setKodaSettings] = useState<KodaSettings>(() => {
     try {
       const saved = localStorage.getItem('koda_settings')
-      if (saved) return {
-        browserPosition: 'left', terminalPosition: 'left',
-        explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel',
-        showExplorerPanel: false, showEditorPanel: false,
-        ...JSON.parse(saved), showIconBar: true,
-      }
-    } catch { }
+      if (saved)
+        return {
+          browserPosition: 'left',
+          terminalPosition: 'left',
+          explorerButtonPosition: 'iconbar',
+          explorerTabPosition: 'panel',
+          showExplorerPanel: false,
+          showEditorPanel: false,
+          ...JSON.parse(saved),
+          showIconBar: true,
+        }
+    } catch {}
     return {
-      showTerminal: true, showShellWait: true, showFileRead: true,
-      showFileEdit: true, showFileWrite: true, showListDir: true,
-      showFileFind: true, showSearch: true, showLspQuery: true,
-      showBrowserAgent: true, showPlanMode: true, showColab: true,
-      showPty: true, uiMode: 'modern', toolViewMode: 'standard',
-      browserPosition: 'left', terminalPosition: 'left', showIconBar: true,
-      explorerButtonPosition: 'iconbar', explorerTabPosition: 'panel',
-      showExplorerPanel: false, showEditorPanel: false,
+      showTerminal: true,
+      showShellWait: true,
+      showFileRead: true,
+      showFileEdit: true,
+      showFileWrite: true,
+      showListDir: true,
+      showFileFind: true,
+      showSearch: true,
+      showLspQuery: true,
+      showBrowserAgent: true,
+      showPlanMode: true,
+      showColab: true,
+      showPty: true,
+      uiMode: 'modern',
+      toolViewMode: 'standard',
+      browserPosition: 'left',
+      terminalPosition: 'left',
+      showIconBar: true,
+      explorerButtonPosition: 'iconbar',
+      explorerTabPosition: 'panel',
+      showExplorerPanel: false,
+      showEditorPanel: false,
     }
   })
 
@@ -74,34 +106,29 @@ const App: React.FC = () => {
   }, [kodaSettings])
 
   // ── IDE window detection ──────────────────────────────────────────────────
-  const isIDEWindow = useMemo(
-    () => new URLSearchParams(window.location.search).get('window') === 'ide',
-    []
-  )
+  const isIDEWindow = useMemo(() => new URLSearchParams(window.location.search).get('window') === 'ide', [])
   const activeSettings = useMemo(
     () => ({ ...kodaSettings, showExplorerPanel: isIDEWindow, showEditorPanel: isIDEWindow }),
-    [kodaSettings, isIDEWindow]
+    [kodaSettings, isIDEWindow],
   )
   const handleToggleIDEMode = useCallback(() => {
     isIDEWindow ? window.koda?.openADE?.() : window.koda?.openIDE?.()
   }, [isIDEWindow])
 
   // ── UI visibility ─────────────────────────────────────────────────────────
-  const [showSettings, setShowSettings]         = useState(false)
-  const [showMcpSettings, setShowMcpSettings]   = useState(false)
-  const [showBrowser, setShowBrowser]           = useState(false)
-  const [showTerminal, setShowTerminal]         = useState(false)
-  const [showPanel, setShowPanel]               = useState(false)
-  const [showExplorer, setShowExplorer]         = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [showMcpSettings, setShowMcpSettings] = useState(false)
+  const [showBrowser, setShowBrowser] = useState(false)
+  const [showTerminal, setShowTerminal] = useState(false)
+  const [showPanel, setShowPanel] = useState(false)
+  const [showExplorer, setShowExplorer] = useState(false)
   const [showSourceControl, setShowSourceControl] = useState(false)
-  const [contextPanelTab, setContextPanelTab]   = useState<'context' | 'explorer'>('context')
-  const [showWelcomeWizard, setShowWelcomeWizard] = useState(
-    () => !localStorage.getItem('koda_welcome_wizard_done')
-  )
+  const [contextPanelTab, setContextPanelTab] = useState<'context' | 'explorer'>('context')
+  const [showWelcomeWizard, setShowWelcomeWizard] = useState(() => !localStorage.getItem('koda_welcome_wizard_done'))
 
   // ── Refs ──────────────────────────────────────────────────────────────────
-  const virtuosoRef  = useRef<VirtuosoHandle | null>(null)
-  const inputRef     = useRef<HTMLTextAreaElement | null>(null)
+  const virtuosoRef = useRef<VirtuosoHandle | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const sessionIdRef = useRef<Map<string, string>>(new Map())
   const lastLoadedCwdPerWs = useRef<Map<string, string>>(new Map())
 
@@ -110,12 +137,21 @@ const App: React.FC = () => {
 
   // ── Resizable panels ──────────────────────────────────────────────────────
   const {
-    leftPanelWidth, rightPanelWidth, browserHeight,
-    contextPanelWidth, explorerWidth,
-    isResizing, isResizingRight, isResizingHeight,
-    isResizingContext, isResizingExplorer,
-    startResizing, startResizingRight, startResizingHeight,
-    startResizingContext, startResizingExplorer,
+    leftPanelWidth,
+    rightPanelWidth,
+    browserHeight,
+    contextPanelWidth,
+    explorerWidth,
+    isResizing,
+    isResizingRight,
+    isResizingHeight,
+    isResizingContext,
+    isResizingExplorer,
+    startResizing,
+    startResizingRight,
+    startResizingHeight,
+    startResizingContext,
+    startResizingExplorer,
   } = useResizable()
 
   // ── Drag & drop ───────────────────────────────────────────────────────────
@@ -132,9 +168,14 @@ const App: React.FC = () => {
 
   // ── Agent init + models + updater ─────────────────────────────────────────
   const {
-    initializing, setInitializing,
-    availableSkills, updateInfo, setUpdateInfo,
-    loadedModels, loadingState, fetchModelsForProvider,
+    initializing,
+    setInitializing,
+    availableSkills,
+    updateInfo,
+    setUpdateInfo,
+    loadedModels,
+    loadingState,
+    fetchModelsForProvider,
   } = useAgentInit({ workspaces, setWorkspaces, setActiveId, updateWorkspace, lastLoadedCwdPerWs })
 
   // ── Scroll helper (Virtuoso alignToBottom handles it; kept as no-op) ──────
@@ -156,20 +197,41 @@ const App: React.FC = () => {
 
   // ── Input handlers ────────────────────────────────────────────────────────
   const {
-    allFiles, setAllFiles,
-    suggestions, showSuggestions, suggestionIndex, setSuggestionIndex,
-    slashItems, showSlashMenu, slashIndex, setSlashIndex,
-    handleInputChange, selectSuggestion, selectSlashItem, pushHistory,
-    setShowSuggestions, setShowSlashMenu,
+    allFiles,
+    setAllFiles,
+    suggestions,
+    showSuggestions,
+    suggestionIndex,
+    setSuggestionIndex,
+    slashItems,
+    showSlashMenu,
+    slashIndex,
+    setSlashIndex,
+    handleInputChange,
+    selectSuggestion,
+    selectSlashItem,
+    pushHistory,
+    setShowSuggestions,
+    setShowSlashMenu,
   } = useInputHandlers({ input, setInput, inputRef, availableSkills })
 
   // ── Message actions ───────────────────────────────────────────────────────
-  const { handleSend, handleSendForWs, handlePathClick, handleRollback, handleStop, handlePaste } =
-    useMessageActions({
-      activeId, workspaces, input, setInput, updateWorkspace,
-      setInitializing, setAllFiles, setShowSlashMenu, setShowSuggestions, pushHistory,
-      chunkBuffersRef, rafRefs, taskStartsRef, scheduleScroll,
-    })
+  const { handleSend, handleSendForWs, handlePathClick, handleRollback, handleStop, handlePaste } = useMessageActions({
+    activeId,
+    workspaces,
+    input,
+    setInput,
+    updateWorkspace,
+    setInitializing,
+    setAllFiles,
+    setShowSlashMenu,
+    setShowSuggestions,
+    pushHistory,
+    chunkBuffersRef,
+    rafRefs,
+    taskStartsRef,
+    scheduleScroll,
+  })
 
   // ── Session: load when CWD changes ───────────────────────────────────────
   const { loadSession } = useSession({
@@ -177,14 +239,16 @@ const App: React.FC = () => {
       const id = wsId || activeId
       if (!id) return
       updateWorkspace(id, (prev: Workspace) => ({
-        ...prev, messages: typeof msgs === 'function' ? msgs(prev.messages) : msgs,
+        ...prev,
+        messages: typeof msgs === 'function' ? msgs(prev.messages) : msgs,
       }))
     },
     setPinnedFiles: (files, wsId) => {
       const id = wsId || activeId
       if (!id) return
       updateWorkspace(id, (prev: Workspace) => ({
-        ...prev, pinnedFiles: typeof files === 'function' ? files(prev.pinnedFiles) : files,
+        ...prev,
+        pinnedFiles: typeof files === 'function' ? files(prev.pinnedFiles) : files,
       }))
     },
   })
@@ -206,7 +270,13 @@ const App: React.FC = () => {
   useEffect(() => {
     if (initializing || !activeWorkspace?.agentInfo.cwd || activeWorkspace.agentInfo.cwd === '...') return
     if (activeWorkspace.messages.length === 0) return
-    const { id: wsId, agentInfo: { cwd }, messages, pinnedFiles, currentSessionId } = activeWorkspace
+    const {
+      id: wsId,
+      agentInfo: { cwd },
+      messages,
+      pinnedFiles,
+      currentSessionId,
+    } = activeWorkspace
     const timer = setTimeout(() => {
       let sessionId = sessionIdRef.current.get(wsId)
       if (!sessionId) {
@@ -237,7 +307,12 @@ const App: React.FC = () => {
       const decoded = decodeURIComponent(link.href.replace('koda-open://', ''))
       const lastColon = decoded.lastIndexOf(':')
       if (lastColon !== -1 && !isNaN(parseInt(decoded.substring(lastColon + 1)))) {
-        if (activeWorkspace) window.koda.openFile(activeWorkspace.id, decoded.substring(0, lastColon), parseInt(decoded.substring(lastColon + 1), 10))
+        if (activeWorkspace)
+          window.koda.openFile(
+            activeWorkspace.id,
+            decoded.substring(0, lastColon),
+            parseInt(decoded.substring(lastColon + 1), 10),
+          )
       } else {
         if (activeWorkspace) window.koda.openFile(activeWorkspace.id, decoded)
       }
@@ -259,130 +334,186 @@ const App: React.FC = () => {
     window.koda.softReset(activeId)
   }, [activeId, updateWorkspace])
 
-  const handleLoadSession = useCallback(async (sessionId: string, targetProjectPath?: string) => {
-    if (!activeId || !activeWorkspace) return
-    const pPath = targetProjectPath || activeWorkspace.agentInfo.cwd
-    const session = kodaSessionStorage.get(pPath, sessionId)
-    if (session) {
-      sessionIdRef.current.set(activeId, sessionId)
-      
-      if (targetProjectPath && targetProjectPath !== activeWorkspace.agentInfo.cwd) {
-        const cdRes = await window.koda.cd(activeId, targetProjectPath)
-        const updatedInfo = cdRes?.info || { ...activeWorkspace.agentInfo, cwd: targetProjectPath }
-        updateWorkspace(activeId, {
-          agentInfo: updatedInfo,
-          messages: session.messages || [],
-          pinnedFiles: session.pinnedFiles || [],
-          inputFiles: [],
-          currentSessionId: sessionId
-        })
-      } else {
-        await window.koda.softReset(activeId)
-        updateWorkspace(activeId, {
-          messages: session.messages || [],
-          pinnedFiles: session.pinnedFiles || [],
-          inputFiles: [],
-          currentSessionId: sessionId
-        })
-      }
-    }
-  }, [activeId, activeWorkspace, updateWorkspace])
+  const handleLoadSession = useCallback(
+    async (sessionId: string, targetProjectPath?: string) => {
+      if (!activeId || !activeWorkspace) return
+      const pPath = targetProjectPath || activeWorkspace.agentInfo.cwd
+      const session = kodaSessionStorage.get(pPath, sessionId)
+      if (session) {
+        sessionIdRef.current.set(activeId, sessionId)
 
+        if (targetProjectPath && targetProjectPath !== activeWorkspace.agentInfo.cwd) {
+          const cdRes = await window.koda.cd(activeId, targetProjectPath)
+          const updatedInfo = cdRes?.info || { ...activeWorkspace.agentInfo, cwd: targetProjectPath }
+          updateWorkspace(activeId, {
+            agentInfo: updatedInfo,
+            messages: session.messages || [],
+            pinnedFiles: session.pinnedFiles || [],
+            inputFiles: [],
+            currentSessionId: sessionId,
+          })
+        } else {
+          await window.koda.softReset(activeId)
+          updateWorkspace(activeId, {
+            messages: session.messages || [],
+            pinnedFiles: session.pinnedFiles || [],
+            inputFiles: [],
+            currentSessionId: sessionId,
+          })
+        }
+      }
+    },
+    [activeId, activeWorkspace, updateWorkspace],
+  )
 
   // ── File context helpers ──────────────────────────────────────────────────
-  const handleInjectFile  = (path: string) => setInput(prev => prev + ` @[${path}] `)
-  const handleAddToInput  = (path: string) => {
+  const handleInjectFile = (path: string) => setInput((prev) => prev + ` @[${path}] `)
+  const handleAddToInput = (path: string) => {
     if (!activeId) return
-    updateWorkspace(activeId, prev => ({ ...prev, inputFiles: [...(prev.inputFiles || []), path] }))
+    updateWorkspace(activeId, (prev) => ({ ...prev, inputFiles: [...(prev.inputFiles || []), path] }))
   }
-  const handlePinFile     = (path: string) => {
+  const handlePinFile = (path: string) => {
     if (!activeId) return
-    updateWorkspace(activeId, prev => ({ ...prev, pinnedFiles: prev.pinnedFiles.includes(path) ? prev.pinnedFiles : [...prev.pinnedFiles, path] }))
+    updateWorkspace(activeId, (prev) => ({
+      ...prev,
+      pinnedFiles: prev.pinnedFiles.includes(path) ? prev.pinnedFiles : [...prev.pinnedFiles, path],
+    }))
   }
-  const handleUnpinFile   = (path: string) => {
+  const handleUnpinFile = (path: string) => {
     if (!activeId) return
-    updateWorkspace(activeId, prev => ({ ...prev, pinnedFiles: prev.pinnedFiles.filter(p => p !== path) }))
+    updateWorkspace(activeId, (prev) => ({ ...prev, pinnedFiles: prev.pinnedFiles.filter((p) => p !== path) }))
   }
   const handleRemoveInputFile = (path: string) => {
     if (!activeId) return
-    updateWorkspace(activeId, prev => ({ ...prev, inputFiles: (prev.inputFiles || []).filter(f => f !== path) }))
+    updateWorkspace(activeId, (prev) => ({ ...prev, inputFiles: (prev.inputFiles || []).filter((f) => f !== path) }))
   }
 
   // ── selectActiveModel (ModernUI inline model switcher) ────────────────────
-  const handleSelectActiveModel = useCallback(async (providerId: string, model: string, advisorModel: string, apiKey: string) => {
-    if (!activeWorkspace) return
-    const res = await window.koda.setup(activeWorkspace.id, { provider: providerId, model, advisorModel, apiKey })
-    if (res.success) {
-      updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
-      KoDB.set('provider', providerId); KoDB.set('model', model); KoDB.set('apiKey', apiKey)
-      if (advisorModel) KoDB.set('advisorModel', advisorModel)
-      try {
-        const config = KoDB.get('providersConfig')
-        if (config[providerId]) {
-          config[providerId].model = model
-          if (advisorModel) config[providerId].advisorModel = advisorModel
-          KoDB.set('providersConfig', config)
+  const handleSelectActiveModel = useCallback(
+    async (providerId: string, model: string, advisorModel: string, apiKey: string) => {
+      if (!activeWorkspace) return
+      const res = await window.koda.setup(activeWorkspace.id, { provider: providerId, model, advisorModel, apiKey })
+      if (res.success) {
+        updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
+        KoDB.set('provider', providerId)
+        KoDB.set('model', model)
+        KoDB.set('apiKey', apiKey)
+        if (advisorModel) KoDB.set('advisorModel', advisorModel)
+        try {
+          const config = KoDB.get('providersConfig')
+          if (config[providerId]) {
+            config[providerId].model = model
+            if (advisorModel) config[providerId].advisorModel = advisorModel
+            KoDB.set('providersConfig', config)
+          }
+        } catch (e) {
+          console.error('Error syncing provider model selection:', e)
         }
-      } catch (e) { console.error('Error syncing provider model selection:', e) }
-    }
-  }, [activeWorkspace, updateWorkspace])
+      }
+    },
+    [activeWorkspace, updateWorkspace],
+  )
 
   // ── Derived UI state ──────────────────────────────────────────────────────
-  const showThinkingSpinner = !!(activeWorkspace?.isProcessing && (
-    activeWorkspace.messages.length === 0 ||
-    (activeWorkspace.messages[activeWorkspace.messages.length - 1].type !== 'assistant' &&
-      (!activeWorkspace.messages[activeWorkspace.messages.length - 1].tool ||
-        activeWorkspace.messages[activeWorkspace.messages.length - 1].tool?.status === 'done')) ||
-    (activeWorkspace.messages[activeWorkspace.messages.length - 1].type === 'assistant' &&
-      activeWorkspace.messages[activeWorkspace.messages.length - 1].done)
-  ))
+  const showThinkingSpinner = !!(
+    activeWorkspace?.isProcessing &&
+    (activeWorkspace.messages.length === 0 ||
+      (activeWorkspace.messages[activeWorkspace.messages.length - 1].type !== 'assistant' &&
+        (!activeWorkspace.messages[activeWorkspace.messages.length - 1].tool ||
+          activeWorkspace.messages[activeWorkspace.messages.length - 1].tool?.status === 'done')) ||
+      (activeWorkspace.messages[activeWorkspace.messages.length - 1].type === 'assistant' &&
+        activeWorkspace.messages[activeWorkspace.messages.length - 1].done))
+  )
 
   if (!activeWorkspace) {
-    return <div className="h-screen bg-slate-900 flex items-center justify-center"><BrailleSpinner label="Initializing Workspace..." /></div>
+    return (
+      <div className="h-screen bg-slate-900 flex items-center justify-center">
+        <BrailleSpinner label="Initializing Workspace..." />
+      </div>
+    )
   }
 
   // ── Common props shared by both UIs ───────────────────────────────────────
   const sharedUIProps = {
-    input, setInput,
+    input,
+    setInput,
     isProcessing: activeWorkspace.isProcessing,
     agentInfo: activeWorkspace.agentInfo,
     mode: activeWorkspace.mode,
     setMode: (m: Mode) => updateWorkspace(activeWorkspace.id, { mode: m }),
     pendingImages: activeWorkspace.pendingImages,
-    setPendingImages: (imgs: any) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs })),
-    handleSend, handleStop, handlePathClick, handleInputChange,
-    handleRollback, handlePaste, inputRef, virtuosoRef,
-    theme, kodaSettings,
+    setPendingImages: (imgs: any) =>
+      updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+        ...prev,
+        pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs,
+      })),
+    handleSend,
+    handleStop,
+    handlePathClick,
+    handleInputChange,
+    handleRollback,
+    handlePaste,
+    inputRef,
+    virtuosoRef,
+    theme,
+    kodaSettings,
     onSettingsClick: () => setShowSettings(true),
     onMcpClick: () => setShowMcpSettings(true),
-    onBrowserClick: () => setShowBrowser(p => !p),
+    onBrowserClick: () => setShowBrowser((p) => !p),
     showBrowser,
-    onTerminalClick: () => setShowTerminal(p => !p),
-    showTerminal, showPanel,
-    onTogglePanel: () => setShowPanel(p => !p),
-    showExplorer, setShowExplorer,
-    explorerWidth, leftPanelWidth, rightPanelWidth,
-    startResizing, isResizing, startResizingRight, isResizingRight,
-    browserHeight, isResizingHeight, startResizingHeight,
-    slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
-    suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
-    isSplitEnabled, onToggleSplit: toggleSplit,
-    workspaces, activeId, setActiveId: handleSwitchWorkspace,
+    onTerminalClick: () => setShowTerminal((p) => !p),
+    showTerminal,
+    showPanel,
+    onTogglePanel: () => setShowPanel((p) => !p),
+    showExplorer,
+    setShowExplorer,
+    explorerWidth,
+    leftPanelWidth,
+    rightPanelWidth,
+    startResizing,
+    isResizing,
+    startResizingRight,
+    isResizingRight,
+    browserHeight,
+    isResizingHeight,
+    startResizingHeight,
+    slashItems,
+    showSlashMenu,
+    slashIndex,
+    selectSlashItem,
+    setSlashIndex,
+    suggestions,
+    showSuggestions,
+    suggestionIndex,
+    selectSuggestion,
+    setSuggestionIndex,
+    isSplitEnabled,
+    onToggleSplit: toggleSplit,
+    workspaces,
+    activeId,
+    setActiveId: handleSwitchWorkspace,
     onAddWorkspace: () => createNewWorkspace(),
-    onCloseWorkspace, splitViewIds, onSplitWith,
-    handleSendForWs, handleRollbackForWs: handleRollback,
+    onCloseWorkspace,
+    splitViewIds,
+    onSplitWith,
+    handleSendForWs,
+    handleRollbackForWs: handleRollback,
     pendingQuestions: activeWorkspace.pendingQuestions,
     onQuestionsSubmit: (answers: any) => {
       updateWorkspace(activeWorkspace.id, { pendingQuestions: null })
       window.koda.questionsResponse(answers)
     },
     pendingShell: activeWorkspace.pendingShell,
-    updateInfo, onUpdateDismiss: () => setUpdateInfo(null),
+    updateInfo,
+    onUpdateDismiss: () => setUpdateInfo(null),
   }
 
   // Props exclusivas do ClassicUI (ModernUI gerencia internamente)
   const classicOnlyProps = {
-    isDragging, handleDragOver, handleDragLeave, handleDrop,
+    isDragging,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
     inPlanMode: activeWorkspace.inPlanMode,
     showThinkingSpinner,
     symbols: SYMBOLS,
@@ -390,7 +521,6 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-full relative overflow-hidden bg-slate-950">
-
       {/* ── Modals & Overlays ─────────────────────────────────────────────── */}
       {showSettings && (
         <SettingsUI
@@ -403,10 +533,13 @@ const App: React.FC = () => {
             setShowSettings(false)
           }}
           defaultAdvisorModel={activeWorkspace.agentInfo.advisorModel}
-          theme={theme} setTheme={setTheme}
-          kodaSettings={kodaSettings} setKodaSettings={setKodaSettings}
+          theme={theme}
+          setTheme={setTheme}
+          kodaSettings={kodaSettings}
+          setKodaSettings={setKodaSettings}
           uiMode={kodaSettings.uiMode ?? 'classic'}
-          loadedModels={loadedModels} loadingState={loadingState}
+          loadedModels={loadedModels}
+          loadingState={loadingState}
           fetchModelsForProvider={fetchModelsForProvider}
         />
       )}
@@ -425,8 +558,10 @@ const App: React.FC = () => {
 
       {showWelcomeWizard && (
         <WelcomeWizardModal
-          currentTheme={theme} setTheme={setTheme}
-          loadedModels={loadedModels} fetchModelsForProvider={fetchModelsForProvider}
+          currentTheme={theme}
+          setTheme={setTheme}
+          loadedModels={loadedModels}
+          fetchModelsForProvider={fetchModelsForProvider}
           onComplete={async (config) => {
             setTheme(config.theme)
             KoDB.set('theme', config.theme)
@@ -436,8 +571,10 @@ const App: React.FC = () => {
               KoDB.set('kodaCloudAccepted', true)
             }
             const res = await window.koda.setup(activeWorkspace.id, {
-              provider: config.provider, model: config.model,
-              advisorModel: config.advisorModel, apiKey: config.apiKey,
+              provider: config.provider,
+              model: config.model,
+              advisorModel: config.advisorModel,
+              apiKey: config.apiKey,
               kodaCloudBaseUrl: kodaCloudBaseUrl || undefined,
             })
             if (res.success) updateWorkspace(activeWorkspace.id, { agentInfo: res.info })
@@ -447,9 +584,13 @@ const App: React.FC = () => {
             if (config.advisorModel) KoDB.set('advisorModel', config.advisorModel)
             try {
               const pc = KoDB.get('providersConfig') || {}
-              pc[config.provider] = { apiKey: config.apiKey, model: config.model, advisorModel: config.advisorModel || config.model }
+              pc[config.provider] = {
+                apiKey: config.apiKey,
+                model: config.model,
+                advisorModel: config.advisorModel || config.model,
+              }
               KoDB.set('providersConfig', pc)
-            } catch { }
+            } catch {}
             localStorage.setItem('koda_welcome_wizard_done', 'true')
             setShowWelcomeWizard(false)
           }}
@@ -466,11 +607,14 @@ const App: React.FC = () => {
           isIDEWindow={isIDEWindow}
           onToggleIDEMode={handleToggleIDEMode}
           showSourceControl={showSourceControl}
-          onToggleSourceControl={() => setShowSourceControl(p => !p)}
+          onToggleSourceControl={() => setShowSourceControl((p) => !p)}
           onStartResizeSourceControl={startResizingExplorer}
           contextPanelWidth={contextPanelWidth}
           contextPanelTab={contextPanelTab}
-          onContextPanelTabChange={(t) => { setContextPanelTab(t); if (!showPanel) setShowPanel(true) }}
+          onContextPanelTabChange={(t) => {
+            setContextPanelTab(t)
+            if (!showPanel) setShowPanel(true)
+          }}
           loadedModels={loadedModels}
           fetchModelsForProvider={fetchModelsForProvider}
           onSelectActiveModel={handleSelectActiveModel}
@@ -490,7 +634,12 @@ const App: React.FC = () => {
           messages={activeWorkspace.messages}
           initializing={initializing}
           taskQueue={activeWorkspace.taskQueue}
-          setTaskQueue={(queue: any) => updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({ ...prev, taskQueue: typeof queue === 'function' ? queue(prev.taskQueue) : queue }))}
+          setTaskQueue={(queue: any) =>
+            updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
+              ...prev,
+              taskQueue: typeof queue === 'function' ? queue(prev.taskQueue) : queue,
+            }))
+          }
         />
       )}
 
@@ -499,12 +648,16 @@ const App: React.FC = () => {
         <ContextPanelOverlay
           files={activeWorkspace.trackedFiles}
           pinnedFiles={activeWorkspace.pinnedFiles}
-          onPin={handlePinFile} onUnpin={handleUnpinFile}
-          onInject={handleInjectFile} onAddToInput={handleAddToInput}
+          onPin={handlePinFile}
+          onUnpin={handleUnpinFile}
+          onInject={handleInjectFile}
+          onAddToInput={handleAddToInput}
           cwd={activeWorkspace.agentInfo.cwd}
-          width={contextPanelWidth} isResizing={isResizingContext}
+          width={contextPanelWidth}
+          isResizing={isResizingContext}
           onStartResize={startResizingContext}
-          activeTab={contextPanelTab} onTabChange={setContextPanelTab}
+          activeTab={contextPanelTab}
+          onTabChange={setContextPanelTab}
         />
       )}
 
@@ -513,11 +666,14 @@ const App: React.FC = () => {
         <ExplorerPanelOverlay
           cwd={activeWorkspace.agentInfo.cwd}
           pinnedFiles={activeWorkspace.pinnedFiles}
-          onPin={handlePinFile} onInject={handleInjectFile}
+          onPin={handlePinFile}
+          onInject={handleInjectFile}
           onAddToInput={handleAddToInput}
           onClose={() => setShowExplorer(false)}
-          explorerTabPosition="titlebar" onMoveTo={() => {}}
-          width={explorerWidth} onStartResize={startResizingExplorer}
+          explorerTabPosition="titlebar"
+          onMoveTo={() => {}}
+          width={explorerWidth}
+          onStartResize={startResizingExplorer}
         />
       )}
     </div>

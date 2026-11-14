@@ -20,10 +20,10 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
   }, [isVisible, projectPath])
 
   const loadProjects = () => {
-    let all = kodaSessionStorage.listAllProjects()
-    
+    const all = kodaSessionStorage.listAllProjects()
+
     // Ensure current project is included even if it has no sessions yet
-    if (projectPath && !all.some(p => p.path === projectPath)) {
+    if (projectPath && !all.some((p) => p.path === projectPath)) {
       const name = projectPath.replace(/\\/g, '/').replace(/\/+$/, '').split('/').pop() || projectPath
       all.unshift({
         path: projectPath,
@@ -37,9 +37,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
 
     // Expand current project folder by default
     if (projectPath) {
-      setExpandedFolders(prev => ({
+      setExpandedFolders((prev) => ({
         ...prev,
-        [projectPath]: prev[projectPath] !== undefined ? prev[projectPath] : true
+        [projectPath]: prev[projectPath] !== undefined ? prev[projectPath] : true,
       }))
     }
   }
@@ -66,7 +66,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
   }, [onNewSession])
 
   const toggleFolder = (path: string) => {
-    setExpandedFolders(prev => ({ ...prev, [path]: !prev[path] }))
+    setExpandedFolders((prev) => ({ ...prev, [path]: !prev[path] }))
   }
 
   const handleDelete = (e: React.MouseEvent, pPath: string, sessionId: string) => {
@@ -108,9 +108,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
       {/* Sessions Tree List — VSCode monaco-list-row style */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-1 py-1 space-y-1">
         {projects.length === 0 ? (
-          <div className="px-3 py-6 text-[12px] text-zinc-500 text-center">
-            No agent sessions recorded yet
-          </div>
+          <div className="px-3 py-6 text-[12px] text-zinc-500 text-center">No agent sessions recorded yet</div>
         ) : (
           projects.map((project) => {
             const isExpanded = !!expandedFolders[project.path]
@@ -137,18 +135,14 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
                     </span>
                   </div>
 
-                  <span className="text-[10px] font-mono text-zinc-500 shrink-0 ml-2">
-                    {project.sessions.length}
-                  </span>
+                  <span className="text-[10px] font-mono text-zinc-500 shrink-0 ml-2">{project.sessions.length}</span>
                 </div>
 
                 {/* Sub-items (VSCode Agent Session Items) */}
                 {isExpanded && (
                   <div className="ml-3 pl-2 border-l border-white/8 space-y-0.5 py-0.5">
                     {project.sessions.length === 0 ? (
-                      <div className="px-2 py-1 text-[11px] text-zinc-600 italic">
-                        No sessions
-                      </div>
+                      <div className="px-2 py-1 text-[11px] text-zinc-600 italic">No sessions</div>
                     ) : (
                       project.sessions.map((session) => (
                         <div key={session.id} className="relative group">
@@ -179,7 +173,10 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
 
                           {/* Hover Menu Action (VSCode Title Toolbar style) */}
                           <button
-                            onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === session.id ? null : session.id) }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setMenuOpenId(menuOpenId === session.id ? null : session.id)
+                            }}
                             className="absolute right-1 top-2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 text-zinc-500 hover:text-zinc-200 transition-all"
                             title="More Actions"
                           >
@@ -215,5 +212,3 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
 }
 
 export default ChatHistory
-
-

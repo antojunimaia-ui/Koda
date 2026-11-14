@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, memo } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
-// @ts-ignore — xterm CSS side-effect import; handled by Vite, not TS
+// @ts-expect-error - xterm CSS side-effect import; handled by Vite, not TS
 import 'xterm/css/xterm.css'
 
 interface TerminalPanelProps {
@@ -42,12 +42,12 @@ const TerminalPanel: React.FC<TerminalPanelProps> = memo(({ onClose, cwd, worksp
     fitAddonRef.current = fitAddon
 
     // Init PTY
-    window.koda.ptyStart(workspaceId, cwd).then(res => {
+    window.koda.ptyStart(workspaceId, cwd).then((res) => {
       if (res.success) {
         pidRef.current = res.pid
-        
+
         // Handle input
-        term.onData(data => {
+        term.onData((data) => {
           if (pidRef.current) {
             window.koda.ptyWrite(pidRef.current, data)
           }
@@ -67,9 +67,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = memo(({ onClose, cwd, worksp
     }
 
     const resizeObserver = new ResizeObserver(() => {
-        handleResize();
-    });
-    resizeObserver.observe(terminalRef.current);
+      handleResize()
+    })
+    resizeObserver.observe(terminalRef.current)
 
     // Global listener for terminal output
     const updateHandler = (update: any) => {
@@ -99,10 +99,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = memo(({ onClose, cwd, worksp
           <span className="text-cyan text-xs">⌨️</span>
           <span className="text-white font-black text-[10px] uppercase tracking-widest">Interactive Terminal</span>
         </div>
-        <button 
-          onClick={onClose}
-          className="text-slate-500 hover:text-white transition-colors p-1"
-        >
+        <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>

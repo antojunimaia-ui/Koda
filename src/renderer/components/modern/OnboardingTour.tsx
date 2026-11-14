@@ -12,31 +12,36 @@ const MAIN_STEPS: TourStep[] = [
   {
     targetId: 'tour-cwd',
     title: 'Working Directory',
-    description: 'Click here to choose your project folder. Koda will work inside it — reading, editing and creating files.',
+    description:
+      'Click here to choose your project folder. Koda will work inside it — reading, editing and creating files.',
     arrowDir: 'down',
   },
   {
     targetId: 'tour-input',
     title: 'Talk to Koda',
-    description: 'Type what you want to do here. It can be a task, a question or a command. Use / to see available shortcuts.',
+    description:
+      'Type what you want to do here. It can be a task, a question or a command. Use / to see available shortcuts.',
     arrowDir: 'down',
   },
   {
     targetId: 'tour-mode',
     title: 'Operation Modes',
-    description: 'Fast Mode executes directly. Planner Mode creates a plan before acting. Teach Mode explains each step while working.',
+    description:
+      'Fast Mode executes directly. Planner Mode creates a plan before acting. Teach Mode explains each step while working.',
     arrowDir: 'down',
   },
   {
     targetId: 'tour-workspaces',
     title: 'Workspaces',
-    description: 'Click here to split the screen into two side-by-side workspaces. Useful for working on two projects at the same time.',
+    description:
+      'Click here to split the screen into two side-by-side workspaces. Useful for working on two projects at the same time.',
     arrowDir: 'down',
   },
   {
     targetId: 'tour-iconbar',
     title: 'Sidebar',
-    description: 'Access the integrated terminal, embedded browser, context panel and settings. Hover to see chat history.',
+    description:
+      'Access the integrated terminal, embedded browser, context panel and settings. Hover to see chat history.',
     arrowDir: 'right',
   },
 ]
@@ -45,31 +50,36 @@ const SETTINGS_STEPS: TourStep[] = [
   {
     targetId: 'stour-api',
     title: 'API & Models',
-    description: 'Configure your AI provider and API key. Choose from OpenAI, Anthropic, Google, Koda Cloud, and over 10 more providers.',
+    description:
+      'Configure your AI provider and API key. Choose from OpenAI, Anthropic, Google, Koda Cloud, and over 10 more providers.',
     arrowDir: 'right',
   },
   {
     targetId: 'stour-themes',
     title: 'Themes',
-    description: 'Customize Koda\'s colors. Choose between Tokyo Night, Monokai, Cyberpunk, and GitHub Dark — or edit the values directly.',
+    description:
+      "Customize Koda's colors. Choose between Tokyo Night, Monokai, Cyberpunk, and GitHub Dark — or edit the values directly.",
     arrowDir: 'right',
   },
   {
     targetId: 'stour-koda',
     title: 'Koda Settings',
-    description: 'Control what appears in the interface: tool display mode, terminal and browser positions, Iconbar, and UI mode (Modern or Classic).',
+    description:
+      'Control what appears in the interface: tool display mode, terminal and browser positions, Iconbar, and UI mode (Modern or Classic).',
     arrowDir: 'right',
   },
   {
     targetId: 'stour-remote',
     title: 'KoClaw — Discord Bot',
-    description: 'Control Koda directly from Discord. Send messages to the bot and it will execute tasks and respond with results in real-time.',
+    description:
+      'Control Koda directly from Discord. Send messages to the bot and it will execute tasks and respond with results in real-time.',
     arrowDir: 'right',
   },
   {
     targetId: 'stour-skills',
     title: 'Skills',
-    description: 'Install skills from the marketplace to give Koda specialized knowledge in frameworks, languages, or specific workflows.',
+    description:
+      'Install skills from the marketplace to give Koda specialized knowledge in frameworks, languages, or specific workflows.',
     arrowDir: 'right',
   },
 ]
@@ -91,12 +101,19 @@ interface OnboardingTourProps {
 
 function useTour(steps: TourStep[], visible: boolean) {
   const [step, setStep] = useState(0)
-  const [pos, setPos] = useState<{ top: number; left: number; actualDir?: string; targetRect?: DOMRect }>({ top: 0, left: 0 })
+  const [pos, setPos] = useState<{ top: number; left: number; actualDir?: string; targetRect?: DOMRect }>({
+    top: 0,
+    left: 0,
+  })
   const [ready, setReady] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!visible) { setStep(0); setReady(false); return }
+    if (!visible) {
+      setStep(0)
+      setReady(false)
+      return
+    }
 
     const recalc = () => {
       setReady(false)
@@ -114,19 +131,29 @@ function useTour(steps: TourStep[], visible: boolean) {
       }
 
       const rect = target.getBoundingClientRect()
-      let top = 0, left = 0
+      let top: number
+      let left: number
       let actualDir = current.arrowDir
 
       if (current.arrowDir === 'down') {
-        if (rect.top - th - 16 > 8) { top = rect.top - th - 16; actualDir = 'down' }
-        else { top = rect.bottom + 16; actualDir = 'up' }
+        if (rect.top - th - 16 > 8) {
+          top = rect.top - th - 16
+          actualDir = 'down'
+        } else {
+          top = rect.bottom + 16
+          actualDir = 'up'
+        }
         left = rect.left + rect.width / 2 - tw / 2
       } else if (current.arrowDir === 'up') {
-        top = rect.bottom + 16; left = rect.left + rect.width / 2 - tw / 2; actualDir = 'up'
+        top = rect.bottom + 16
+        left = rect.left + rect.width / 2 - tw / 2
+        actualDir = 'up'
       } else if (current.arrowDir === 'right') {
-        top = rect.top + rect.height / 2 - th / 2; left = rect.right + 16
+        top = rect.top + rect.height / 2 - th / 2
+        left = rect.right + 16
       } else {
-        top = rect.top + rect.height / 2 - th / 2; left = rect.left - tw - 16
+        top = rect.top + rect.height / 2 - th / 2
+        left = rect.left - tw - 16
       }
 
       left = Math.max(12, Math.min(left, vw - tw - 12))
@@ -146,7 +173,13 @@ function useTour(steps: TourStep[], visible: boolean) {
 // ─── Shared render ────────────────────────────────────────────────────────────
 
 function TourOverlay({
-  steps, step, pos, ready, tooltipRef, onDismiss, onNext
+  steps,
+  step,
+  pos,
+  ready,
+  tooltipRef,
+  onDismiss,
+  onNext,
 }: {
   steps: TourStep[]
   step: number
@@ -171,7 +204,8 @@ function TourOverlay({
       const al = Math.max(16, Math.min(targetRect.left + targetRect.width / 2 - pos.left - 8, tw - 32))
       return { top: -8, left: al, borderBottomColor: '#1e1e2e' }
     }
-    if (actualDir === 'right') return { left: -8, top: '50%', transform: 'translateY(-50%)', borderRightColor: '#1e1e2e' }
+    if (actualDir === 'right')
+      return { left: -8, top: '50%', transform: 'translateY(-50%)', borderRightColor: '#1e1e2e' }
     return { right: -8, top: '50%', transform: 'translateY(-50%)', borderLeftColor: '#1e1e2e' }
   }
 
@@ -186,29 +220,49 @@ function TourOverlay({
     <>
       <div className="fixed inset-0 pointer-events-none z-tour" style={{ background: 'rgba(0,0,0,0.45)' }} />
       {targetRect && (
-        <div className="fixed rounded-lg pointer-events-none z-tour-spotlight" style={{
-          top: targetRect.top - 4, left: targetRect.left - 4,
-          width: targetRect.width + 8, height: targetRect.height + 8,
-          boxShadow: '0 0 0 9999px rgba(0,0,0,0.45), 0 0 0 2px rgba(99,102,241,0.8)',
-          transition: 'all 0.25s ease',
-        }} />
+        <div
+          className="fixed rounded-lg pointer-events-none z-tour-spotlight"
+          style={{
+            top: targetRect.top - 4,
+            left: targetRect.left - 4,
+            width: targetRect.width + 8,
+            height: targetRect.height + 8,
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.45), 0 0 0 2px rgba(99,102,241,0.8)',
+            transition: 'all 0.25s ease',
+          }}
+        />
       )}
-      <div ref={tooltipRef} className="fixed pointer-events-auto z-tour-tooltip" style={{
-        top: pos.top, left: pos.left,
-        opacity: ready ? 1 : 0, transition: 'opacity 0.2s ease',
-        width: tw,
-      }}>
+      <div
+        ref={tooltipRef}
+        className="fixed pointer-events-auto z-tour-tooltip"
+        style={{
+          top: pos.top,
+          left: pos.left,
+          opacity: ready ? 1 : 0,
+          transition: 'opacity 0.2s ease',
+          width: tw,
+        }}
+      >
         <div className="bg-[#0a0a0b] border border-white/10 rounded-2xl shadow-2xl p-4 relative">
           {targetRect && <div className={`absolute w-0 h-0 ${arrowClass}`} style={arrowStyle()} />}
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-600 text-[10px] font-black uppercase tracking-widest">{step + 1} / {steps.length}</span>
-            <button onClick={onDismiss} className="text-slate-600 hover:text-slate-400 transition-colors"><X className="w-3 h-3" /></button>
+            <span className="text-slate-600 text-[10px] font-black uppercase tracking-widest">
+              {step + 1} / {steps.length}
+            </span>
+            <button onClick={onDismiss} className="text-slate-600 hover:text-slate-400 transition-colors">
+              <X className="w-3 h-3" />
+            </button>
           </div>
           <div className="text-white font-semibold text-sm mb-1">{current.title}</div>
           <div className="text-slate-500 text-xs leading-relaxed mb-4">{current.description}</div>
           <div className="flex items-center justify-between">
-            <button onClick={onDismiss} className="text-slate-600 hover:text-slate-400 text-xs transition-colors">Skip</button>
-            <button onClick={onNext} className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-zinc-200 transition-colors">
+            <button onClick={onDismiss} className="text-slate-600 hover:text-slate-400 text-xs transition-colors">
+              Skip
+            </button>
+            <button
+              onClick={onNext}
+              className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-zinc-200 transition-colors"
+            >
               {step < steps.length - 1 ? 'Next →' : 'Got it!'}
             </button>
           </div>
@@ -224,7 +278,13 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ show, mode, active, onD
   // ── Settings mode ──────────────────────────────────────────────────────────
   const isSettings = mode === 'settings'
   const settingsVisible = isSettings && (active ?? false)
-  const { step: sStep, setStep: setSStep, pos: sPos, ready: sReady, tooltipRef: sRef } = useTour(SETTINGS_STEPS, settingsVisible)
+  const {
+    step: sStep,
+    setStep: setSStep,
+    pos: sPos,
+    ready: sReady,
+    tooltipRef: sRef,
+  } = useTour(SETTINGS_STEPS, settingsVisible)
 
   if (isSettings) {
     if (!settingsVisible) return null
@@ -235,10 +295,13 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ show, mode, active, onD
         pos={sPos}
         ready={sReady}
         tooltipRef={sRef}
-        onDismiss={() => { localStorage.setItem('koda_settings_tour_done', '1'); onDone?.() }}
+        onDismiss={() => {
+          localStorage.setItem('koda_settings_tour_done', '1')
+          onDone?.()
+        }}
         onNext={() => {
           if (sStep < SETTINGS_STEPS.length - 1) {
-            setSStep(s => s + 1)
+            setSStep((s) => s + 1)
           } else {
             localStorage.setItem('koda_settings_tour_done', '1')
             onDone?.()
@@ -264,8 +327,11 @@ const MainTour: React.FC<{ show: boolean }> = ({ show }) => {
     }
   }, [show])
 
-  const dismiss = () => { setVisible(false); localStorage.setItem(MAIN_STORAGE_KEY, '1') }
-  const next = () => step < MAIN_STEPS.length - 1 ? setStep(s => s + 1) : dismiss()
+  const dismiss = () => {
+    setVisible(false)
+    localStorage.setItem(MAIN_STORAGE_KEY, '1')
+  }
+  const next = () => (step < MAIN_STEPS.length - 1 ? setStep((s) => s + 1) : dismiss())
 
   if (!visible) return null
 

@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error - discord-rpc lacks bundled type definitions
 import { Client as DiscordRPC } from 'discord-rpc'
 import path from 'path'
 
@@ -50,7 +50,7 @@ export class DiscordRPCManager {
       this.client.on('ready', () => {
         console.log('[Discord RPC] Connected to Discord')
         this.connected = true
-        
+
         // Restaurar atividade se houver
         if (this.currentActivity) {
           this.updateActivity(this.currentActivity)
@@ -60,7 +60,7 @@ export class DiscordRPCManager {
       this.client.on('disconnected', () => {
         console.log('[Discord RPC] Disconnected from Discord')
         this.connected = false
-        
+
         // Tentar reconectar após 15 segundos se ainda estiver habilitado
         if (this.enabled && !this.reconnectTimeout) {
           this.reconnectTimeout = setTimeout(() => {
@@ -74,7 +74,7 @@ export class DiscordRPCManager {
     } catch (error) {
       console.error('[Discord RPC] Failed to connect:', error)
       this.connected = false
-      
+
       // Tentar reconectar após 30 segundos se ainda estiver habilitado
       if (this.enabled && !this.reconnectTimeout) {
         this.reconnectTimeout = setTimeout(() => {
@@ -147,20 +147,20 @@ export class DiscordRPCManager {
     if (!fileType) return 'file'
 
     const iconMap: Record<string, string> = {
-      'typescript': 'typescript',
-      'javascript': 'javascript',
-      'tsx': 'react',
-      'jsx': 'react',
-      'python': 'python',
-      'java': 'java',
-      'cpp': 'cpp',
-      'c': 'c',
-      'go': 'go',
-      'rust': 'rust',
-      'html': 'html',
-      'css': 'css',
-      'json': 'json',
-      'markdown': 'markdown',
+      typescript: 'typescript',
+      javascript: 'javascript',
+      tsx: 'react',
+      jsx: 'react',
+      python: 'python',
+      java: 'java',
+      cpp: 'cpp',
+      c: 'c',
+      go: 'go',
+      rust: 'rust',
+      html: 'html',
+      css: 'css',
+      json: 'json',
+      markdown: 'markdown',
     }
 
     return iconMap[fileType.toLowerCase()] || 'file'

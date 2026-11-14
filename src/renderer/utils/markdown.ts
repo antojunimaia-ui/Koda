@@ -6,12 +6,12 @@ import hljs from 'highlight.js'
 marked.use({
   renderer: {
     code({ text, lang }: { text: string; lang?: string }) {
-      const language = lang || 'text';
+      const language = lang || 'text'
       const highlighted = hljs.getLanguage(language)
         ? hljs.highlight(text, { language }).value
-        : hljs.highlight(text, { language: 'plaintext' }).value;
+        : hljs.highlight(text, { language: 'plaintext' }).value
 
-      const encoded = encodeURIComponent(text);
+      const encoded = encodeURIComponent(text)
 
       return `<div class="code-block-container relative group my-3">
   <div class="code-block-controls absolute top-2.5 right-2.5 z-raised flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/90 border border-slate-700/50 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] text-slate-400 font-sans select-none shadow-lg">
@@ -22,10 +22,10 @@ marked.use({
     </button>
   </div>
   <pre class="!my-0"><code class="hljs language-${language}">${highlighted}</code></pre>
-</div>`;
-    }
-  }
-});
+</div>`
+    },
+  },
+})
 
 /**
  * Replaces file path references (e.g. `src/main.ts:45`) with clickable
@@ -33,9 +33,9 @@ marked.use({
  */
 export const processMessageLinks = (text: string): string => {
   // First convert @[path] mentions to clickable links
-  let processed = text.replace(/@\[(.*?)\]/g, (match, filePath) => {
-    return `[📄 ${filePath}](koda-open://${filePath})`;
-  });
+  const processed = text.replace(/@\[(.*?)\]/g, (match, filePath) => {
+    return `[📄 ${filePath}](koda-open://${filePath})`
+  })
 
   // Then convert file path references (e.g. src/main.ts:45)
   return processed.replace(
@@ -46,7 +46,7 @@ export const processMessageLinks = (text: string): string => {
         return `[${match}](koda-open://${finalPath}:${line})`
       }
       return match
-    }
+    },
   )
 }
 
