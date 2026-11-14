@@ -1,4 +1,4 @@
-import { BaseTool, ToolDefinition } from './base.js'
+import { BaseTool, ToolDefinition, validateArgsAgainstSchema } from './base.js'
 import { FileReadTool } from './file-read.js'
 import { FileWriteTool } from './file-write.js'
 import { FileEditTool } from './file-edit.js'
@@ -184,6 +184,16 @@ export class ToolRegistry {
     // Inject agent-local CWD so each tool resolves paths relative to its own workspace
     const enrichedArgs = { ...args, __cwd: args.__cwd ?? this.cwd }
 
+    // Validação unificada contra o JSON Schema da tool (schema-first)
+    const invalid = validateArgsAgainstSchema(enrichedArgs, tool.getJsonSchema())
+    if (invalid) {
+      return {
+        success: false,
+        output: '',
+        error: `Invalid arguments for tool "${name}": ${invalid}`,
+      }
+    }
+
     const result = await tool.execute(enrichedArgs)
     this.afterExecute(name, enrichedArgs, result.success)
     return result
@@ -219,19 +229,7 @@ export class ToolRegistry {
       function: {
         name: tool.name,
         description: tool.description,
-        parameters: {
-          type: 'object',
-          properties: Object.fromEntries(
-            tool.parameters.map((p) => [
-              p.name,
-              {
-                type: p.type === 'array' ? 'array' : p.type,
-                description: p.description,
-              },
-            ]),
-          ),
-          required: tool.parameters.filter((p) => p.required).map((p) => p.name),
-        },
+        parameters: tool.getJsonSchema(),
       },
     }))
   }
@@ -247,19 +245,7 @@ export class ToolRegistry {
     return this.getAll().map((tool) => ({
       name: tool.name,
       description: tool.description,
-      input_schema: {
-        type: 'object',
-        properties: Object.fromEntries(
-          tool.parameters.map((p) => [
-            p.name,
-            {
-              type: p.type === 'array' ? 'array' : p.type,
-              description: p.description,
-            },
-          ]),
-        ),
-        required: tool.parameters.filter((p) => p.required).map((p) => p.name),
-      },
+      input_schema: tool.getJsonSchema(),
     }))
   }
 
@@ -271,29 +257,32 @@ export class ToolRegistry {
     description: string
     parameters: Record<string, unknown>
   }> {
-    return this.getAll().map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: {
-        type: 'OBJECT',
-        properties: Object.fromEntries(
-          tool.parameters.map((p) => [
-            p.name,
-            {
-              type:
-                p.type === 'number'
-                  ? 'NUMBER'
-                  : p.type === 'boolean'
-                    ? 'BOOLEAN'
-                    : p.type === 'array'
-                      ? 'ARRAY'
-                      : 'STRING',
-              description: p.description,
-            },
-          ]),
-        ),
-        required: tool.parameters.filter((p) => p.required).map((p) => p.name),
-      },
-    }))
+    return this.getAll().map((tool) => {
+      const schema = tool.getJsonSchema()
+      return {
+        name: tool.name,
+        description: tool.description,
+        parameters: {
+          type: 'OBJECT',
+          properties: Object.fromEntries(
+            Object.entries(schema.properties).map(([key, prop]) => [
+              key,
+              {
+                type:
+                  prop.type === 'number'
+                    ? 'NUMBER'
+                    : prop.type === 'boolean'
+                      ? 'BOOLEAN'
+                      : prop.type === 'array'
+                        ? 'ARRAY'
+                        : 'STRING',
+                description: prop.description,
+              },
+            ]),
+          ),
+          required: schema.required,
+        },
+      }
+    })
   }
 }

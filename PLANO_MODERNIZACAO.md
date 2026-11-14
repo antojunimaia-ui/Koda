@@ -26,7 +26,7 @@
 | 3. Qualidade/lint/strict  | ✅ Concluída (gates: ESLint+Prettier+husky+CI; hardening TS/`any` registrado como backlog)                  |
 | 4. Zod                    | ✅ Concluída (schemas + validação IPC/KoClaw/.env; stream de providers → backlog)                           |
 | 5. Zustand                | ✅ Concluída (stores workspace/ui + consumo direto no ModernUI/ClassicUI; useAgentStore → backlog opcional) |
-| 6. Schema-first tools     | ⏳ Pendente                                                                                                 |
+| 6. Schema-first tools     | ✅ Concluída (schema por tool + validação no registry + prompt do schema; zod-per-tool → backlog)           |
 | 7. Servidor MCP + SSE/API | ⏳ Pendente                                                                                                 |
 
 ---
@@ -180,23 +180,30 @@ streaming fora do escopo)
 
 ---
 
-## Fase 6 — Contrato schema-first para tools e agentes
+## Fase 6 — Contrato schema-first para tools e agentes — ✅ Concluída
 
 **Problema**: cada tool define sua interface na mão; o registry replica regras de modo
 e lock. Não há um schema único que descreva "o que uma tool é".
 
 **Ações**:
 
-- [ ] Definir `ToolDefinition` com **JSON Schema** (ou Zod) por tool: nome, descrição,
-      parâmetros, saída, modos permitidos.
-- [ ] Gerar o **system prompt** a partir do schema (em vez de texto hardcoded no
-      `prompt-builder.ts`).
-- [ ] Derivar tipos TS dos schemas (via `z.infer` ou `json-schema-to-ts`).
-- [ ] Unificar `ToolRegistry` para validar argumentos antes da execução (permitir/
-      rejeitar com mensagem clara pro agente).
+- [x] Definir `ToolJsonSchema` + gerador canônico `toolParametersToJsonSchema()`
+      (nome, descrição, parâmetros com tipo/obrigatórios) em `tools/base.ts`.
+- [x] `BaseTool.getJsonSchema()` — toda tool expõe seu schema; `ToolDefinition`
+      agora inclui `jsonSchema`.
+- [x] Gerar o **system prompt** a partir do schema (`agent.getToolsMetadata()` lista
+      parâmetros e obrigatórios por tool).
+- [x] Unificar `ToolRegistry.execute()` — valida argumentos contra o schema antes de
+      executar (`validateArgsAgainstSchema`), com mensagem clara para o agente.
+- [x] Conversores de providers (`toOpenAITools`/`toAnthropicTools`/`toGoogleTools`)
+      passaram a usar o mesmo schema (eliminou duplicação).
+- [x] Testes do schema/validador (7 novos — 167 no total).
+- [ ] Derivar tipos TS por tool via `z.infer` (schemas Zod por tool) — backlog;
+      hoje os tipos vêm de `ToolParameter` (mesma fonte).
 
 **Critério de sucesso**: adicionar uma tool nova = criar um schema + implementação;
-prompt, validação e tipos são gerados.
+prompt, validação e tipos são gerados. ✅ (validação + prompt gerados; tipos via
+`ToolParameter`)
 
 ---
 

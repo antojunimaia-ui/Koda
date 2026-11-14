@@ -678,7 +678,14 @@ Regras: use entre 1 e ${maxAgents} agentes; selecione apenas arquivos candidatos
   private getToolsMetadata(): string {
     return this.tools
       .getAll()
-      .map((t) => `- **${t.name}**: ${t.description}`)
+      .map((t) => {
+        const schema = t.getJsonSchema()
+        const entries = Object.entries(schema.properties)
+          .map(([name, prop]) => `${name}: ${prop.type === 'array' ? 'array' : prop.type}`)
+          .join(', ')
+        const required = schema.required.length > 0 ? ` (required: ${schema.required.join(', ')})` : ''
+        return `- **${t.name}**: ${t.description}\n  Params: ${entries || 'none'}${required}`
+      })
       .join('\n')
   }
 
