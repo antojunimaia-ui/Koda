@@ -14,7 +14,7 @@ export const GitBranchPicker: React.FC<GitBranchPickerProps> = ({ cwd, onCheckou
 
   useEffect(() => {
     if (!cwd) return
-    window.koda.gitInfo(cwd).then(res => {
+    window.koda.gitInfo(cwd).then((res) => {
       if (res.success && res.branch) {
         setBranch(res.branch)
         setBranches(res.branches)
@@ -38,7 +38,10 @@ export const GitBranchPicker: React.FC<GitBranchPickerProps> = ({ cwd, onCheckou
   if (!branch) return null
 
   const handleCheckout = async (target: string) => {
-    if (target === branch) { setOpen(false); return }
+    if (target === branch) {
+      setOpen(false)
+      return
+    }
     setSwitching(true)
     setOpen(false)
     const res = await window.koda.gitCheckout(cwd, target)
@@ -56,28 +59,42 @@ export const GitBranchPicker: React.FC<GitBranchPickerProps> = ({ cwd, onCheckou
 
       {/* Branch button */}
       <button
-        onClick={() => branches.length > 1 && setOpen(o => !o)}
+        onClick={() => branches.length > 1 && setOpen((o) => !o)}
         className={`flex items-center gap-1 group transition-colors ${branches.length > 1 ? 'cursor-pointer' : 'cursor-default'}`}
         title={branches.length > 1 ? 'Switch branch' : branch}
       >
         {/* Git branch icon */}
         <svg
-          width="11" height="11" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           className={`shrink-0 transition-colors ${switching ? 'text-amber-400 animate-pulse' : 'text-zinc-600 group-hover:text-indigo-400'}`}
         >
-          <line x1="6" y1="3" x2="6" y2="15"/>
-          <circle cx="18" cy="6" r="3"/>
-          <circle cx="6" cy="18" r="3"/>
-          <path d="M18 9a9 9 0 0 1-9 9"/>
+          <line x1="6" y1="3" x2="6" y2="15" />
+          <circle cx="18" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <path d="M18 9a9 9 0 0 1-9 9" />
         </svg>
-        <span className={`text-[11px] font-semibold transition-colors ${switching ? 'text-amber-400' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
+        <span
+          className={`text-[11px] font-semibold transition-colors ${switching ? 'text-amber-400' : 'text-zinc-500 group-hover:text-zinc-300'}`}
+        >
           {switching ? 'Switching...' : branch}
         </span>
         {branches.length > 1 && (
           <svg
-            width="10" height="10" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             className="text-zinc-700 group-hover:text-zinc-500 transition-colors shrink-0"
           >
             <path d="M6 9l6 6 6-6" />
@@ -92,30 +109,32 @@ export const GitBranchPicker: React.FC<GitBranchPickerProps> = ({ cwd, onCheckou
             Switch Branch
           </div>
           <div className="max-h-52 overflow-y-auto custom-scrollbar py-1">
-            {branches.map(b => (
+            {branches.map((b) => (
               <button
                 key={b}
                 onClick={() => handleCheckout(b)}
                 className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors ${
-                  b === branch
-                    ? 'text-indigo-400 bg-indigo-500/10'
-                    : 'text-zinc-300 hover:bg-white/5'
+                  b === branch ? 'text-indigo-400 bg-indigo-500/10' : 'text-zinc-300 hover:bg-white/5'
                 }`}
               >
                 <svg
-                  width="11" height="11" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   className="shrink-0 opacity-60"
                 >
-                  <line x1="6" y1="3" x2="6" y2="15"/>
-                  <circle cx="18" cy="6" r="3"/>
-                  <circle cx="6" cy="18" r="3"/>
-                  <path d="M18 9a9 9 0 0 1-9 9"/>
+                  <line x1="6" y1="3" x2="6" y2="15" />
+                  <circle cx="18" cy="6" r="3" />
+                  <circle cx="6" cy="18" r="3" />
+                  <path d="M18 9a9 9 0 0 1-9 9" />
                 </svg>
                 <span className="text-[11px] font-medium truncate">{b}</span>
-                {b === branch && (
-                  <span className="ml-auto text-[9px] text-indigo-400 font-bold shrink-0">current</span>
-                )}
+                {b === branch && <span className="ml-auto text-[9px] text-indigo-400 font-bold shrink-0">current</span>}
               </button>
             ))}
           </div>

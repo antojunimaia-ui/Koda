@@ -1,51 +1,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap');
-@import "tailwindcss";
-@import "./codicons.css";
+@import 'tailwindcss';
+@import './codicons.css';
 
 :root {
   --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 
-  --koda-bg:           #0f172a;
-  --koda-bg-alt:       #0d1117;
-  --koda-sidebar:      #16161e;
+  --koda-bg: #0f172a;
+  --koda-bg-alt: #0d1117;
+  --koda-sidebar: #16161e;
 
-  --koda-text:         #e2e8f0;
-  --koda-text-dim:     #94a3b8;
-  --koda-text-faint:   #334155;
+  --koda-text: #e2e8f0;
+  --koda-text-dim: #94a3b8;
+  --koda-text-faint: #334155;
 
-  --koda-border:       #292e42;
+  --koda-border: #292e42;
   --koda-border-faint: #1e293b;
 
-  --koda-accent:       #22d3ee;
-  --koda-accent-alt:   #d946ef;
-  --koda-accent-glow:  rgba(34, 211, 238, 0.15);
+  --koda-accent: #22d3ee;
+  --koda-accent-alt: #d946ef;
+  --koda-accent-glow: rgba(34, 211, 238, 0.15);
 
-  --koda-status-ok:    #4ade80;
-  --koda-status-busy:  #facc15;
+  --koda-status-ok: #4ade80;
+  --koda-status-busy: #facc15;
   --koda-status-error: #f87171;
-  --koda-status-info:  #818cf8;
+  --koda-status-info: #818cf8;
 
-  --koda-code-bg:      #020817;
-  --koda-code-text:    #e2e8f0;
-  --koda-code-syntax:  #d946ef;
-  --koda-inline-code:  #22d3ee;
+  --koda-code-bg: #020817;
+  --koda-code-text: #e2e8f0;
+  --koda-code-syntax: #d946ef;
+  --koda-inline-code: #22d3ee;
 
-  --koda-user-msg:     rgba(30, 41, 59, 0.4);
-  --koda-tool-msg:     rgba(15, 23, 42, 0.6);
+  --koda-user-msg: rgba(30, 41, 59, 0.4);
+  --koda-tool-msg: rgba(15, 23, 42, 0.6);
 
   /* Z-index scale — single source of truth for stacking layers */
-  --koda-z-base:          0;
-  --koda-z-raised:        10;
-  --koda-z-sticky:        20;
-  --koda-z-panel:        100;
-  --koda-z-chrome:       150;
-  --koda-z-dropdown:     200;
-  --koda-z-popover:      300;
-  --koda-z-modal:        400;
-  --koda-z-toast:        500;
-  --koda-z-tour:         600;
-  --koda-z-wizard:       700;
+  --koda-z-base: 0;
+  --koda-z-raised: 10;
+  --koda-z-sticky: 20;
+  --koda-z-panel: 100;
+  --koda-z-chrome: 150;
+  --koda-z-dropdown: 200;
+  --koda-z-popover: 300;
+  --koda-z-modal: 400;
+  --koda-z-toast: 500;
+  --koda-z-tour: 600;
+  --koda-z-wizard: 700;
   --koda-z-wizard-modal: 800;
 }
 
@@ -54,36 +54,64 @@
    base < raised < sticky < panel < chrome < dropdown < popover < modal < toast <
    tour < wizard < wizard-modal
    ────────────────────────────────────────────────────────────────────────── */
-@utility z-base           { z-index: var(--koda-z-base); }
-@utility z-raised         { z-index: var(--koda-z-raised); }
-@utility z-sticky         { z-index: var(--koda-z-sticky); }
-@utility z-panel          { z-index: var(--koda-z-panel); }
-@utility z-chrome         { z-index: var(--koda-z-chrome); }
-@utility z-dropdown       { z-index: var(--koda-z-dropdown); }
-@utility z-popover        { z-index: var(--koda-z-popover); }
-@utility z-modal          { z-index: var(--koda-z-modal); }
-@utility z-toast          { z-index: var(--koda-z-toast); }
-@utility z-tour           { z-index: var(--koda-z-tour); }
-@utility z-tour-spotlight { z-index: calc(var(--koda-z-tour) + 1); }
-@utility z-tour-tooltip   { z-index: calc(var(--koda-z-tour) + 2); }
-@utility z-wizard         { z-index: var(--koda-z-wizard); }
-@utility z-wizard-modal   { z-index: var(--koda-z-wizard-modal); }
+@utility z-base {
+  z-index: var(--koda-z-base);
+}
+@utility z-raised {
+  z-index: var(--koda-z-raised);
+}
+@utility z-sticky {
+  z-index: var(--koda-z-sticky);
+}
+@utility z-panel {
+  z-index: var(--koda-z-panel);
+}
+@utility z-chrome {
+  z-index: var(--koda-z-chrome);
+}
+@utility z-dropdown {
+  z-index: var(--koda-z-dropdown);
+}
+@utility z-popover {
+  z-index: var(--koda-z-popover);
+}
+@utility z-modal {
+  z-index: var(--koda-z-modal);
+}
+@utility z-toast {
+  z-index: var(--koda-z-toast);
+}
+@utility z-tour {
+  z-index: var(--koda-z-tour);
+}
+@utility z-tour-spotlight {
+  z-index: calc(var(--koda-z-tour) + 1);
+}
+@utility z-tour-tooltip {
+  z-index: calc(var(--koda-z-tour) + 2);
+}
+@utility z-wizard {
+  z-index: var(--koda-z-wizard);
+}
+@utility z-wizard-modal {
+  z-index: var(--koda-z-wizard-modal);
+}
 
 @theme {
   --font-family-ui: var(--font-ui);
   --font-family-mono: var(--font-mono);
 
-  --color-cyan:      var(--koda-accent);
-  --color-magenta:   var(--koda-accent-alt);
+  --color-cyan: var(--koda-accent);
+  --color-magenta: var(--koda-accent-alt);
   --color-slate-900: var(--koda-bg);
   --color-slate-800: var(--koda-sidebar);
   --color-slate-700: var(--koda-border);
   --color-slate-300: var(--koda-text);
   --color-slate-400: var(--koda-text-dim);
-  --color-gray:      var(--koda-text-dim);
-  --color-green:     var(--koda-status-ok);
-  --color-yellow:    var(--koda-status-busy);
-  --color-red:       var(--koda-status-error);
+  --color-gray: var(--koda-text-dim);
+  --color-green: var(--koda-status-ok);
+  --color-yellow: var(--koda-status-busy);
+  --color-red: var(--koda-status-error);
 }
 
 @layer base {
@@ -162,13 +190,22 @@ kbd {
   @apply font-bold text-white;
 }
 
-.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
   @apply text-white font-bold mt-4 mb-2;
 }
 
-.markdown-body h1 { @apply text-lg; }
-.markdown-body h2 { @apply text-base border-b border-slate-700 pb-1; }
-.markdown-body h3 { @apply text-sm; }
+.markdown-body h1 {
+  @apply text-lg;
+}
+.markdown-body h2 {
+  @apply text-base border-b border-slate-700 pb-1;
+}
+.markdown-body h3 {
+  @apply text-sm;
+}
 
 .markdown-body ul {
   @apply list-disc list-inside mb-3 ml-2 marker:text-cyan;
@@ -252,8 +289,12 @@ kbd {
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .shimmer-text {

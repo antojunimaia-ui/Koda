@@ -71,13 +71,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClo
 
   const renderItem = (item: ContextMenuItem) => {
     if (item.separator) {
-      return (
-        <div
-          key={item.id}
-          className="h-[1px] bg-white/10 my-0.5 mx-1.5"
-          role="separator"
-        />
-      )
+      return <div key={item.id} className="h-[1px] bg-white/10 my-0.5 mx-1.5" role="separator" />
     }
 
     return (
@@ -86,10 +80,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClo
         className={`
           flex items-center h-6 mx-1 px-2 rounded
           transition-colors cursor-pointer
-          ${item.disabled 
-            ? 'opacity-40 cursor-default' 
-            : 'hover:bg-indigo-500/20 active:bg-indigo-500/30'
-          }
+          ${item.disabled ? 'opacity-40 cursor-default' : 'hover:bg-indigo-500/20 active:bg-indigo-500/30'}
         `}
         onClick={() => {
           if (!item.disabled && item.onClick) {
@@ -103,11 +94,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClo
         {/* Icon */}
         <div className="w-3 flex items-center justify-center mr-1.5">
           {item.icon && (
-            <Codicon 
-              icon={item.icon} 
-              size={12} 
-              className={item.disabled ? 'text-slate-500' : 'text-slate-300'}
-            />
+            <Codicon icon={item.icon} size={12} className={item.disabled ? 'text-slate-500' : 'text-slate-300'} />
           )}
         </div>
 
@@ -117,14 +104,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClo
         </span>
 
         {/* Keybinding or Submenu indicator */}
-        {item.keybinding && (
-          <span className="text-[9px] text-slate-500 ml-3 opacity-70">
-            {item.keybinding}
-          </span>
-        )}
-        {item.submenu && (
-          <Codicon icon="chevron-right" size={10} className="text-slate-500 ml-1.5" />
-        )}
+        {item.keybinding && <span className="text-[9px] text-slate-500 ml-3 opacity-70">{item.keybinding}</span>}
+        {item.submenu && <Codicon icon="chevron-right" size={10} className="text-slate-500 ml-1.5" />}
       </div>
     )
   }
@@ -136,7 +117,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClo
       style={{
         left: position.x,
         top: position.y,
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)'
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
       }}
       role="menu"
       aria-orientation="vertical"

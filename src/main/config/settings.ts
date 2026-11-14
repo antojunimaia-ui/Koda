@@ -1,93 +1,105 @@
-import { config } from "dotenv";
-import { resolve, dirname } from "path";
-import { existsSync } from "fs";
-import { fileURLToPath } from "url";
+import { config } from 'dotenv'
+import { resolve, dirname } from 'path'
+import { existsSync } from 'fs'
+import { fileURLToPath } from 'url'
 
 // Load .env from current working directory
-const envPath = resolve(process.cwd(), ".env");
+const envPath = resolve(process.cwd(), '.env')
 if (existsSync(envPath)) {
-  config({ path: envPath });
+  config({ path: envPath })
 }
 
 // Also try home directory
-const homeEnvPath = resolve(
-  process.env.HOME || process.env.USERPROFILE || "~",
-  ".koda",
-  ".env"
-);
+const homeEnvPath = resolve(process.env.HOME || process.env.USERPROFILE || '~', '.koda', '.env')
 if (existsSync(homeEnvPath)) {
-  config({ path: homeEnvPath });
+  config({ path: homeEnvPath })
 }
 
 // Fallback: Also try the Koda CLI installation directory (useful for global npm link during dev)
 try {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = dirname(__filename)
   // In dist/index.js, root is one level up
-  const cliRootEnvPath = resolve(__dirname, "../.env");
+  const cliRootEnvPath = resolve(__dirname, '../.env')
   if (existsSync(cliRootEnvPath)) {
-    config({ path: cliRootEnvPath });
+    config({ path: cliRootEnvPath })
   }
 } catch (e) {
   // Ignore
 }
 
-export type LLMProvider = "openai" | "anthropic" | "google" | "openrouter" | "ollama" | "llamacpp" | "groq" | "deepseek" | "mistral" | "together" | "xai" | "zhipu" | "maritaca" | "koda-cloud" | "fireworks" | "opencode-zen";
+export type LLMProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'google'
+  | 'openrouter'
+  | 'ollama'
+  | 'llamacpp'
+  | 'groq'
+  | 'deepseek'
+  | 'mistral'
+  | 'together'
+  | 'xai'
+  | 'zhipu'
+  | 'maritaca'
+  | 'koda-cloud'
+  | 'fireworks'
+  | 'opencode-zen'
 
 export interface AppSettings {
-  provider: LLMProvider;
-  model: string;
-  advisorModel: string;
-  apiKey: string;
-  maxTokens: number;
-  temperature: number;
-  systemPrompt: string;
-  webhookEnabled: boolean;
-  webhookPort: number;
-  webhookToken: string;
-  kodaCloudBaseUrl: string;
+  provider: LLMProvider
+  model: string
+  advisorModel: string
+  apiKey: string
+  maxTokens: number
+  temperature: number
+  systemPrompt: string
+  webhookEnabled: boolean
+  webhookPort: number
+  webhookToken: string
+  kodaCloudBaseUrl: string
 }
 
 const DEFAULT_MODELS: Record<LLMProvider, string> = {
-  openai: "gpt-4o",
-  anthropic: "claude-sonnet-4-20250514",
-  google: "gemini-2.0-flash",
-  openrouter: "anthropic/claude-3.7-sonnet",
-  ollama: "llama3",
-  llamacpp: "local-model",
-  groq: "llama-3.3-70b-versatile",
-  deepseek: "deepseek-chat",
-  mistral: "codestral-latest",
-  together: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-  xai: "grok-beta",
-  zhipu: "glm-5",
-  maritaca: "sabia-4",
-  "koda-cloud": "gemini-2.0-flash-exp",
-  fireworks: "accounts/fireworks/models/llama-v3p1-405b-instruct",
-  "opencode-zen": "",
-};
+  openai: 'gpt-4o',
+  anthropic: 'claude-sonnet-4-20250514',
+  google: 'gemini-2.0-flash',
+  openrouter: 'anthropic/claude-3.7-sonnet',
+  ollama: 'llama3',
+  llamacpp: 'local-model',
+  groq: 'llama-3.3-70b-versatile',
+  deepseek: 'deepseek-chat',
+  mistral: 'codestral-latest',
+  together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  xai: 'grok-beta',
+  zhipu: 'glm-5',
+  maritaca: 'sabia-4',
+  'koda-cloud': 'gemini-2.0-flash-exp',
+  fireworks: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
+  'opencode-zen': '',
+}
 
 export function getSettings(): AppSettings {
-  const provider = (process.env.LLM_PROVIDER || "openai") as LLMProvider;
+  const provider = (process.env.LLM_PROVIDER || 'openai') as LLMProvider
 
   const apiKeyMap: Record<LLMProvider, string> = {
-    openai: process.env.OPENAI_API_KEY || "",
-    anthropic: process.env.ANTHROPIC_API_KEY || "",
-    google: process.env.GOOGLE_API_KEY || "",
-    openrouter: process.env.OPENROUTER_API_KEY || "",
-    ollama: process.env.OLLAMA_API_KEY || "",
-    llamacpp: process.env.LLAMACPP_API_KEY || "",
-    groq: process.env.GROQ_API_KEY || "",
-    deepseek: process.env.DEEPSEEK_API_KEY || "",
-    mistral: process.env.MISTRAL_API_KEY || "",
-    together: process.env.TOGETHER_API_KEY || "",
-    xai: process.env.XAI_API_KEY || "",
-    zhipu: process.env.ZHIPU_API_KEY || "",
-    maritaca: process.env.MARITACA_API_KEY || "",
-    "koda-cloud": process.env.KODA_CLOUD_API_KEY || "",
-    fireworks: process.env.FIREWORKS_API_KEY || "",
-    "opencode-zen": process.env.OPENCODE_ZEN_API_KEY || process.env.OPENCODE_API_KEY || "",
-  };
+    openai: process.env.OPENAI_API_KEY || '',
+    anthropic: process.env.ANTHROPIC_API_KEY || '',
+    google: process.env.GOOGLE_API_KEY || '',
+    openrouter: process.env.OPENROUTER_API_KEY || '',
+    ollama: process.env.OLLAMA_API_KEY || '',
+    llamacpp: process.env.LLAMACPP_API_KEY || '',
+    groq: process.env.GROQ_API_KEY || '',
+    deepseek: process.env.DEEPSEEK_API_KEY || '',
+    mistral: process.env.MISTRAL_API_KEY || '',
+    together: process.env.TOGETHER_API_KEY || '',
+    xai: process.env.XAI_API_KEY || '',
+    zhipu: process.env.ZHIPU_API_KEY || '',
+    maritaca: process.env.MARITACA_API_KEY || '',
+    'koda-cloud': process.env.KODA_CLOUD_API_KEY || '',
+    fireworks: process.env.FIREWORKS_API_KEY || '',
+    'opencode-zen': process.env.OPENCODE_ZEN_API_KEY || process.env.OPENCODE_API_KEY || '',
+  }
 
   const modelOverride: Record<LLMProvider, string | undefined> = {
     openai: process.env.OPENAI_MODEL,
@@ -103,24 +115,24 @@ export function getSettings(): AppSettings {
     xai: process.env.XAI_MODEL,
     zhipu: process.env.ZHIPU_MODEL,
     maritaca: process.env.MARITACA_MODEL,
-    "koda-cloud": process.env.KODA_CLOUD_MODEL,
+    'koda-cloud': process.env.KODA_CLOUD_MODEL,
     fireworks: process.env.FIREWORKS_MODEL,
-    "opencode-zen": process.env.OPENCODE_ZEN_MODEL,
-  };
+    'opencode-zen': process.env.OPENCODE_ZEN_MODEL,
+  }
 
   return {
     provider,
     model: modelOverride[provider] || DEFAULT_MODELS[provider],
     advisorModel: process.env.ADVISOR_MODEL || modelOverride[provider] || DEFAULT_MODELS[provider],
     apiKey: apiKeyMap[provider],
-    maxTokens: parseInt(process.env.MAX_TOKENS || "8192", 10),
-    temperature: parseFloat(process.env.TEMPERATURE || "0.3"),
+    maxTokens: parseInt(process.env.MAX_TOKENS || '8192', 10),
+    temperature: parseFloat(process.env.TEMPERATURE || '0.3'),
     systemPrompt: getSystemPrompt(),
     webhookEnabled: process.env.WEBHOOK_ENABLED === 'true',
-    webhookPort: parseInt(process.env.WEBHOOK_PORT || "3141", 10),
-    webhookToken: process.env.WEBHOOK_TOKEN || "",
-    kodaCloudBaseUrl: process.env.KODA_CLOUD_BASE_URL || "",
-  };
+    webhookPort: parseInt(process.env.WEBHOOK_PORT || '3141', 10),
+    webhookToken: process.env.WEBHOOK_TOKEN || '',
+    kodaCloudBaseUrl: process.env.KODA_CLOUD_BASE_URL || '',
+  }
 }
 
 function getSystemPrompt(): string {
@@ -159,5 +171,5 @@ You are calm, precise, and confident. You don't over-explain, don't apologize ex
 # ACCOUNTABILITY
 - Own your output. If the code doesn't work, that's on you — fix it without being asked.
 - Don't lecture the user on ethics, safety, or best practices unless they ask. They're a professional.
-- If you can't do something, say so in one sentence. Don't explain why at length.`;
+- If you can't do something, say so in one sentence. Don't explain why at length.`
 }

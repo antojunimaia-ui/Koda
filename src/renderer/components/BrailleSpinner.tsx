@@ -32,9 +32,7 @@ export const BrailleSpinner: React.FC<BrailleSpinnerProps> = ({
   phraseInterval = 2500,
 }) => {
   const [frame, setFrame] = useState(0)
-  const [phraseIndex, setPhraseIndex] = useState(() =>
-    Math.floor(Math.random() * THINKING_PHRASES.length)
-  )
+  const [phraseIndex, setPhraseIndex] = useState(() => Math.floor(Math.random() * THINKING_PHRASES.length))
   const [visible, setVisible] = useState(true)
 
   // Braille animation
@@ -59,11 +57,11 @@ export const BrailleSpinner: React.FC<BrailleSpinnerProps> = ({
   }, [rotateLabel, phraseInterval])
 
   const colorMap: Record<string, string> = {
-    cyan:    'text-[var(--koda-accent)]',
-    indigo:  'text-indigo-400',
-    yellow:  'text-[var(--koda-status-busy)]',
-    green:   'text-[var(--koda-status-ok)]',
-    red:     'text-[var(--koda-status-error)]',
+    cyan: 'text-[var(--koda-accent)]',
+    indigo: 'text-indigo-400',
+    yellow: 'text-[var(--koda-status-busy)]',
+    green: 'text-[var(--koda-status-ok)]',
+    red: 'text-[var(--koda-status-error)]',
     magenta: 'text-[var(--koda-accent-alt)]',
   }
 

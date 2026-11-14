@@ -56,13 +56,7 @@ function broadcastAgentUpdate(data: object) {
 
 // ── IPC handlers ─────────────────────────────────────────────────────────────
 
-registerAllHandlers(
-  agents,
-  discordRPC,
-  getMainWindow,
-  getAllWindows,
-  broadcastAgentUpdate
-)
+registerAllHandlers(agents, discordRPC, getMainWindow, getAllWindows, broadcastAgentUpdate)
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 

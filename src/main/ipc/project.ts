@@ -10,7 +10,15 @@ export function registerProjectHandlers() {
     try {
       const { globby } = await import('globby')
       const files = await globby(['**/*'], {
-        ignore: ['node_modules/**', '.git/**', 'dist/**', 'dist-electron/**', 'release-build/**', 'package-lock.json', 'yarn.lock'],
+        ignore: [
+          'node_modules/**',
+          '.git/**',
+          'dist/**',
+          'dist-electron/**',
+          'release-build/**',
+          'package-lock.json',
+          'yarn.lock',
+        ],
         dot: true,
         onlyFiles: true,
       })
@@ -26,7 +34,7 @@ export function registerProjectHandlers() {
       const targetDir = dirPath ? path.resolve(dirPath) : cwd
 
       // Security: ensure targetDir is inside cwd (case-insensitive for Windows)
-      const resolvedCwd    = path.resolve(cwd).toLowerCase()
+      const resolvedCwd = path.resolve(cwd).toLowerCase()
       const resolvedTarget = path.resolve(targetDir).toLowerCase()
       if (!resolvedTarget.startsWith(resolvedCwd)) {
         throw new Error('Access denied: directory outside project')
@@ -35,7 +43,15 @@ export function registerProjectHandlers() {
       if (!existsSync(targetDir)) return { success: true, files: [] }
 
       const entries = await fs.readdir(targetDir, { withFileTypes: true })
-      const systemIgnore = new Set(['.git', 'node_modules', 'dist', 'dist-electron', 'release-build', 'package-lock.json', 'yarn.lock'])
+      const systemIgnore = new Set([
+        '.git',
+        'node_modules',
+        'dist',
+        'dist-electron',
+        'release-build',
+        'package-lock.json',
+        'yarn.lock',
+      ])
       const files = []
 
       for (const entry of entries) {
@@ -75,9 +91,14 @@ export function registerProjectHandlers() {
       const base64 = buffer.toString('base64')
       const ext = path.extname(resolvedPath).toLowerCase().slice(1)
       const mimeMap: Record<string, string> = {
-        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-        gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
-        bmp: 'image/bmp', ico: 'image/x-icon',
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        gif: 'image/gif',
+        webp: 'image/webp',
+        svg: 'image/svg+xml',
+        bmp: 'image/bmp',
+        ico: 'image/x-icon',
       }
       const mime = mimeMap[ext] || 'image/png'
       return { success: true, dataUrl: `data:${mime};base64,${base64}` }

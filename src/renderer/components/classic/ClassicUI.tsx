@@ -1,6 +1,15 @@
 import React from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
-import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings, SlashItem, Workspace } from '../../types/index.js'
+import {
+  MessageEntry,
+  AttachedFile,
+  AgentInfo,
+  Mode,
+  KodaTheme,
+  KodaSettings,
+  SlashItem,
+  Workspace,
+} from '../../types/index.js'
 import TitleBar from '../TitleBar.js'
 import { BrailleSpinner } from '../BrailleSpinner.js'
 import MessageRow from '../messages/MessageRow.js'
@@ -26,7 +35,11 @@ interface ClassicUIProps {
   pendingImages: AttachedFile[]
   setPendingImages: (imgs: AttachedFile[] | ((p: AttachedFile[]) => AttachedFile[])) => void
   taskQueue: { text: string; images: AttachedFile[] }[]
-  setTaskQueue: (queue: { text: string; images: AttachedFile[] }[] | ((p: { text: string; images: AttachedFile[] }[]) => { text: string; images: AttachedFile[] }[])) => void
+  setTaskQueue: (
+    queue:
+      | { text: string; images: AttachedFile[] }[]
+      | ((p: { text: string; images: AttachedFile[] }[]) => { text: string; images: AttachedFile[] }[]),
+  ) => void
   handleSend: (overrideText?: string, overrideImages?: AttachedFile[]) => void
   handlePathClick: () => void
   handleInputChange: (val: string) => void
@@ -74,7 +87,7 @@ interface ClassicUIProps {
   suggestionIndex: number
   selectSuggestion: (f: string) => void
   setSuggestionIndex: React.Dispatch<React.SetStateAction<number>>
-  
+
   // Workspace Split
   isSplitEnabled: boolean
   onToggleSplit: () => void
@@ -95,40 +108,106 @@ interface ClassicUIProps {
 }
 
 const ClassicUI: React.FC<ClassicUIProps> = ({
-  messages, input, setInput, initializing, isProcessing, agentInfo, mode, setMode,
-  pendingImages, setPendingImages, taskQueue, setTaskQueue, handleSend, handlePathClick, 
-  handleInputChange, handleRollback, inputRef, virtuosoRef, theme, kodaSettings,
-  onSettingsClick, onMcpClick, onBrowserClick, showBrowser, onTerminalClick, 
-  showTerminal, showPanel, onTogglePanel, showExplorer, setShowExplorer, explorerWidth = 256, leftPanelWidth, rightPanelWidth, startResizing, isResizing,
-  startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
-  isDragging, handleDragOver, handleDragLeave, handleDrop, inPlanMode, showThinkingSpinner,
-  symbols, slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
-  suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
-  isSplitEnabled, onToggleSplit, workspaces, activeId, setActiveId, onAddWorkspace, onCloseWorkspace,
-  splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs, handleStop, handlePaste,
-  pendingQuestions, onQuestionsSubmit,
+  messages,
+  input,
+  setInput,
+  initializing,
+  isProcessing,
+  agentInfo,
+  mode,
+  setMode,
+  pendingImages,
+  setPendingImages,
+  taskQueue,
+  setTaskQueue,
+  handleSend,
+  handlePathClick,
+  handleInputChange,
+  handleRollback,
+  inputRef,
+  virtuosoRef,
+  theme,
+  kodaSettings,
+  onSettingsClick,
+  onMcpClick,
+  onBrowserClick,
+  showBrowser,
+  onTerminalClick,
+  showTerminal,
+  showPanel,
+  onTogglePanel,
+  showExplorer,
+  setShowExplorer,
+  explorerWidth = 256,
+  leftPanelWidth,
+  rightPanelWidth,
+  startResizing,
+  isResizing,
+  startResizingRight,
+  isResizingRight,
+  browserHeight,
+  isResizingHeight,
+  startResizingHeight,
+  isDragging,
+  handleDragOver,
+  handleDragLeave,
+  handleDrop,
+  inPlanMode,
+  showThinkingSpinner,
+  symbols,
+  slashItems,
+  showSlashMenu,
+  slashIndex,
+  selectSlashItem,
+  setSlashIndex,
+  suggestions,
+  showSuggestions,
+  suggestionIndex,
+  selectSuggestion,
+  setSuggestionIndex,
+  isSplitEnabled,
+  onToggleSplit,
+  workspaces,
+  activeId,
+  setActiveId,
+  onAddWorkspace,
+  onCloseWorkspace,
+  splitViewIds,
+  onSplitWith,
+  handleSendForWs,
+  handleRollbackForWs,
+  handleStop,
+  handlePaste,
+  pendingQuestions,
+  onQuestionsSubmit,
   pendingShell,
-  updateInfo, onUpdateDismiss,
+  updateInfo,
+  onUpdateDismiss,
 }) => {
-  
-  const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
-  const showRight = (showBrowser && kodaSettings.browserPosition === 'right') || (showTerminal && kodaSettings.terminalPosition === 'right');
+  const showLeft =
+    (showBrowser && kodaSettings.browserPosition === 'left') ||
+    (showTerminal && kodaSettings.terminalPosition === 'left')
+  const showRight =
+    (showBrowser && kodaSettings.browserPosition === 'right') ||
+    (showTerminal && kodaSettings.terminalPosition === 'right')
 
   const renderPanelStack = (pos: 'left' | 'right') => {
-    const hasBrowser = showBrowser && kodaSettings.browserPosition === pos;
-    const hasTerminal = showTerminal && kodaSettings.terminalPosition === pos;
-    if (!hasBrowser && !hasTerminal) return null;
+    const hasBrowser = showBrowser && kodaSettings.browserPosition === pos
+    const hasTerminal = showTerminal && kodaSettings.terminalPosition === pos
+    if (!hasBrowser && !hasTerminal) return null
 
     return (
-      <div 
-        style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }} 
+      <div
+        style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }}
         className={`flex flex-col shrink-0 min-w-62.5 relative h-full bg-[#0d1117] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
       >
         {hasBrowser && (
           <div className="shrink-0 min-h-25 relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
             <BrowserPreview onClose={() => onBrowserClick()} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-              <div className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+              <div
+                className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`}
+              />
             )}
           </div>
         )}
@@ -136,59 +215,72 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
           <div
             onMouseDown={startResizingHeight}
             className={`h-1 w-full cursor-row-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-cyan-500 h-1.5' : 'bg-white/5 hover:bg-cyan-500/50'}`}
-          >
-          </div>
+          ></div>
         )}
         {hasTerminal && (
           <div className="flex-1 overflow-hidden" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
             <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} workspaceId={activeId || undefined} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-              <div className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+              <div
+                className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`}
+              />
             )}
           </div>
         )}
       </div>
-    );
-  };
+    )
+  }
 
   const renderableMessages = React.useMemo(() => {
-    if (kodaSettings.toolViewMode !== 'compact') return messages;
-    
-    const groups: any[] = [];
-    let currentToolGroup: any[] = [];
-    
+    if (kodaSettings.toolViewMode !== 'compact') return messages
+
+    const groups: any[] = []
+    let currentToolGroup: any[] = []
+
     messages.forEach((msg, idx) => {
       if (msg.type === 'tool') {
-        currentToolGroup.push(msg);
+        currentToolGroup.push(msg)
       } else {
         if (currentToolGroup.length > 0) {
-          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` });
-          currentToolGroup = [];
+          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` })
+          currentToolGroup = []
         }
-        groups.push(msg);
+        groups.push(msg)
       }
-    });
-    
+    })
+
     if (currentToolGroup.length > 0) {
-      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' });
+      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' })
     }
-    
-    return groups;
-  }, [messages, kodaSettings.toolViewMode]);
+
+    return groups
+  }, [messages, kodaSettings.toolViewMode])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (showSlashMenu) {
-      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (slashItems[slashIndex]) selectSlashItem(slashItems[slashIndex]) }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); setSlashIndex((prev: number) => (prev > 0 ? prev - 1 : slashItems.length - 1)) }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); setSlashIndex((prev: number) => (prev < slashItems.length - 1 ? prev + 1 : 0)) }
-      else if (e.key === 'Escape') setSlashIndex(-1)
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        if (slashItems[slashIndex]) selectSlashItem(slashItems[slashIndex])
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSlashIndex((prev: number) => (prev > 0 ? prev - 1 : slashItems.length - 1))
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSlashIndex((prev: number) => (prev < slashItems.length - 1 ? prev + 1 : 0))
+      } else if (e.key === 'Escape') setSlashIndex(-1)
       return
     }
     if (showSuggestions) {
-      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (suggestions[suggestionIndex]) selectSuggestion(suggestions[suggestionIndex]) }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestionIndex((prev: number) => (prev > 0 ? prev - 1 : suggestions.length - 1)) }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestionIndex((prev: number) => (prev < suggestions.length - 1 ? prev + 1 : 0)) }
-      else if (e.key === 'Escape') setSuggestionIndex(-1)
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        if (suggestions[suggestionIndex]) selectSuggestion(suggestions[suggestionIndex])
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSuggestionIndex((prev: number) => (prev > 0 ? prev - 1 : suggestions.length - 1))
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSuggestionIndex((prev: number) => (prev < suggestions.length - 1 ? prev + 1 : 0))
+      } else if (e.key === 'Escape') setSuggestionIndex(-1)
       return
     }
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -235,7 +327,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
       />
 
       {isSplitEnabled && (
-        <WorkspaceTabs 
+        <WorkspaceTabs
           workspaces={workspaces}
           activeId={activeId}
           onSwitch={setActiveId}
@@ -248,7 +340,6 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
 
       <div className="flex-1 relative flex flex-col min-h-0">
         <div className="flex flex-1 min-h-0 overflow-hidden relative">
-          
           {showLeft && renderPanelStack('left')}
 
           {showLeft && (
@@ -256,8 +347,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
               onMouseDown={startResizing}
               className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizing ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
               style={{ backgroundColor: isResizing ? 'var(--koda-accent)' : undefined }}
-            >
-            </div>
+            ></div>
           )}
 
           {/* Main Chat Area (Normal or Split) */}
@@ -294,21 +384,37 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
               <div className="terminal-header uppercase tracking-wider relative z-raised">
                 <div className="terminal-box flex flex-col gap-1">
                   <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-bold">
-                    <span style={{ color: 'var(--koda-text-dim)' }}>Project: <span style={{ color: 'var(--koda-status-busy)' }}>{agentInfo.project}</span></span>
+                    <span style={{ color: 'var(--koda-text-dim)' }}>
+                      Project: <span style={{ color: 'var(--koda-status-busy)' }}>{agentInfo.project}</span>
+                    </span>
                     <div className="flex items-center gap-3">
-                      <span className="opacity-80 text-[9px]" style={{ color: 'var(--koda-status-ok)' }}>{agentInfo.model}</span>
-                      <div 
+                      <span className="opacity-80 text-[9px]" style={{ color: 'var(--koda-status-ok)' }}>
+                        {agentInfo.model}
+                      </span>
+                      <div
                         className="flex items-center gap-1.5 pl-2 border-l border-white/5"
-                        style={{ 
-                          color: initializing ? 'var(--koda-text-dim)' : isProcessing ? 'var(--koda-status-busy)' : 'var(--koda-status-ok)' 
+                        style={{
+                          color: initializing
+                            ? 'var(--koda-text-dim)'
+                            : isProcessing
+                              ? 'var(--koda-status-busy)'
+                              : 'var(--koda-status-ok)',
                         }}
                       >
                         {inPlanMode && (
-                          <span className="flex items-center gap-1 mr-1 font-bold uppercase text-[9px] tracking-widest" style={{ color: 'var(--koda-status-busy)' }}>
-                            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--koda-status-busy)' }}></span>
+                          <span
+                            className="flex items-center gap-1 mr-1 font-bold uppercase text-[9px] tracking-widest"
+                            style={{ color: 'var(--koda-status-busy)' }}
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full animate-pulse"
+                              style={{ backgroundColor: 'var(--koda-status-busy)' }}
+                            ></span>
                           </span>
                         )}
-                        <span className="text-[10px]">{initializing || isProcessing ? symbols.circle : symbols.bullet}</span>
+                        <span className="text-[10px]">
+                          {initializing || isProcessing ? symbols.circle : symbols.bullet}
+                        </span>
                         <span className="text-[10px] font-black tracking-tighter">
                           {initializing ? 'Loading...' : isProcessing ? 'Busy' : 'Ready'}
                         </span>
@@ -322,8 +428,15 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   style={{ color: 'var(--koda-text-dim)' }}
                   title="Click to select new working directory"
                 >
-                  <span className="opacity-40 group-hover:opacity-100 transition-all" style={{ color: 'var(--koda-accent)' }}>{symbols.dir}</span>
-                  <span className="truncate max-w-75 transition-all group-hover:text-white">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
+                  <span
+                    className="opacity-40 group-hover:opacity-100 transition-all"
+                    style={{ color: 'var(--koda-accent)' }}
+                  >
+                    {symbols.dir}
+                  </span>
+                  <span className="truncate max-w-75 transition-all group-hover:text-white">
+                    {agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}
+                  </span>
                 </div>
               </div>
 
@@ -334,14 +447,14 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   data={renderableMessages}
                   alignToBottom
                   increaseViewportBy={{ top: 200, bottom: 200 }}
-                  itemContent={(_index, item: any) => (
+                  itemContent={(_index, item: any) =>
                     item.type === 'tool_group' ? (
                       <div className="mb-4">
-                        <CompactToolView 
-                          tools={item.tools} 
-                          settings={kodaSettings} 
-                          agentInfo={agentInfo} 
-                          uiMode="classic" 
+                        <CompactToolView
+                          tools={item.tools}
+                          settings={kodaSettings}
+                          agentInfo={agentInfo}
+                          uiMode="classic"
                           isLastAndActive={isProcessing && _index === renderableMessages.length - 1}
                         />
                       </div>
@@ -355,7 +468,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                         uiMode="classic"
                       />
                     )
-                  )}
+                  }
                   components={{
                     Footer: () => (
                       <div className="pb-4">
@@ -365,7 +478,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                           </div>
                         )}
                       </div>
-                    )
+                    ),
                   }}
                 />
               </div>
@@ -376,17 +489,31 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     {pendingImages.map((img, i) => (
                       <div key={i} className="relative group">
                         {img.isImage ? (
-                          <img src={img.dataUrl} alt={img.name} className="h-16 rounded border border-slate-700 object-cover" />
+                          <img
+                            src={img.dataUrl}
+                            alt={img.name}
+                            className="h-16 rounded border border-slate-700 object-cover"
+                          />
                         ) : (
                           <div className="h-14 w-28 bg-[#1e1e1e] border border-slate-700 rounded p-2 flex flex-col justify-between shadow-sm relative overflow-hidden">
                             <div className="text-[9px] text-slate-300 font-bold truncate">{img.name}</div>
-                            <div className="text-[8px] font-black text-slate-500 uppercase">{img.name.split('.').pop()?.toUpperCase() || 'FILE'}</div>
+                            <div className="text-[8px] font-black text-slate-500 uppercase">
+                              {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
+                            </div>
                           </div>
                         )}
                         <button
-                          onClick={() => setPendingImages((prev: any) => typeof prev === 'function' ? prev.filter((_: any, idx: number) => idx !== i) : prev.filter((_: any, idx: number) => idx !== i))}
+                          onClick={() =>
+                            setPendingImages((prev: any) =>
+                              typeof prev === 'function'
+                                ? prev.filter((_: any, idx: number) => idx !== i)
+                                : prev.filter((_: any, idx: number) => idx !== i),
+                            )
+                          }
                           className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >✕</button>
+                        >
+                          ✕
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -397,10 +524,21 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     <span className="text-[9px] font-black uppercase tracking-widest text-amber-400">⏳ Queue</span>
                     <div className="flex gap-1.5 flex-1 overflow-hidden">
                       {taskQueue.map((t, i) => (
-                        <span key={i} className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-40">{t.text}</span>
+                        <span
+                          key={i}
+                          className="text-[10px] text-slate-500 font-mono bg-slate-800/60 rounded px-2 py-0.5 truncate max-w-40"
+                        >
+                          {t.text}
+                        </span>
                       ))}
                     </div>
-                    <button onClick={() => setTaskQueue([])} className="text-[9px] text-slate-600 hover:text-rose-400 transition-colors" title="Clear queue">✕ clear</button>
+                    <button
+                      onClick={() => setTaskQueue([])}
+                      className="text-[9px] text-slate-600 hover:text-rose-400 transition-colors"
+                      title="Clear queue"
+                    >
+                      ✕ clear
+                    </button>
                   </div>
                 )}
 
@@ -427,11 +565,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   )}
                   {pendingQuestions && pendingQuestions.length > 0 && onQuestionsSubmit && (
                     <div className="mx-3">
-                      <QuestionsModal
-                        questions={pendingQuestions}
-                        onSubmit={onQuestionsSubmit}
-                        variant="classic"
-                      />
+                      <QuestionsModal questions={pendingQuestions} onSubmit={onQuestionsSubmit} variant="classic" />
                     </div>
                   )}
                   {showSlashMenu && slashItems.length > 0 && (
@@ -444,9 +578,17 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-sm">{item.icon}</span>
-                            <span className={`text-xs font-bold ${i === slashIndex ? 'text-cyan-400' : 'text-slate-200'}`}>{item.name}</span>
+                            <span
+                              className={`text-xs font-bold ${i === slashIndex ? 'text-cyan-400' : 'text-slate-200'}`}
+                            >
+                              {item.name}
+                            </span>
                           </div>
-                          {item.description && <span className="text-[10px] text-slate-400 pl-6 mt-1.5 leading-tight">{item.description}</span>}
+                          {item.description && (
+                            <span className="text-[10px] text-slate-400 pl-6 mt-1.5 leading-tight">
+                              {item.description}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -456,7 +598,12 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     <div className="absolute bottom-full left-0 mb-2 w-72 bg-slate-800 border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden z-dropdown flex flex-col min-h-5 max-h-50">
                       <div className="px-3 py-1.5 border-b border-slate-700/50 text-[10px] font-bold text-slate-400 bg-slate-900/50 uppercase tracking-wider flex items-center justify-between">
                         <span className="text-[10px] font-bold">Suggestions</span>
-                        <button onClick={() => setSuggestionIndex(-1)} className="text-[10px] text-slate-600 hover:text-rose-400 transition-colors">✕ clear</button>
+                        <button
+                          onClick={() => setSuggestionIndex(-1)}
+                          className="text-[10px] text-slate-600 hover:text-rose-400 transition-colors"
+                        >
+                          ✕ clear
+                        </button>
                       </div>
                       {suggestions.map((file, idx) => (
                         <button
@@ -466,7 +613,9 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-xs">📄</span>
-                            <span className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                            <span
+                              className={`text-[10px] font-black tracking-widest truncate ${idx === suggestionIndex ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'}`}
+                            >
                               {file}
                             </span>
                           </div>
@@ -475,8 +624,14 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                     </div>
                   )}
 
-                  <div className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-sticky ${initializing ? 'terminal-input-disabled' : ''}`}>
-                    <span className={`font-bold mt-1.5 ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}>{symbols.arrow}</span>
+                  <div
+                    className={`terminal-input-container items-start bg-slate-900/95 backdrop-blur-sm z-sticky ${initializing ? 'terminal-input-disabled' : ''}`}
+                  >
+                    <span
+                      className={`font-bold mt-1.5 ${initializing ? 'text-slate-600' : isProcessing ? 'text-amber-400' : 'text-cyan'}`}
+                    >
+                      {symbols.arrow}
+                    </span>
                     {initializing ? (
                       <span className="text-slate-600 animate-pulse italic text-sm">Initializing...</span>
                     ) : (
@@ -485,7 +640,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                         autoFocus
                         rows={1}
                         value={input}
-                        onChange={e => {
+                        onChange={(e) => {
                           handleInputChange(e.target.value)
                           e.target.style.height = 'auto'
                           e.target.style.height = `${e.target.scrollHeight}px`
@@ -508,8 +663,7 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
               onMouseDown={startResizingRight}
               className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingRight ? 'w-1.5' : 'bg-white/5 hover:bg-white/10'}`}
               style={{ backgroundColor: isResizingRight ? 'var(--koda-accent)' : undefined }}
-            >
-            </div>
+            ></div>
           )}
           {showRight && renderPanelStack('right')}
 
@@ -517,7 +671,9 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
           {showPanel && <div className="w-64 shrink-0" />}
 
           {/* Standalone Explorer Placeholder */}
-          {showExplorer && <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />}
+          {showExplorer && (
+            <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />
+          )}
         </div>
       </div>
     </div>

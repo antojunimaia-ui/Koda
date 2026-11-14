@@ -15,7 +15,11 @@ interface WorkspaceTabsProps {
 }
 
 // ─── Context Menu ─────────────────────────────────────────────────────────────
-interface ContextMenuState { tabId: string; x: number; y: number }
+interface ContextMenuState {
+  tabId: string
+  x: number
+  y: number
+}
 
 const TabContextMenu: React.FC<{
   state: ContextMenuState
@@ -47,11 +51,14 @@ const TabContextMenu: React.FC<{
       {onSplitWith && (
         <button
           className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] text-slate-300 hover:bg-white/8 hover:text-indigo-300 transition-colors text-left"
-          onClick={() => { onSplitWith(state.tabId); onDismiss() }}
+          onClick={() => {
+            onSplitWith(state.tabId)
+            onDismiss()
+          }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <line x1="12" y1="3" x2="12" y2="21"/>
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="12" y1="3" x2="12" y2="21" />
           </svg>
           {isCurrentlySplit ? 'Close split view' : 'View alongside active'}
         </button>
@@ -59,22 +66,27 @@ const TabContextMenu: React.FC<{
       <div className="h-px bg-white/5 mx-2 my-1" />
       <button
         className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] text-slate-300 hover:bg-white/8 transition-colors text-left"
-        onClick={() => { /* duplicate in future */ onDismiss() }}
+        onClick={() => {
+          /* duplicate in future */ onDismiss()
+        }}
         disabled
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="9" y="9" width="13" height="13" rx="2"/>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
         <span className="opacity-40">Duplicate (soon)</span>
       </button>
       {canClose && (
         <button
           className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] text-rose-400 hover:bg-rose-500/10 transition-colors text-left"
-          onClick={() => { onClose(state.tabId); onDismiss() }}
+          onClick={() => {
+            onClose(state.tabId)
+            onDismiss()
+          }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M18 6L6 18M6 6l12 12"/>
+            <path d="M18 6L6 18M6 6l12 12" />
           </svg>
           Close workspace
         </button>
@@ -85,7 +97,13 @@ const TabContextMenu: React.FC<{
 
 // ─── Classic Tab Bar (used by ClassicUI) ──────────────────────────────────────
 const ClassicTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>> = ({
-  workspaces, activeId, onSwitch, onAdd, onClose, splitIds, onSplitWith
+  workspaces,
+  activeId,
+  onSwitch,
+  onAdd,
+  onClose,
+  splitIds,
+  onSplitWith,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
@@ -99,20 +117,26 @@ const ClassicTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>
             <div
               key={ws.id}
               onClick={() => onSwitch(ws.id)}
-              onContextMenu={(e) => { e.preventDefault(); setContextMenu({ tabId: ws.id, x: e.clientX, y: e.clientY }) }}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                setContextMenu({ tabId: ws.id, x: e.clientX, y: e.clientY })
+              }}
               className={`flex items-center gap-2 px-3 h-7 rounded-t-md cursor-pointer transition-all border-x border-t text-[10px] font-bold uppercase tracking-wider min-w-[120px] max-w-[200px] group ${
                 isActive
                   ? 'bg-slate-800 border-white/10 text-cyan-400'
                   : isSplit
-                  ? 'bg-slate-900 border-indigo-500/30 text-indigo-400'
-                  : 'bg-transparent border-transparent text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                    ? 'bg-slate-900 border-indigo-500/30 text-indigo-400'
+                    : 'bg-transparent border-transparent text-slate-500 hover:text-slate-300 hover:bg-white/5'
               }`}
             >
               {isSplit && <span className="w-1 h-1 rounded-full bg-indigo-400 shrink-0" />}
               <span className="truncate flex-1">{ws.name}</span>
               {workspaces.length > 1 && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onClose(ws.id) }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onClose(ws.id)
+                  }}
                   className="opacity-0 group-hover:opacity-100 hover:text-rose-500 transition-opacity"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -152,7 +176,13 @@ const ClassicTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>
 
 // ─── Modern Tab Bar (used by ModernUI) ────────────────────────────────────────
 const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>> = ({
-  workspaces, activeId, onSwitch, onAdd, onClose, splitIds, onSplitWith
+  workspaces,
+  activeId,
+  onSwitch,
+  onAdd,
+  onClose,
+  splitIds,
+  onSplitWith,
 }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
@@ -167,36 +197,42 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
               <div
                 key={ws.id}
                 onClick={() => onSwitch(ws.id)}
-                onContextMenu={(e) => { e.preventDefault(); setContextMenu({ tabId: ws.id, x: e.clientX, y: e.clientY }) }}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setContextMenu({ tabId: ws.id, x: e.clientX, y: e.clientY })
+                }}
                 className={`
                   group relative flex items-center gap-1.5 h-full px-3 cursor-pointer
                   transition-all duration-150 text-[11px] font-medium tracking-wide
                   min-w-[100px] max-w-[200px]
-                  ${isActive
-                    ? 'text-slate-100'
-                    : isSplit
-                    ? 'text-indigo-400 hover:text-indigo-300'
-                    : 'text-slate-500 hover:text-slate-300'
+                  ${
+                    isActive
+                      ? 'text-slate-100'
+                      : isSplit
+                        ? 'text-indigo-400 hover:text-indigo-300'
+                        : 'text-slate-500 hover:text-slate-300'
                   }
                 `}
               >
                 {/* Active bottom accent bar */}
-                {isActive && (
-                  <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-t-full bg-indigo-400" />
-                )}
+                {isActive && <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-t-full bg-indigo-400" />}
                 {isSplit && !isActive && (
                   <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-t-full bg-indigo-500/40" />
                 )}
 
                 {/* Subtle active bg */}
-                {isActive && (
-                  <span className="absolute inset-0 bg-white/[0.04] rounded-t-md pointer-events-none" />
-                )}
+                {isActive && <span className="absolute inset-0 bg-white/[0.04] rounded-t-md pointer-events-none" />}
 
                 {/* Workspace icon */}
                 <svg
-                  width="10" height="10" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   className={`shrink-0 ${isActive ? 'text-indigo-400' : isSplit ? 'text-indigo-500' : 'text-slate-600'}`}
                 >
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -208,7 +244,10 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
 
                 {workspaces.length > 1 && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); onClose(ws.id) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onClose(ws.id)
+                    }}
                     className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 transition-all"
                     title="Close workspace"
                   >
@@ -249,7 +288,6 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
     </>
   )
 }
-
 
 // ─── Unified export ───────────────────────────────────────────────────────────
 const WorkspaceTabs: React.FC<WorkspaceTabsProps> = ({ variant = 'classic', ...props }) => {

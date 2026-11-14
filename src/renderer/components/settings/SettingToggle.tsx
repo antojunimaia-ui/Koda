@@ -19,7 +19,9 @@ const SettingToggle = ({ label, description, enabled, onChange, disabled }: Sett
       disabled={disabled}
       className={`w-10 h-5 rounded-full relative transition-all ${disabled ? 'cursor-not-allowed bg-slate-700' : enabled ? 'bg-cyan' : 'bg-slate-700'}`}
     >
-      <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${enabled && !disabled ? 'left-6' : 'left-1'}`} />
+      <div
+        className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${enabled && !disabled ? 'left-6' : 'left-1'}`}
+      />
     </button>
   </div>
 )

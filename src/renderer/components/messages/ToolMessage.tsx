@@ -16,23 +16,23 @@ const persistApprovedCommand = async (type: 'base' | 'full', command: string) =>
 }
 
 const TOOL_ICONS: Record<string, string> = {
-  file_read:           '👁',
-  file_edit:           '✏️',
-  file_write:          '💾',
-  list_dir:            '📂',
-  file_find:           '🔍',
-  search:              '🔎',
-  shell:               '⚡',
-  shell_wait:          '⏱️',
-  lsp_query:           '🧠',
-  browser_agent:       '🌐',
-  enter_plan_mode:     '📋',
-  exit_plan_mode:      '📋',
+  file_read: '👁',
+  file_edit: '✏️',
+  file_write: '💾',
+  list_dir: '📂',
+  file_find: '🔍',
+  search: '🔎',
+  shell: '⚡',
+  shell_wait: '⏱️',
+  lsp_query: '🧠',
+  browser_agent: '🌐',
+  enter_plan_mode: '📋',
+  exit_plan_mode: '📋',
   start_collaboration: '🤝',
-  send_to_advisor:     '💬',
-  end_collaboration:   '🤝',
-  load_skill:          '🎯',
-  get_diagnostics:     '🩺',
+  send_to_advisor: '💬',
+  end_collaboration: '🤝',
+  load_skill: '🎯',
+  get_diagnostics: '🩺',
 }
 
 const symbols = {
@@ -64,7 +64,7 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showDropdown])
 
-  const isOutputVisible = (
+  const isOutputVisible =
     (tool?.name === 'shell' && settings.showTerminal) ||
     (tool?.name === 'shell_wait' && settings.showShellWait) ||
     (tool?.name === 'file_read' && settings.showFileRead) ||
@@ -76,25 +76,45 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
     (tool?.name === 'lsp_query' && settings.showLspQuery) ||
     (tool?.name === 'browser_agent' && settings.showBrowserAgent) ||
     (['enter_plan_mode', 'exit_plan_mode'].includes(tool?.name || '') && settings.showPlanMode) ||
-    (['start_collaboration', 'send_to_advisor', 'end_collaboration'].includes(tool?.name || '') && settings.showColab) ||
-    (!['shell', 'shell_wait', 'file_read', 'file_edit', 'file_write', 'list_dir', 'file_find', 'search', 'lsp_query', 'browser_agent', 'enter_plan_mode', 'exit_plan_mode', 'start_collaboration', 'send_to_advisor', 'end_collaboration'].includes(tool?.name || ''))
-  )
+    (['start_collaboration', 'send_to_advisor', 'end_collaboration'].includes(tool?.name || '') &&
+      settings.showColab) ||
+    ![
+      'shell',
+      'shell_wait',
+      'file_read',
+      'file_edit',
+      'file_write',
+      'list_dir',
+      'file_find',
+      'search',
+      'lsp_query',
+      'browser_agent',
+      'enter_plan_mode',
+      'exit_plan_mode',
+      'start_collaboration',
+      'send_to_advisor',
+      'end_collaboration',
+    ].includes(tool?.name || '')
 
   const isRunning = tool?.status === 'running' || tool?.status === 'writing'
 
-  const stats = tool?.name === 'file_edit' ? (() => {
-    let plus = 0, minus = 0
-    tool.output?.split('\n').forEach((l: string) => {
-      if (l.startsWith('+') && !l.startsWith('+++')) plus++
-      else if (l.startsWith('-') && !l.startsWith('---')) minus++
-    })
-    return { plus, minus }
-  })() : null
+  const stats =
+    tool?.name === 'file_edit'
+      ? (() => {
+          let plus = 0,
+            minus = 0
+          tool.output?.split('\n').forEach((l: string) => {
+            if (l.startsWith('+') && !l.startsWith('+++')) plus++
+            else if (l.startsWith('-') && !l.startsWith('---')) minus++
+          })
+          return { plus, minus }
+        })()
+      : null
 
   const resolveLabel = () => {
     const isDone = tool?.status === 'done'
     const isModern = uiMode === 'modern'
-    
+
     // Determine prefix (Only for Modern UI)
     let prefix = ''
     if (isModern) {
@@ -145,7 +165,7 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
         >
           {TOOL_ICONS[tool?.name || ''] ?? '⚙️'}
         </span>
-        <span 
+        <span
           className={`text-white font-mono text-[13px] bg-slate-800/80 px-2 py-0.5 rounded shadow-sm border border-slate-700/50 flex items-center ${isRunning && uiMode === 'modern' ? 'shimmer-text !bg-transparent !border-none !shadow-none' : ''}`}
         >
           {prefix && <span className="opacity-60 mr-1">{prefix}</span>}
@@ -198,7 +218,12 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
                 title="Approval options"
                 className={`px-2 flex items-center justify-center transition-colors rounded-r-[5px] ${showDropdown ? 'bg-emerald-500/40 text-white' : 'bg-emerald-700/40 hover:bg-emerald-700/60 text-emerald-400 border-l border-emerald-500/30'}`}
               >
-                <svg className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -217,7 +242,8 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
                       <span className="text-xs">⚡</span> Accept Base Command
                     </span>
                     <span className="text-[9px] text-slate-500 ml-5 opacity-70">
-                      Always allow "<code className="bg-slate-950 px-1 rounded">{tool!.baseCommand!}</code>" this session
+                      Always allow "<code className="bg-slate-950 px-1 rounded">{tool!.baseCommand!}</code>" this
+                      session
                     </span>
                   </button>
 
@@ -238,7 +264,10 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
                   </button>
 
                   <button
-                    onClick={() => { window.koda.shellResponse(true, false, false); setShowDropdown(false) }}
+                    onClick={() => {
+                      window.koda.shellResponse(true, false, false)
+                      setShowDropdown(false)
+                    }}
                     className="w-full px-4 py-2.5 text-left hover:bg-slate-700/50 transition-colors"
                   >
                     <span className="text-slate-300 font-bold text-[11px] flex items-center gap-1.5">
@@ -252,43 +281,54 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
         )}
 
         {tool?.status === 'done' && uiMode === 'classic' && (
-          <span className={`text-[11px] flex items-center gap-1 ${tool?.success ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <span
+            className={`text-[11px] flex items-center gap-1 ${tool?.success ? 'text-emerald-400' : 'text-rose-400'}`}
+          >
             {tool?.success ? symbols.check : symbols.cross}
             <span className="opacity-70">{tool?.success ? 'completed' : 'failed'}</span>
           </span>
         )}
       </div>
 
-      {isOutputVisible && (
-        (tool?.status === 'done' || tool?.status === 'writing') && (tool.output || (tool.status === 'writing' && tool.args?.replacement)) && (
-          (() => {
-            let outputToRender = tool.output || '';
-            if (tool.status === 'writing' && outputToRender) {
-              const match = outputToRender.match(/"(?:replacement|content|CodeContent)"\s*:\s*"([\s\S]*)/);
-              if (match) {
-                outputToRender = match[1]
-                  .replace(/\\n/g, '\n')
-                  .replace(/\\"/g, '"')
-                  .replace(/\\\\/g, '\\')
-                  .replace(/\\t/g, '\t')
-                  .replace(/".*$/, '');
-              }
+      {isOutputVisible &&
+        (tool?.status === 'done' || tool?.status === 'writing') &&
+        (tool.output || (tool.status === 'writing' && tool.args?.replacement)) &&
+        (() => {
+          let outputToRender = tool.output || ''
+          if (tool.status === 'writing' && outputToRender) {
+            const match = outputToRender.match(/"(?:replacement|content|CodeContent)"\s*:\s*"([\s\S]*)/)
+            if (match) {
+              outputToRender = match[1]
+                .replace(/\\n/g, '\n')
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\')
+                .replace(/\\t/g, '\t')
+                .replace(/".*$/, '')
             }
+          }
 
-            if (tool?.name === 'file_edit' || tool?.name === 'multi_replace_file_content') {
-              const diffStr = tool.status === 'done' 
-                ? outputToRender 
-                : `--- ${tool.args?.path || tool.args?.TargetFile || 'file'}\n+++ ${tool.args?.path || tool.args?.TargetFile || 'file'}\n@@ -1,1 +1,1 @@\n${outputToRender.split('\n').map((l: string) => '+' + l).join('\n')}`;
-              return <DiffViewer output={diffStr} />;
-            }
-            
-            return (
-              <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
-                {(outputToRender || (tool.args?.command || tool.args?.text || '')).split('\n').map((line: string, i: number) => {
+          if (tool?.name === 'file_edit' || tool?.name === 'multi_replace_file_content') {
+            const diffStr =
+              tool.status === 'done'
+                ? outputToRender
+                : `--- ${tool.args?.path || tool.args?.TargetFile || 'file'}\n+++ ${tool.args?.path || tool.args?.TargetFile || 'file'}\n@@ -1,1 +1,1 @@\n${outputToRender
+                    .split('\n')
+                    .map((l: string) => '+' + l)
+                    .join('\n')}`
+            return <DiffViewer output={diffStr} />
+          }
+
+          return (
+            <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
+              {(outputToRender || tool.args?.command || tool.args?.text || '')
+                .split('\n')
+                .map((line: string, i: number) => {
                   if (line.trim() === '' && i === 0 && !outputToRender) return null
                   let lineClass = 'text-slate-300 hover:bg-slate-800/20'
-                  if (line.startsWith('+')) lineClass = 'text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2'
-                  else if (line.startsWith('-')) lineClass = 'text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2'
+                  if (line.startsWith('+'))
+                    lineClass = 'text-cyan-400 bg-cyan-950/40 border-l-2 border-cyan-500/50 pl-2 -ml-2'
+                  else if (line.startsWith('-'))
+                    lineClass = 'text-rose-400 bg-rose-950/40 border-l-2 border-rose-500/50 pl-2 -ml-2'
                   return (
                     <div
                       key={i}
@@ -297,11 +337,9 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
                     />
                   )
                 })}
-              </div>
-            );
-          })()
-        )
-      )}
+            </div>
+          )
+        })()}
     </div>
   )
 })

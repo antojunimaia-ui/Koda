@@ -1,9 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
-import { 
-  Paperclip, 
-  ArrowUpIcon,
-} from "lucide-react"
+import { Paperclip, ArrowUpIcon } from 'lucide-react'
 import { getIconForFile } from 'vscode-icons-js'
 import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings } from '../../types/index.js'
 
@@ -54,8 +51,17 @@ const ExplorerButton: React.FC<{
   }
 
   const icon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 6h18M3 12h12M3 18h8"/>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18M3 12h12M3 18h8" />
     </svg>
   )
 
@@ -89,21 +95,47 @@ const ExplorerButton: React.FC<{
         >
           <div className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-600">Move to</div>
           <button
-            onClick={() => { onMoveToIconbar(); setMenu(null) }}
+            onClick={() => {
+              onMoveToIconbar()
+              setMenu(null)
+            }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${position === 'iconbar' ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-300 hover:bg-white/5'}`}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="4" height="18" rx="1"/><path d="M7 12h14"/>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="4" height="18" rx="1" />
+              <path d="M7 12h14" />
             </svg>
             Iconbar
             {position === 'iconbar' && <span className="ml-auto text-[9px] text-indigo-400">✓</span>}
           </button>
           <button
-            onClick={() => { onMoveToTitlebar(); setMenu(null) }}
+            onClick={() => {
+              onMoveToTitlebar()
+              setMenu(null)
+            }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${position === 'titlebar' ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-300 hover:bg-white/5'}`}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="4" rx="1"/><path d="M12 7v14"/>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="4" rx="1" />
+              <path d="M12 7v14" />
             </svg>
             Title Bar
             {position === 'titlebar' && <span className="ml-auto text-[9px] text-indigo-400">✓</span>}
@@ -211,10 +243,7 @@ interface UseAutoResizeTextareaProps {
   maxHeight?: number
 }
 
-function useAutoResizeTextarea({
-  minHeight,
-  maxHeight,
-}: UseAutoResizeTextareaProps) {
+function useAutoResizeTextarea({ minHeight, maxHeight }: UseAutoResizeTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   const adjustHeight = useCallback(
@@ -228,16 +257,10 @@ function useAutoResizeTextarea({
       }
 
       textarea.style.height = `${minHeight}px`
-      const newHeight = Math.max(
-        minHeight,
-        Math.min(
-          textarea.scrollHeight,
-          maxHeight ?? Number.POSITIVE_INFINITY
-        )
-      )
+      const newHeight = Math.max(minHeight, Math.min(textarea.scrollHeight, maxHeight ?? Number.POSITIVE_INFINITY))
       textarea.style.height = `${newHeight}px`
     },
-    [minHeight, maxHeight]
+    [minHeight, maxHeight],
   )
 
   // Use a callback ref to capture when the DOM node is mounted or unmounted
@@ -254,7 +277,7 @@ function useAutoResizeTextarea({
         }, 0)
       }
     },
-    [minHeight, adjustHeight]
+    [minHeight, adjustHeight],
   )
 
   useEffect(() => {
@@ -265,31 +288,96 @@ function useAutoResizeTextarea({
 
   useEffect(() => {
     const handleResize = () => adjustHeight()
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [adjustHeight])
 
   return { localRef: setRef, textareaRef, adjustHeight }
 }
 
 const ModernUI: React.FC<ModernUIProps> = ({
-  messages, input, setInput, isProcessing, agentInfo, mode, setMode,
-  pendingImages, setPendingImages, handleSend, handleStop, handlePathClick, handleInputChange, handleRollback, handlePaste,
+  messages,
+  input,
+  setInput,
+  isProcessing,
+  agentInfo,
+  mode,
+  setMode,
+  pendingImages,
+  setPendingImages,
+  handleSend,
+  handleStop,
+  handlePathClick,
+  handleInputChange,
+  handleRollback,
+  handlePaste,
 
-  inputRef: externalInputRef, virtuosoRef, theme, kodaSettings, setKodaSettings, onSettingsClick, onMcpClick, onBrowserClick,
+  inputRef: externalInputRef,
+  virtuosoRef,
+  theme,
+  kodaSettings,
+  setKodaSettings,
+  onSettingsClick,
+  onMcpClick,
+  onBrowserClick,
 
-  showBrowser, onTerminalClick, showTerminal, showPanel, onTogglePanel, showExplorer, setShowExplorer, explorerWidth = 256, contextPanelWidth = 256, contextPanelTab, onContextPanelTabChange,
-  slashItems, showSlashMenu, slashIndex, selectSlashItem, setSlashIndex,
-  suggestions, showSuggestions, suggestionIndex, selectSuggestion, setSuggestionIndex,
-  leftPanelWidth, rightPanelWidth, startResizing, isResizing, startResizingRight, isResizingRight, browserHeight, isResizingHeight, startResizingHeight,
-  isSplitEnabled = false, onToggleSplit,
-  workspaces = [], activeId, setActiveId, onAddWorkspace, onCloseWorkspace,
-  splitViewIds, onSplitWith, handleSendForWs, handleRollbackForWs,
-  pendingQuestions, onQuestionsSubmit,
-  pendingShell, onShellDismiss,
-  updateInfo, onUpdateDismiss,
-  onNewSession, onLoadSession, onAddToInput, onInject, pinnedFiles, onPin,
-  inputFiles, onRemoveInputFile, onSelectActiveModel, loadedModels = {},
+  showBrowser,
+  onTerminalClick,
+  showTerminal,
+  showPanel,
+  onTogglePanel,
+  showExplorer,
+  setShowExplorer,
+  explorerWidth = 256,
+  contextPanelWidth = 256,
+  contextPanelTab,
+  onContextPanelTabChange,
+  slashItems,
+  showSlashMenu,
+  slashIndex,
+  selectSlashItem,
+  setSlashIndex,
+  suggestions,
+  showSuggestions,
+  suggestionIndex,
+  selectSuggestion,
+  setSuggestionIndex,
+  leftPanelWidth,
+  rightPanelWidth,
+  startResizing,
+  isResizing,
+  startResizingRight,
+  isResizingRight,
+  browserHeight,
+  isResizingHeight,
+  startResizingHeight,
+  isSplitEnabled = false,
+  onToggleSplit,
+  workspaces = [],
+  activeId,
+  setActiveId,
+  onAddWorkspace,
+  onCloseWorkspace,
+  splitViewIds,
+  onSplitWith,
+  handleSendForWs,
+  handleRollbackForWs,
+  pendingQuestions,
+  onQuestionsSubmit,
+  pendingShell,
+  onShellDismiss,
+  updateInfo,
+  onUpdateDismiss,
+  onNewSession,
+  onLoadSession,
+  onAddToInput,
+  onInject,
+  pinnedFiles,
+  onPin,
+  inputFiles,
+  onRemoveInputFile,
+  onSelectActiveModel,
+  loadedModels = {},
   fetchModelsForProvider,
   isIDEWindow = false,
   onToggleIDEMode,
@@ -297,7 +385,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
   onToggleSourceControl,
   onStartResizeSourceControl,
 }) => {
-  
   const [showChatHistory, setShowChatHistory] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
 
@@ -329,16 +416,19 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
     try {
       const saved = localStorage.getItem('koda_providers_config')
-      let config: Record<string, { apiKey: string, model: string, advisorModel: string }> = {}
+      let config: Record<string, { apiKey: string; model: string; advisorModel: string }> = {}
       if (saved) {
         config = JSON.parse(saved)
       }
 
       // Merge using Map to ensure uniqueness
-      const optionsMap = new Map<string, { providerId: string, providerName: string, model: string, advisorModel: string, apiKey: string }>()
+      const optionsMap = new Map<
+        string,
+        { providerId: string; providerName: string; model: string; advisorModel: string; apiKey: string }
+      >()
 
       // 1. Add free/local providers
-      defaultFreeProviders.forEach(p => {
+      defaultFreeProviders.forEach((p) => {
         const savedData = config[p.id] || {}
         optionsMap.set(p.id, {
           providerId: p.id,
@@ -374,7 +464,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
         })
       }
 
-      return Array.from(optionsMap.values()).map(opt => ({
+      return Array.from(optionsMap.values()).map((opt) => ({
         ...opt,
         availableModels: loadedModels[opt.providerId] || [],
       }))
@@ -382,14 +472,16 @@ const ModernUI: React.FC<ModernUIProps> = ({
       console.error('Error parsing providers config for dropdown:', e)
     }
 
-    return [{
-      providerId: agentInfo.providerId || agentInfo.provider || 'openai',
-      providerName: PROVIDER_NAMES[agentInfo.providerId || agentInfo.provider || 'openai'] || 'OpenAI',
-      model: agentInfo.model,
-      advisorModel: agentInfo.advisorModel || '',
-      apiKey: '',
-      availableModels: loadedModels[agentInfo.providerId || agentInfo.provider || 'openai'] || [],
-    }]
+    return [
+      {
+        providerId: agentInfo.providerId || agentInfo.provider || 'openai',
+        providerName: PROVIDER_NAMES[agentInfo.providerId || agentInfo.provider || 'openai'] || 'OpenAI',
+        model: agentInfo.model,
+        advisorModel: agentInfo.advisorModel || '',
+        apiKey: '',
+        availableModels: loadedModels[agentInfo.providerId || agentInfo.provider || 'openai'] || [],
+      },
+    ]
   }, [agentInfo, loadedModels])
 
   const renderModelDropdown = () => {
@@ -409,16 +501,20 @@ const ModernUI: React.FC<ModernUIProps> = ({
       />
     )
   }
-  
-  const { localRef: textareaRef, textareaRef: rawTextareaRef, adjustHeight } = useAutoResizeTextarea({
-    minHeight: kodaSettings.showEditorPanel ? 40 : 60,  // Smaller when editor/full mode is active, normal in explorer-only or non-IDE mode
-    maxHeight: kodaSettings.showEditorPanel ? 200 : 300,  // Also reduce max height when editor/full mode is active
+
+  const {
+    localRef: textareaRef,
+    textareaRef: rawTextareaRef,
+    adjustHeight,
+  } = useAutoResizeTextarea({
+    minHeight: kodaSettings.showEditorPanel ? 40 : 60, // Smaller when editor/full mode is active, normal in explorer-only or non-IDE mode
+    maxHeight: kodaSettings.showEditorPanel ? 200 : 300, // Also reduce max height when editor/full mode is active
   })
 
   // Sync refs: we need both the one from App.tsx (for focus/etc) and the local one for resizing
   useEffect(() => {
     if (externalInputRef && rawTextareaRef.current) {
-      (externalInputRef as any).current = rawTextareaRef.current
+      ;(externalInputRef as any).current = rawTextareaRef.current
     }
   }, [externalInputRef, rawTextareaRef.current])
 
@@ -427,80 +523,82 @@ const ModernUI: React.FC<ModernUIProps> = ({
   }
 
   const renderableMessages = useMemo(() => {
-    if (kodaSettings.toolViewMode !== 'compact') return messages;
-    
-    const groups: any[] = [];
-    let currentToolGroup: any[] = [];
-    
+    if (kodaSettings.toolViewMode !== 'compact') return messages
+
+    const groups: any[] = []
+    let currentToolGroup: any[] = []
+
     messages.forEach((msg, idx) => {
       if (msg.type === 'tool') {
-        currentToolGroup.push(msg);
+        currentToolGroup.push(msg)
       } else {
         if (currentToolGroup.length > 0) {
-          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` });
-          currentToolGroup = [];
+          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` })
+          currentToolGroup = []
         }
-        groups.push(msg);
+        groups.push(msg)
       }
-    });
-    
+    })
+
     if (currentToolGroup.length > 0) {
-      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' });
+      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' })
     }
-    
-    return groups;
-  }, [messages, kodaSettings.toolViewMode]);
+
+    return groups
+  }, [messages, kodaSettings.toolViewMode])
 
   const thinkingLabel = React.useMemo(() => {
-    if (!isProcessing) return "";
-    const lastMsg = messages[messages.length - 1];
-    let label = "Composing...";
+    if (!isProcessing) return ''
+    const lastMsg = messages[messages.length - 1]
+    let label = 'Composing...'
 
     if (lastMsg?.type === 'assistant' && !lastMsg.done) {
-      const text = (lastMsg.text || "").toLowerCase();
-      
+      const text = (lastMsg.text || '').toLowerCase()
+
       if (text.includes('edit') || text.includes('write') || text.includes('replace')) {
-        const fileMatch = text.match(/path\s*[=:]\s*["']([^"']+)["']/) || text.match(/["'](?:targetfile|path)["']\s*:\s*["']([^"']+)["']/i);
-        label = fileMatch ? `Editing: ${fileMatch[1].split(/[/\\]/).pop()}...` : "Editing...";
+        const fileMatch =
+          text.match(/path\s*[=:]\s*["']([^"']+)["']/) ||
+          text.match(/["'](?:targetfile|path)["']\s*:\s*["']([^"']+)["']/i)
+        label = fileMatch ? `Editing: ${fileMatch[1].split(/[/\\]/).pop()}...` : 'Editing...'
       } else if (text.includes('shell') || text.includes('run') || text.includes('command')) {
-        label = "Running...";
+        label = 'Running...'
       } else if (text.includes('list') || text.includes('read') || text.includes('view') || text.includes('dir')) {
-        label = "Analyzing...";
+        label = 'Analyzing...'
       } else if (text.includes('browser') || text.includes('http') || text.includes('url')) {
-        label = "Browsing...";
+        label = 'Browsing...'
       } else if (text.includes('<') || text.includes('{')) {
-        label = "Processing tool...";
+        label = 'Processing tool...'
       }
     } else if (lastMsg?.type === 'tool' && (lastMsg.tool?.status === 'running' || lastMsg.tool?.status === 'writing')) {
-      const t = lastMsg.tool;
-      const tName = (t.name || '').toLowerCase();
+      const t = lastMsg.tool
+      const tName = (t.name || '').toLowerCase()
       if (tName.includes('edit') || tName.includes('write')) {
-        label = `Editing: ${t.args?.path?.split(/[/\\]/).pop() || 'file'}...`;
+        label = `Editing: ${t.args?.path?.split(/[/\\]/).pop() || 'file'}...`
       } else if (tName.includes('shell') || tName.includes('command')) {
-        label = "Running command...";
+        label = 'Running command...'
       } else if (tName.includes('read') || tName.includes('list')) {
-        label = "Analyzing...";
+        label = 'Analyzing...'
       } else {
-        return ""; // Let ToolMessage handle it
+        return '' // Let ToolMessage handle it
       }
     }
-    return label;
-  }, [messages, isProcessing]);
+    return label
+  }, [messages, isProcessing])
 
   const VirtuosoFooter = useCallback(() => {
-    return <div className="pb-2" />;
-  }, []);
+    return <div className="pb-2" />
+  }, [])
 
   // Avatar shown outside Virtuoso so it's always visible regardless of scroll position
   const showAvatar = useMemo(() => {
-    const lastMsg = messages[messages.length - 1];
-    const lastIsAssistant = lastMsg?.type === 'assistant';
-    const lastIsTool = lastMsg?.type === 'tool';
-    return isProcessing && !lastIsAssistant && !lastIsTool;
-  }, [isProcessing, messages]);
+    const lastMsg = messages[messages.length - 1]
+    const lastIsAssistant = lastMsg?.type === 'assistant'
+    const lastIsTool = lastMsg?.type === 'tool'
+    return isProcessing && !lastIsAssistant && !lastIsTool
+  }, [isProcessing, messages])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       if (input.trim() && !isProcessing) {
         handleSend()
@@ -516,16 +614,19 @@ const ModernUI: React.FC<ModernUIProps> = ({
     inputChild.onchange = (e: any) => {
       const files = e.target.files
       if (!files) return
-      Array.from(files as FileList).forEach(file => {
+      Array.from(files as FileList).forEach((file) => {
         const reader = new FileReader()
         reader.onload = () => {
-            const isImage = file.type.startsWith('image/')
-            setPendingImages(prev => [...prev, { 
-                dataUrl: reader.result as string, 
-                mimeType: file.type, 
-                name: file.name,
-                isImage
-            }])
+          const isImage = file.type.startsWith('image/')
+          setPendingImages((prev) => [
+            ...prev,
+            {
+              dataUrl: reader.result as string,
+              mimeType: file.type,
+              name: file.name,
+              isImage,
+            },
+          ])
         }
         reader.readAsDataURL(file)
       })
@@ -558,25 +659,31 @@ const ModernUI: React.FC<ModernUIProps> = ({
   }
 
   // Layout Logic
-  const showLeft = (showBrowser && kodaSettings.browserPosition === 'left') || (showTerminal && kodaSettings.terminalPosition === 'left');
-  const showRight = (showBrowser && kodaSettings.browserPosition === 'right') || (showTerminal && kodaSettings.terminalPosition === 'right');
+  const showLeft =
+    (showBrowser && kodaSettings.browserPosition === 'left') ||
+    (showTerminal && kodaSettings.terminalPosition === 'left')
+  const showRight =
+    (showBrowser && kodaSettings.browserPosition === 'right') ||
+    (showTerminal && kodaSettings.terminalPosition === 'right')
 
   const renderPanelStack = (pos: 'left' | 'right') => {
-    const hasBrowser = showBrowser && kodaSettings.browserPosition === pos;
-    const hasTerminal = showTerminal && kodaSettings.terminalPosition === pos;
-    
-    if (!hasBrowser && !hasTerminal) return null;
+    const hasBrowser = showBrowser && kodaSettings.browserPosition === pos
+    const hasTerminal = showTerminal && kodaSettings.terminalPosition === pos
+
+    if (!hasBrowser && !hasTerminal) return null
 
     return (
-      <div 
-        style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }} 
+      <div
+        style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }}
         className={`flex flex-col shrink-0 min-w-50 relative h-full bg-[#141414] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
       >
         {hasBrowser && (
           <div className="shrink-0 min-h-25 relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>
             <BrowserPreview onClose={() => onBrowserClick()} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-                <div className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+              <div
+                className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`}
+              />
             )}
           </div>
         )}
@@ -584,30 +691,30 @@ const ModernUI: React.FC<ModernUIProps> = ({
           <div
             onMouseDown={startResizingHeight}
             className={`h-1 w-full cursor-row-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingHeight ? 'bg-indigo-500 h-1.5' : 'bg-white/5 hover:bg-indigo-500/50'}`}
-          >
-          </div>
+          ></div>
         )}
         {hasTerminal && (
           <div className="flex-1 min-h-25 relative" style={{ height: hasBrowser ? `${100 - browserHeight}%` : '100%' }}>
             <TerminalPanel onClose={() => onTerminalClick()} cwd={agentInfo.cwd} />
             {(isResizingHeight || isResizing || isResizingRight) && (
-                <div className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`} />
+              <div
+                className={`absolute inset-0 z-raised ${isResizingHeight ? 'cursor-row-resize' : 'cursor-col-resize'}`}
+              />
             )}
           </div>
         )}
       </div>
-    );
-  };
+    )
+  }
 
   // IDE Mode Logic
   const isIDEMode = kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel
 
   return (
     <div className="flex flex-col h-screen bg-[#141414] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
-      
-      <TitleBar 
-        mode={mode} 
-        onModeChange={setMode} 
+      <TitleBar
+        mode={mode}
+        onModeChange={setMode}
         onSettingsClick={onSettingsClick}
         onMcpClick={onMcpClick}
         onBrowserClick={onBrowserClick}
@@ -618,7 +725,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
         onTogglePanel={onTogglePanel}
         uiMode="modern"
         showIconBar={kodaSettings.showIconBar}
-        onToggleIconBar={() => setKodaSettings(prev => ({ ...prev, showIconBar: !prev.showIconBar }))}
+        onToggleIconBar={() => setKodaSettings((prev) => ({ ...prev, showIconBar: !prev.showIconBar }))}
         isSplitEnabled={isSplitEnabled}
         onToggleSplit={onToggleSplit || (() => {})}
         showExplorer={showExplorer}
@@ -634,15 +741,13 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 showPanel={showPanel}
                 onTogglePanel={onTogglePanel}
                 position="titlebar"
-                onMoveToIconbar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
-                onMoveToTitlebar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
+                onMoveToIconbar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
+                onMoveToTitlebar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
               />
             )}
           </>
         }
       />
-
-
 
       <div className="flex flex-1 min-h-0 relative flex-row">
         {/* ── Left Sidebar (Modern Only) ── */}
@@ -666,29 +771,66 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-zinc-200 hover:bg-white/5 transition-all"
                 title="Settings"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
               </button>
               <button
                 onClick={() => onTerminalClick()}
                 className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showTerminal ? 'bg-amber-500/10 text-amber-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
                 title="Toggle Terminal"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="4 17 10 11 4 5"></polyline>
+                  <line x1="12" y1="19" x2="20" y2="19"></line>
+                </svg>
               </button>
               <button
                 onClick={() => onBrowserClick()}
                 className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showBrowser ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
                 title="Toggle Browser"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
               </button>
               {kodaSettings.explorerButtonPosition !== 'titlebar' && (
                 <ExplorerButton
                   showPanel={showPanel}
                   onTogglePanel={onTogglePanel}
                   position={kodaSettings.explorerButtonPosition ?? 'iconbar'}
-                  onMoveToIconbar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
-                  onMoveToTitlebar={() => setKodaSettings(prev => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
+                  onMoveToIconbar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
+                  onMoveToTitlebar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
                 />
               )}
               <button
@@ -696,12 +838,22 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-400 hover:bg-white/5 transition-all"
                 title="MCP Systems"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
               </button>
             </div>
           </div>
         )}
-
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Workspace tabs — inside the chat column, naturally right of the Iconbar */}
@@ -717,7 +869,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
               onSplitWith={onSplitWith}
             />
           )}
-          
+
           {/* IDE Layout or Normal Layout */}
           {isIDEMode ? (
             <IDELayout
@@ -743,8 +895,17 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       onClick={() => setShowChatHistory(false)}
                       className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors mr-auto"
                     >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
                       </svg>
                       <span className="text-[11px] font-medium">Sessions</span>
                     </button>
@@ -754,8 +915,18 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       className="p-1 rounded-md text-slate-500 hover:text-slate-200 hover:bg-white/5 transition-all"
                       title="Session history"
                     >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 8v4l3 3" />
+                        <circle cx="12" cy="12" r="10" />
                       </svg>
                     </button>
                   )}
@@ -765,57 +936,280 @@ const ModernUI: React.FC<ModernUIProps> = ({
                 {showChatHistory ? (
                   <ChatHistory
                     projectPath={agentInfo?.cwd || ''}
-                    onNewSession={() => { onNewSession?.(); setShowChatHistory(false) }}
-                    onLoadSession={(id, targetPath) => { onLoadSession?.(id, targetPath); setShowChatHistory(false) }}
+                    onNewSession={() => {
+                      onNewSession?.()
+                      setShowChatHistory(false)
+                    }}
+                    onLoadSession={(id, targetPath) => {
+                      onLoadSession?.(id, targetPath)
+                      setShowChatHistory(false)
+                    }}
                     isVisible={true}
                   />
                 ) : (
-                <div className={`flex-1 flex flex-col ${isIDEMode && kodaSettings.showEditorPanel ? 'max-w-full' : 'max-w-5xl mx-auto'} w-full relative ${messages.length === 0 && !isProcessing ? 'justify-center' : 'pt-4'}`}>
-                  {/* Message List */}
-                  <div className={`min-h-0 ${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-4'} ${messages.length === 0 && !isProcessing ? 'hidden' : 'flex-1'}`}>
+                  <div
+                    className={`flex-1 flex flex-col ${isIDEMode && kodaSettings.showEditorPanel ? 'max-w-full' : 'max-w-5xl mx-auto'} w-full relative ${messages.length === 0 && !isProcessing ? 'justify-center' : 'pt-4'}`}
+                  >
+                    {/* Message List */}
+                    <div
+                      className={`min-h-0 ${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-4'} ${messages.length === 0 && !isProcessing ? 'hidden' : 'flex-1'}`}
+                    >
+                      <Virtuoso
+                        ref={virtuosoRef}
+                        data={renderableMessages}
+                        alignToBottom
+                        increaseViewportBy={{ top: 200, bottom: 200 }}
+                        className="custom-scrollbar pr-2"
+                        itemContent={(index, item: any) => (
+                          <div className="mb-6 w-full max-w-5xl mx-auto px-4">
+                            {item.type === 'tool_group' ? (
+                              <CompactToolView
+                                tools={item.tools}
+                                settings={kodaSettings}
+                                agentInfo={agentInfo}
+                                uiMode="modern"
+                                isLastAndActive={isProcessing && index === renderableMessages.length - 1}
+                              />
+                            ) : (
+                              <MessageRow
+                                msg={item}
+                                agentInfo={agentInfo}
+                                kodaSettings={kodaSettings}
+                                uiMode="modern"
+                                onRollback={
+                                  item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined
+                                }
+                              />
+                            )}
+                          </div>
+                        )}
+                        components={{
+                          Footer: VirtuosoFooter,
+                        }}
+                      />
+                    </div>
+
+                    {/* Loading avatar — outside Virtuoso so it's always visible */}
+                    {showAvatar && (
+                      <div className="flex items-center gap-2 px-6 pb-1 animate-in fade-in duration-300">
+                        <video
+                          src="/Loading.webm"
+                          autoPlay
+                          loop
+                          muted
+                          className="w-7 h-7 object-contain"
+                          style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+                        />
+                        <span className="font-bold text-slate-300 text-sm">Koda</span>
+                      </div>
+                    )}
+
+                    {/* Input Area */}
+                    <div
+                      className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-6'} ${messages.length === 0 && !isProcessing ? 'pt-0 pb-6' : 'pt-2 pb-2'}`}
+                    >
+                      {messages.length === 0 && !isProcessing && (
+                        <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
+                          What are we building today?
+                        </p>
+                      )}
+                      {updateInfo && onUpdateDismiss && (
+                        <div className="mb-0">
+                          <UpdateBanner
+                            version={updateInfo.version}
+                            downloaded={updateInfo.downloaded}
+                            onInstall={() => window.koda.updaterInstall()}
+                            onDismiss={onUpdateDismiss}
+                            variant="modern"
+                          />
+                        </div>
+                      )}
+                      {pendingShell && (
+                        <div className="mx-4">
+                          <ShellApprovalPanel
+                            command={pendingShell.command}
+                            baseCommand={pendingShell.baseCommand}
+                            variant="modern"
+                          />
+                        </div>
+                      )}
+                      {pendingQuestions && pendingQuestions.length > 0 && onQuestionsSubmit && (
+                        <div className="mx-4">
+                          <QuestionsModal questions={pendingQuestions} onSubmit={onQuestionsSubmit} />
+                        </div>
+                      )}
+
+                      {/* Slash Menu */}
+                      {showSlashMenu && slashItems.length > 0 && (
+                        <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                          <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
+                            {slashItems.map((item, idx) => (
+                              <button
+                                key={item.name}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === slashIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                                onClick={() => selectSlashItem(item)}
+                              >
+                                <span className="text-sm shrink-0">{item.icon}</span>
+                                <div className="flex flex-col min-w-0">
+                                  <span
+                                    className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}
+                                  >
+                                    {item.name}
+                                  </span>
+                                  {item.description && (
+                                    <span className="text-[10px] text-slate-600 group-hover:text-slate-500 transition-colors truncate">
+                                      {item.description}
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                          <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
+                            {suggestions.map((file, idx) => (
+                              <button
+                                key={file}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === suggestionIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                                onClick={() => selectSuggestion(file)}
+                              >
+                                <span className="text-sm shrink-0">📄</span>
+                                <span
+                                  className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}
+                                >
+                                  {file}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <PromptBox
+                        isDraggingOver={isDraggingOver}
+                        onDragOver={handlePromptBoxDragOver}
+                        onDragLeave={handlePromptBoxDragLeave}
+                        onDrop={handlePromptBoxDrop}
+                        pendingImages={pendingImages}
+                        setPendingImages={setPendingImages}
+                        inputFiles={inputFiles}
+                        onRemoveInputFile={onRemoveInputFile}
+                        textareaRef={textareaRef}
+                        input={input}
+                        onChange={(e) => {
+                          handleInputChange(e.target.value)
+                          adjustHeight()
+                        }}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        onFileAttach={onFileAttach}
+                        handlePathClick={handlePathClick}
+                        agentInfo={agentInfo}
+                        isProcessing={isProcessing}
+                        handleStop={handleStop}
+                        handleSend={handleSend}
+                        renderModelDropdown={renderModelDropdown}
+                        mode={mode}
+                        onModeChange={setMode}
+                        variant="ide"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </IDELayout>
+          ) : (
+            <div className="flex-1 relative flex flex-row min-h-0">
+              {/* ── Left Panel Area ── */}
+              {showLeft && renderPanelStack('left')}
+
+              {showLeft && (
+                <div
+                  onMouseDown={startResizing}
+                  className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
+                ></div>
+              )}
+
+              {/* ── Chat Central Area (Normal or Split) ── */}
+              {splitViewIds && handleSendForWs && handleRollbackForWs ? (
+                <div className="flex-1 flex flex-col relative min-h-0">
+                  <SplitView
+                    workspaces={workspaces}
+                    splitIds={splitViewIds}
+                    focusedId={activeId || splitViewIds[1]}
+                    onFocus={(id: string) => setActiveId && setActiveId(id)}
+                    onCloseSplit={() => onSplitWith && onSplitWith(splitViewIds[0])}
+                    onSend={handleSendForWs}
+                    onRollback={handleRollbackForWs}
+                    kodaSettings={kodaSettings}
+                    theme={theme}
+                    handleStop={handleStop}
+                    uiMode="modern"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col flex-1 relative min-h-0">
+                  {/* Message List — full width so scrollbar sits at window edge */}
+                  <div className={`min-h-0 ${messages.length === 0 && !isProcessing ? 'hidden' : 'flex-1'} pt-4`}>
                     <Virtuoso
                       ref={virtuosoRef}
                       data={renderableMessages}
                       alignToBottom
                       increaseViewportBy={{ top: 200, bottom: 200 }}
-                      className="custom-scrollbar pr-2"
+                      className="custom-scrollbar h-full"
+                      style={{ scrollbarGutter: 'stable' }}
                       itemContent={(index, item: any) => (
-                        <div className="mb-6 w-full max-w-5xl mx-auto px-4">
+                        <div className="mb-6 px-4 max-w-5xl mx-auto">
                           {item.type === 'tool_group' ? (
-                            <CompactToolView 
-                              tools={item.tools} 
-                              settings={kodaSettings} 
-                              agentInfo={agentInfo} 
-                              uiMode="modern" 
+                            <CompactToolView
+                              tools={item.tools}
+                              settings={kodaSettings}
+                              agentInfo={agentInfo}
+                              uiMode="modern"
                               isLastAndActive={isProcessing && index === renderableMessages.length - 1}
                             />
                           ) : (
-                            <MessageRow 
-                              msg={item} 
+                            <MessageRow
+                              msg={item}
                               agentInfo={agentInfo}
-                              kodaSettings={kodaSettings} 
+                              kodaSettings={kodaSettings}
                               uiMode="modern"
-                              onRollback={item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined}
+                              onRollback={
+                                item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined
+                              }
                             />
                           )}
                         </div>
                       )}
                       components={{
-                        Footer: VirtuosoFooter
+                        Footer: VirtuosoFooter,
                       }}
                     />
                   </div>
 
                   {/* Loading avatar — outside Virtuoso so it's always visible */}
                   {showAvatar && (
-                    <div className="flex items-center gap-2 px-6 pb-1 animate-in fade-in duration-300">
-                      <video src="/Loading.webm" autoPlay loop muted className="w-7 h-7 object-contain" style={{ border: 'none', outline: 'none', boxShadow: 'none' }} />
+                    <div className="flex items-center gap-2 max-w-5xl mx-auto w-full px-6 pb-1 animate-in fade-in duration-300">
+                      <video
+                        src="/Loading.webm"
+                        autoPlay
+                        loop
+                        muted
+                        className="w-7 h-7 object-contain"
+                        style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+                      />
                       <span className="font-bold text-slate-300 text-sm">Koda</span>
                     </div>
                   )}
 
                   {/* Input Area */}
-                  <div className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-6'} ${messages.length === 0 && !isProcessing ? 'pt-0 pb-6' : 'pt-2 pb-2'}`}>
+                  <div
+                    className={`max-w-5xl mx-auto w-full px-6 pb-6 ${messages.length === 0 && !isProcessing ? 'flex-1 flex flex-col justify-center pt-0' : 'pt-2'}`}
+                  >
                     {messages.length === 0 && !isProcessing && (
                       <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
                         What are we building today?
@@ -843,14 +1237,11 @@ const ModernUI: React.FC<ModernUIProps> = ({
                     )}
                     {pendingQuestions && pendingQuestions.length > 0 && onQuestionsSubmit && (
                       <div className="mx-4">
-                        <QuestionsModal
-                          questions={pendingQuestions}
-                          onSubmit={onQuestionsSubmit}
-                        />
+                        <QuestionsModal questions={pendingQuestions} onSubmit={onQuestionsSubmit} />
                       </div>
                     )}
 
-                    {/* Slash Menu */}
+                    {/* Slash Menu — estilo UpdateBanner */}
                     {showSlashMenu && slashItems.length > 0 && (
                       <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
                         <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
@@ -862,7 +1253,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
                             >
                               <span className="text-sm shrink-0">{item.icon}</span>
                               <div className="flex flex-col min-w-0">
-                                <span className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
+                                <span
+                                  className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}
+                                >
                                   {item.name}
                                 </span>
                                 {item.description && (
@@ -886,8 +1279,16 @@ const ModernUI: React.FC<ModernUIProps> = ({
                               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === suggestionIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
                               onClick={() => selectSuggestion(file)}
                             >
-                              <span className="text-sm shrink-0">📄</span>
-                              <span className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
+                              <img
+                                src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${getIconForFile(file.split(/[/\\]/).pop() || '')}`}
+                                width="16"
+                                height="16"
+                                className="shrink-0 object-contain"
+                                alt="file icon"
+                              />
+                              <span
+                                className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}
+                              >
                                 {file}
                               </span>
                             </button>
@@ -922,234 +1323,42 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       renderModelDropdown={renderModelDropdown}
                       mode={mode}
                       onModeChange={setMode}
-                      variant="ide"
+                      variant="normal"
                     />
                   </div>
                 </div>
-                )}
-              </div>
-            </IDELayout>
-          ) : (
-            <div className="flex-1 relative flex flex-row min-h-0">
-            {/* ── Left Panel Area ── */}
-          {showLeft && renderPanelStack('left')}
-          
-          {showLeft && (
-            <div
-              onMouseDown={startResizing}
-              className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizing ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
-            >
-            </div>
-          )}
-
-          {/* ── Chat Central Area (Normal or Split) ── */}
-          {splitViewIds && handleSendForWs && handleRollbackForWs ? (
-            <div className="flex-1 flex flex-col relative min-h-0">
-              <SplitView
-                workspaces={workspaces}
-                splitIds={splitViewIds}
-                focusedId={activeId || splitViewIds[1]}
-                onFocus={(id: string) => setActiveId && setActiveId(id)}
-                onCloseSplit={() => onSplitWith && onSplitWith(splitViewIds[0])}
-                onSend={handleSendForWs}
-                onRollback={handleRollbackForWs}
-                kodaSettings={kodaSettings}
-                theme={theme}
-                handleStop={handleStop}
-                uiMode="modern"
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col flex-1 relative min-h-0">
-              {/* Message List — full width so scrollbar sits at window edge */}
-              <div className={`min-h-0 ${messages.length === 0 && !isProcessing ? 'hidden' : 'flex-1'} pt-4`}>
-                <Virtuoso
-                  ref={virtuosoRef}
-                  data={renderableMessages}
-                  alignToBottom
-                  increaseViewportBy={{ top: 200, bottom: 200 }}
-                  className="custom-scrollbar h-full"
-                  style={{ scrollbarGutter: 'stable' }}
-                  itemContent={(index, item: any) => (
-                    <div className="mb-6 px-4 max-w-5xl mx-auto">
-                      {item.type === 'tool_group' ? (
-                        <CompactToolView 
-                          tools={item.tools} 
-                          settings={kodaSettings} 
-                          agentInfo={agentInfo} 
-                          uiMode="modern" 
-                          isLastAndActive={isProcessing && index === renderableMessages.length - 1}
-                        />
-                      ) : (
-                        <MessageRow 
-                          msg={item} 
-                          agentInfo={agentInfo}
-                          kodaSettings={kodaSettings} 
-                          uiMode="modern"
-                          onRollback={item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined}
-                        />
-                      )}
-                    </div>
-                  )}
-                  components={{
-                    Footer: VirtuosoFooter
-                  }}
-                />
-              </div>
-
-              {/* Loading avatar — outside Virtuoso so it's always visible */}
-              {showAvatar && (
-                <div className="flex items-center gap-2 max-w-5xl mx-auto w-full px-6 pb-1 animate-in fade-in duration-300">
-                  <video src="/Loading.webm" autoPlay loop muted className="w-7 h-7 object-contain" style={{ border: 'none', outline: 'none', boxShadow: 'none' }} />
-                  <span className="font-bold text-slate-300 text-sm">Koda</span>
-                </div>
               )}
 
-              {/* Input Area */}
-              <div className={`max-w-5xl mx-auto w-full px-6 pb-6 ${messages.length === 0 && !isProcessing ? 'flex-1 flex flex-col justify-center pt-0' : 'pt-2'}`}>
-                  {messages.length === 0 && !isProcessing && (
-                    <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
-                      What are we building today?
-                    </p>
-                  )}
-                  {updateInfo && onUpdateDismiss && (
-                    <div className="mb-0">
-                      <UpdateBanner
-                        version={updateInfo.version}
-                        downloaded={updateInfo.downloaded}
-                        onInstall={() => window.koda.updaterInstall()}
-                        onDismiss={onUpdateDismiss}
-                        variant="modern"
-                      />
-                    </div>
-                  )}
-                  {pendingShell && (
-                    <div className="mx-4">
-                      <ShellApprovalPanel
-                        command={pendingShell.command}
-                        baseCommand={pendingShell.baseCommand}
-                        variant="modern"
-                      />
-                    </div>
-                  )}
-                  {pendingQuestions && pendingQuestions.length > 0 && onQuestionsSubmit && (
-                    <div className="mx-4">
-                      <QuestionsModal
-                        questions={pendingQuestions}
-                        onSubmit={onQuestionsSubmit}
-                      />
-                    </div>
-                  )}
+              {/* ── Right Panel Area ── */}
+              {showRight && (
+                <div
+                  onMouseDown={startResizingRight}
+                  className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingRight ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
+                ></div>
+              )}
+              {showRight && renderPanelStack('right')}
 
-                  {/* Slash Menu — estilo UpdateBanner */}
-                  {showSlashMenu && slashItems.length > 0 && (
-                    <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
-                      <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
-                        {slashItems.map((item, idx) => (
-                          <button
-                            key={item.name}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === slashIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
-                            onClick={() => selectSlashItem(item)}
-                          >
-                            <span className="text-sm shrink-0">{item.icon}</span>
-                            <div className="flex flex-col min-w-0">
-                              <span className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
-                                {item.name}
-                              </span>
-                              {item.description && (
-                                <span className="text-[10px] text-slate-600 group-hover:text-slate-500 transition-colors truncate">
-                                  {item.description}
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              {/* Space for ContextPanel overlay */}
+              {showPanel && <div className="shrink-0" style={{ width: contextPanelWidth }} />}
 
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
-                      <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
-                        {suggestions.map((file, idx) => (
-                          <button
-                            key={file}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === suggestionIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
-                            onClick={() => selectSuggestion(file)}
-                          >
-                            <img 
-                              src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${getIconForFile(file.split(/[/\\]/).pop() || '')}`}
-                              width="16" 
-                              height="16" 
-                              className="shrink-0 object-contain"
-                              alt="file icon"
-                            />
-                            <span className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}>
-                              {file}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              {/* Space for Standalone Explorer overlay */}
+              {showExplorer && (
+                <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />
+              )}
 
-                  <PromptBox
-                    isDraggingOver={isDraggingOver}
-                    onDragOver={handlePromptBoxDragOver}
-                    onDragLeave={handlePromptBoxDragLeave}
-                    onDrop={handlePromptBoxDrop}
-                    pendingImages={pendingImages}
-                    setPendingImages={setPendingImages}
-                    inputFiles={inputFiles}
-                    onRemoveInputFile={onRemoveInputFile}
-                    textareaRef={textareaRef}
-                    input={input}
-                    onChange={(e) => {
-                      handleInputChange(e.target.value)
-                      adjustHeight()
-                    }}
-                    onKeyDown={handleKeyDown}
-                    onPaste={handlePaste}
-                    onFileAttach={onFileAttach}
-                    handlePathClick={handlePathClick}
-                    agentInfo={agentInfo}
-                    isProcessing={isProcessing}
-                    handleStop={handleStop}
-                    handleSend={handleSend}
-                    renderModelDropdown={renderModelDropdown}
-                    mode={mode}
-                    onModeChange={setMode}
-                    variant="normal"
-                  />
-                </div>
+              {/* Space for Source Control overlay */}
+              {showSourceControl && (
+                <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />
+              )}
             </div>
-          )}
-
-          {/* ── Right Panel Area ── */}
-          {showRight && (
-            <div
-              onMouseDown={startResizingRight}
-              className={`w-1 h-full cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group ${isResizingRight ? 'bg-indigo-500 w-1.5' : 'bg-transparent hover:bg-indigo-500/50'}`}
-            >
-            </div>
-          )}
-          {showRight && renderPanelStack('right')}
-
-            {/* Space for ContextPanel overlay */}
-            {showPanel && <div className="shrink-0" style={{ width: contextPanelWidth }} />}
-
-            {/* Space for Standalone Explorer overlay */}
-            {showExplorer && <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />}
-
-            {/* Space for Source Control overlay */}
-            {showSourceControl && <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />}
-          </div>
           )}
         </div>
       </div>
 
       {/* StatusBar - only in IDE mode */}
-      {isIDEWindow && <StatusBar onSettingsClick={onSettingsClick} onToggleSplit={onToggleSplit} isSplitEnabled={isSplitEnabled} />}
+      {isIDEWindow && (
+        <StatusBar onSettingsClick={onSettingsClick} onToggleSplit={onToggleSplit} isSplitEnabled={isSplitEnabled} />
+      )}
 
       {/* Source Control overlay */}
       {showSourceControl && (

@@ -21,7 +21,16 @@ interface SplitPanelProps {
 
 // ─── Single resizable panel ────────────────────────────────────────────────────
 const SplitPanel: React.FC<SplitPanelProps> = ({
-  workspace, kodaSettings, theme, isFocused, onFocus, onSend, onRollback, onClose, handleStop, uiMode
+  workspace,
+  kodaSettings,
+  theme,
+  isFocused,
+  onFocus,
+  onSend,
+  onRollback,
+  onClose,
+  handleStop,
+  uiMode,
 }) => {
   const [input, setInput] = useState('')
   const [pendingImages, setPendingImages] = useState<AttachedFile[]>([])
@@ -57,7 +66,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSendLocal()
     }
@@ -71,12 +80,15 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
         if (file) {
           const reader = new FileReader()
           reader.onload = () => {
-            setPendingImages(prev => [...prev, { 
-              dataUrl: reader.result as string, 
-              mimeType: file.type, 
-              name: file.name || 'pasted.png',
-              isImage: true
-            }])
+            setPendingImages((prev) => [
+              ...prev,
+              {
+                dataUrl: reader.result as string,
+                mimeType: file.type,
+                name: file.name || 'pasted.png',
+                isImage: true,
+              },
+            ])
           }
           reader.readAsDataURL(file)
         }
@@ -91,16 +103,19 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
     inputChild.onchange = (e: any) => {
       const files = e.target.files
       if (!files) return
-      Array.from(files as FileList).forEach(file => {
+      Array.from(files as FileList).forEach((file) => {
         const reader = new FileReader()
         reader.onload = () => {
           const isImage = file.type.startsWith('image/')
-          setPendingImages(prev => [...prev, { 
-            dataUrl: reader.result as string, 
-            mimeType: file.type, 
-            name: file.name,
-            isImage
-          }])
+          setPendingImages((prev) => [
+            ...prev,
+            {
+              dataUrl: reader.result as string,
+              mimeType: file.type,
+              name: file.name,
+              isImage,
+            },
+          ])
         }
         reader.readAsDataURL(file)
       })
@@ -109,49 +124,55 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
   }
 
   const thinkingLabel = React.useMemo(() => {
-    if (!isProcessing) return "";
-    const lastMsg = messages[messages.length - 1];
-    let label = "Composing...";
+    if (!isProcessing) return ''
+    const lastMsg = messages[messages.length - 1]
+    let label = 'Composing...'
     if (lastMsg?.type === 'assistant' && !lastMsg.done) {
-      label = "Working...";
+      label = 'Working...'
     }
-    return label;
-  }, [messages, isProcessing]);
+    return label
+  }, [messages, isProcessing])
 
   const renderableMessages = React.useMemo(() => {
-    if (kodaSettings.toolViewMode !== 'compact') return workspace.messages;
-    
-    const groups: any[] = [];
-    let currentToolGroup: any[] = [];
-    
+    if (kodaSettings.toolViewMode !== 'compact') return workspace.messages
+
+    const groups: any[] = []
+    let currentToolGroup: any[] = []
+
     workspace.messages.forEach((msg, idx) => {
       if (msg.type === 'tool') {
-        currentToolGroup.push(msg);
+        currentToolGroup.push(msg)
       } else {
         if (currentToolGroup.length > 0) {
-          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` });
-          currentToolGroup = [];
+          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` })
+          currentToolGroup = []
         }
-        groups.push(msg);
+        groups.push(msg)
       }
-    });
-    
+    })
+
     if (currentToolGroup.length > 0) {
-      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' });
+      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' })
     }
-    
-    return groups;
-  }, [workspace.messages, kodaSettings.toolViewMode]);
+
+    return groups
+  }, [workspace.messages, kodaSettings.toolViewMode])
 
   const renderModernInput = () => (
     <div className="px-4 pb-4 pt-2">
-      <div className={`relative rounded-2xl border backdrop-blur-xl transition-all shadow-2xl ${isFocused ? 'bg-neutral-900/80 border-neutral-700' : 'bg-neutral-900/40 border-neutral-800 opacity-80'}`}>
+      <div
+        className={`relative rounded-2xl border backdrop-blur-xl transition-all shadow-2xl ${isFocused ? 'bg-neutral-900/80 border-neutral-700' : 'bg-neutral-900/40 border-neutral-800 opacity-80'}`}
+      >
         {pendingImages.length > 0 && (
           <div className="flex flex-wrap gap-3 p-3 border-b border-white/5 bg-black/20">
             {pendingImages.map((img, i) => (
               <div key={i} className="relative group">
                 {img.isImage ? (
-                  <img src={img.dataUrl} className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10" alt="attached" />
+                  <img
+                    src={img.dataUrl}
+                    className="h-14 w-14 rounded-lg object-cover ring-1 ring-white/10"
+                    alt="attached"
+                  />
                 ) : (
                   <div className="h-20 w-32 bg-[#1e1e1e] border border-white/10 rounded-lg p-2.5 flex flex-col justify-between shadow-xl relative overflow-hidden group-hover:border-white/20 transition-all">
                     <div className="text-[10px] text-zinc-300 font-bold leading-tight break-all line-clamp-2 pr-1 uppercase tracking-tight">
@@ -164,10 +185,12 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
                     </div>
                   </div>
                 )}
-                <button 
-                  onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
+                <button
+                  onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
                   className="absolute -top-2 -right-2 bg-[#ff4b4b] text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-[#141414] opacity-0 group-hover:opacity-100 transition-opacity z-raised"
-                >✕</button>
+                >
+                  ✕
+                </button>
               </div>
             ))}
           </div>
@@ -185,28 +208,40 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
             onPaste={handlePaste}
             placeholder="Ask Koda anything..."
             className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder:text-neutral-500 placeholder:text-sm min-h-[20px] resize-none leading-snug"
-            style={{ overflow: "hidden" }}
+            style={{ overflow: 'hidden' }}
           />
         </div>
 
         <div className="flex items-center justify-between px-2 pb-1.5 pt-0 rounded-b-2xl">
           <div className="flex items-center gap-1.5">
-            <button type="button" onClick={onFileAttach} className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onFileAttach}
+              className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1"
+            >
               <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
-              <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">Attach</span>
+              <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">
+                Attach
+              </span>
             </button>
-            
+
             <div className="flex items-center gap-1 px-1.5 py-1 rounded-lg hover:bg-neutral-800 cursor-pointer transition-colors group">
-              <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">PATH:</span>
-              <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[120px] group-hover:text-zinc-200">{agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}</span>
+              <span className="text-[9px] font-bold tracking-widest text-zinc-500 group-hover:text-indigo-400">
+                PATH:
+              </span>
+              <span className="text-[9px] font-medium text-zinc-400 truncate max-w-[120px] group-hover:text-zinc-200">
+                {agentInfo.cwd.replace(/^\/home\/[^/]+|^C:\\Users\\[^\\]+|^\/Users\/[^/]+/, '~')}
+              </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">{agentInfo.provider}</span>
+            <span className="text-[10px] font-bold tracking-widest text-zinc-600 hidden sm:inline">
+              {agentInfo.provider}
+            </span>
             <button
               type="button"
-              onClick={() => isProcessing ? handleStop() : handleSendLocal()}
+              onClick={() => (isProcessing ? handleStop() : handleSendLocal())}
               disabled={!isProcessing && !input.trim()}
               className={`flex items-center justify-center p-1 rounded-lg transition-all ${
                 isProcessing
@@ -216,10 +251,13 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
                     : 'bg-neutral-800 text-zinc-600 cursor-not-allowed'
               }`}
             >
-              {isProcessing
-                ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5"/></svg>
-                : <ArrowUpIcon className="w-4 h-4" />
-              }
+              {isProcessing ? (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+              ) : (
+                <ArrowUpIcon className="w-4 h-4" />
+              )}
             </button>
           </div>
         </div>
@@ -238,24 +276,30 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
               ) : (
                 <div className="h-14 w-28 bg-[#1e1e1e] border border-slate-700 rounded p-2 flex flex-col justify-between shadow-sm relative overflow-hidden">
                   <div className="text-[9px] text-slate-300 font-bold truncate">{img.name}</div>
-                  <div className="text-[8px] font-black text-slate-500 uppercase">{img.name.split('.').pop()?.toUpperCase() || 'FILE'}</div>
+                  <div className="text-[8px] font-black text-slate-500 uppercase">
+                    {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
+                  </div>
                 </div>
               )}
               <button
-                onClick={() => setPendingImages(p => p.filter((_, idx) => idx !== i))}
+                onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              >✕</button>
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
       )}
-      <div className={`terminal-input-container items-start transition-all ${isFocused ? 'bg-slate-900/95' : 'bg-slate-900/40 opacity-70'} backdrop-blur-sm z-sticky border-t border-white/5`}>
+      <div
+        className={`terminal-input-container items-start transition-all ${isFocused ? 'bg-slate-900/95' : 'bg-slate-900/40 opacity-70'} backdrop-blur-sm z-sticky border-t border-white/5`}
+      >
         <span className={`font-bold mt-[6px] ${isProcessing ? 'text-amber-400' : 'text-cyan-400'}`}>❯</span>
         <textarea
           ref={textareaRef}
           rows={1}
           value={input}
-          onChange={e => {
+          onChange={(e) => {
             setInput(e.target.value)
             e.target.style.height = 'auto'
             e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
@@ -279,7 +323,9 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
         className={`flex items-center justify-between px-3 h-9 shrink-0 transition-colors border-b border-white/5 ${isFocused ? 'bg-white/5' : 'bg-transparent'}`}
       >
         <div className="flex items-center gap-2">
-          <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${isFocused ? (uiMode === 'classic' ? 'bg-cyan-400' : 'bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.6)]') : 'bg-zinc-600'}`} />
+          <div
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${isFocused ? (uiMode === 'classic' ? 'bg-cyan-400' : 'bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.6)]') : 'bg-zinc-600'}`}
+          />
           <span
             className={`text-[10px] font-bold uppercase tracking-[0.15em] truncate transition-colors ${isFocused ? 'text-white' : 'text-zinc-500'}`}
           >
@@ -290,7 +336,10 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
           </span>
         </div>
         <button
-          onClick={(e) => { e.stopPropagation(); onClose() }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClose()
+          }}
           className="w-5 h-5 rounded-md flex items-center justify-center text-zinc-500 hover:text-rose-400 hover:bg-rose-400/10 transition-all"
           title="Close split view"
         >
@@ -311,11 +360,11 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
           itemContent={(_, item: any) => (
             <div className="px-3 py-1">
               {item.type === 'tool_group' ? (
-                <CompactToolView 
-                  tools={item.tools} 
-                  settings={kodaSettings} 
-                  agentInfo={workspace.agentInfo} 
-                  uiMode={uiMode} 
+                <CompactToolView
+                  tools={item.tools}
+                  settings={kodaSettings}
+                  agentInfo={workspace.agentInfo}
+                  uiMode={uiMode}
                   isLastAndActive={isProcessing && _ === renderableMessages.length - 1}
                 />
               ) : (
@@ -338,7 +387,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
                   </div>
                 )}
               </div>
-            )
+            ),
           }}
         />
       </div>
@@ -364,14 +413,24 @@ interface SplitViewProps {
 
 // ─── SplitView: two panels with a draggable divider ──────────────────────────
 const SplitView: React.FC<SplitViewProps> = ({
-  workspaces, splitIds, focusedId, onFocus, onCloseSplit, onSend, onRollback, kodaSettings, theme, handleStop, uiMode
+  workspaces,
+  splitIds,
+  focusedId,
+  onFocus,
+  onCloseSplit,
+  onSend,
+  onRollback,
+  kodaSettings,
+  theme,
+  handleStop,
+  uiMode,
 }) => {
   const [splitRatio, setSplitRatio] = useState(50) // percent for left panel
   const isDraggingRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const leftWs = workspaces.find(w => w.id === splitIds[0])
-  const rightWs = workspaces.find(w => w.id === splitIds[1])
+  const leftWs = workspaces.find((w) => w.id === splitIds[0])
+  const rightWs = workspaces.find((w) => w.id === splitIds[1])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -416,8 +475,7 @@ const SplitView: React.FC<SplitViewProps> = ({
         onMouseDown={handleMouseDown}
         className="w-1 flex-shrink-0 cursor-col-resize flex items-center justify-center group hover:bg-indigo-500/40 transition-colors z-raised"
         style={{ backgroundColor: 'var(--koda-border)' }}
-      >
-      </div>
+      ></div>
 
       <div style={{ width: `${100 - splitRatio}%` }} className="flex flex-col min-w-0">
         <SplitPanel

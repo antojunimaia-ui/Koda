@@ -20,10 +20,10 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: [...external, 'node-pty', 'operantid.js']
-            }
-          }
-        }
+              external: [...external, 'node-pty', 'operantid.js'],
+            },
+          },
+        },
       },
       preload: {
         input: path.join(__dirname, 'src/preload/index.ts'),
@@ -31,8 +31,8 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron/preload',
             rollupOptions: {
-              external: [...external]
-            }
+              external: [...external],
+            },
           },
         },
       },

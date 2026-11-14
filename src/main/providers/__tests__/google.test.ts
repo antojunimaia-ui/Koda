@@ -24,7 +24,7 @@ async function collect(gen: AsyncGenerator<any>) {
 
 function sseResponse(lines: string[]) {
   const enc = new TextEncoder()
-  const body = enc.encode(lines.map(l => `data: ${l}\n`).join('') + '\n')
+  const body = enc.encode(lines.map((l) => `data: ${l}\n`).join('') + '\n')
   return {
     ok: true,
     text: async () => '',
@@ -46,18 +46,22 @@ function sseResponse(lines: string[]) {
 describe('GoogleProvider', () => {
   it('streams text, function calls and done from SSE', async () => {
     const fetchMock = vi.mocked(net.fetch)
-    fetchMock.mockResolvedValue(sseResponse([
-      JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Hello' }] } }] }),
-      JSON.stringify({ candidates: [{ content: { parts: [{ functionCall: { name: 'search', args: { q: 'x' } } }] } }] }),
-      '[DONE]',
-    ]) as any)
+    fetchMock.mockResolvedValue(
+      sseResponse([
+        JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Hello' }] } }] }),
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ functionCall: { name: 'search', args: { q: 'x' } } }] } }],
+        }),
+        '[DONE]',
+      ]) as any,
+    )
 
     const provider = new GoogleProvider('gemini-2.0-flash', 'test-key', 1000, 0.5)
     const chunks = await collect(provider.chat([{ role: 'user', content: 'hi' }], makeRegistry()))
 
-    expect(chunks.find(c => c.type === 'text' && c.content === 'Hello')).toBeTruthy()
-    expect(chunks.find(c => c.type === 'tool_call_start')?.toolCall.name).toBe('search')
-    expect(chunks.find(c => c.type === 'tool_call_end')?.toolCall.arguments).toEqual({ q: 'x' })
+    expect(chunks.find((c) => c.type === 'text' && c.content === 'Hello')).toBeTruthy()
+    expect(chunks.find((c) => c.type === 'tool_call_start')?.toolCall.name).toBe('search')
+    expect(chunks.find((c) => c.type === 'tool_call_end')?.toolCall.arguments).toEqual({ q: 'x' })
     expect(chunks.at(-1)?.type).toBe('done')
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })

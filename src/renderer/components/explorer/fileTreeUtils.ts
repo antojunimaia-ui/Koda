@@ -6,9 +6,7 @@ export function buildTree(paths: string[], cwd: string): FileNode[] {
 
   for (const p of paths) {
     const normalP = p.replace(/\\/g, '/')
-    const rel = normalP.startsWith(normalCwd)
-      ? normalP.slice(normalCwd.length).replace(/^\//, '')
-      : normalP
+    const rel = normalP.startsWith(normalCwd) ? normalP.slice(normalCwd.length).replace(/^\//, '') : normalP
     if (!rel) continue
     const parts = rel.split('/')
     let node = root
@@ -18,7 +16,7 @@ export function buildTree(paths: string[], cwd: string): FileNode[] {
       if (!node[part]) {
         node[part] = {
           __path: normalCwd + '/' + parts.slice(0, i + 1).join('/'),
-          __children: {}
+          __children: {},
         }
       }
       node = node[part].__children
@@ -44,7 +42,7 @@ export function buildTree(paths: string[], cwd: string): FileNode[] {
 }
 
 export function updateNodeInTree(nodes: FileNode[], targetPath: string, newChildren: FileNode[]): FileNode[] {
-  return nodes.map(node => {
+  return nodes.map((node) => {
     if (node.path === targetPath) {
       return { ...node, children: newChildren }
     }

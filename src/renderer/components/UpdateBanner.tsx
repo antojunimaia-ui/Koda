@@ -9,17 +9,15 @@ interface UpdateBannerProps {
 }
 
 const UpdateBanner = memo(({ version, downloaded, onInstall, onDismiss, variant = 'modern' }: UpdateBannerProps) => (
-  <div className={`w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl overflow-hidden -mb-4
+  <div
+    className={`w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl overflow-hidden -mb-4
     ${variant === 'modern' ? 'rounded-2xl rounded-b-none border-b-0' : 'rounded-xl rounded-b-none border-b-0'}
-  `}>
+  `}
+  >
     <div className="px-4 pt-2 pb-6 flex items-center gap-3">
-
       {/* Left: message */}
       <span className="flex-1 text-slate-400 text-[11px] font-medium truncate">
-        {downloaded
-          ? 'Update ready to install.'
-          : `A new update is available.${version ? ` (v${version})` : ''}`
-        }
+        {downloaded ? 'Update ready to install.' : `A new update is available.${version ? ` (v${version})` : ''}`}
       </span>
 
       {/* Right: buttons */}
@@ -36,11 +34,10 @@ const UpdateBanner = memo(({ version, downloaded, onInstall, onDismiss, variant 
           title="Dismiss"
         >
           <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-            <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
       </div>
-
     </div>
   </div>
 ))

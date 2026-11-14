@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import {
-  checkKodaIgnore,
-  filterKodaIgnore,
-  invalidateKodaIgnoreCache,
-} from '../kodaignore.js'
+import { checkKodaIgnore, filterKodaIgnore, invalidateKodaIgnoreCache } from '../kodaignore.js'
 
 let tmp: string
 

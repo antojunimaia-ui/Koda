@@ -1,15 +1,15 @@
-import * as os from "os";
+import * as os from 'os'
 
 export interface SystemPromptContext {
-  cwd: string;
-  osRelease: string;
-  platform: string;
-  shell: string;
-  workspaceName?: string;
-  projectSummary?: string; // High-level architecture summary
-  projectRules?: string; // Project-specific rules from .agents/rules.md
-  additionalDirectives?: string;
-  toolsMetadata?: string; // List of available tool names/descriptions
+  cwd: string
+  osRelease: string
+  platform: string
+  shell: string
+  workspaceName?: string
+  projectSummary?: string // High-level architecture summary
+  projectRules?: string // Project-specific rules from .agents/rules.md
+  additionalDirectives?: string
+  toolsMetadata?: string // List of available tool names/descriptions
 }
 
 /**
@@ -21,9 +21,10 @@ export class PromptBuilder {
    * Generates the dynamic environment details block.
    */
   public static buildEnvContext(ctx: SystemPromptContext): string {
-    const shellStr = ctx.platform === "win32"
-      ? `${ctx.shell} (use Unix/Forward-Slash syntax even on Windows for tools compatibility)`
-      : ctx.shell;
+    const shellStr =
+      ctx.platform === 'win32'
+        ? `${ctx.shell} (use Unix/Forward-Slash syntax even on Windows for tools compatibility)`
+        : ctx.shell
 
     return `
 # ENVIRONMENT CONTEXT
@@ -31,8 +32,8 @@ export class PromptBuilder {
 - **Platform**: ${ctx.platform}
 - **OS Version**: ${ctx.osRelease}
 - **Shell**: ${shellStr}
-${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
-`.trim();
+${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ''}
+`.trim()
   }
 
   /**
@@ -49,20 +50,17 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
 6. **Fail fast, fix fast**: If a shell command or tool fails, read the error output, form a hypothesis, and retry with a corrected approach immediately.
 7. **No redundant reads**: Don't re-read files you've already seen in this session unless they were modified.
 8. **Shell hygiene**: Prefer non-interactive commands. For long-running processes, use \`shell\` + \`shell_wait\` with a pattern to detect readiness.
-`.trim();
+`.trim()
   }
 
   /**
    * Assembles the complete prompt given the base system prompt and environment.
    */
-  public static build(
-    basePrompt: string,
-    context: Partial<SystemPromptContext> = {}
-  ): string {
-    const cwd = context.cwd || process.cwd();
-    const osRelease = context.osRelease || os.release();
-    const platform = context.platform || os.platform();
-    const shell = context.shell || process.env.SHELL || process.env.COMSPEC || "unknown";
+  public static build(basePrompt: string, context: Partial<SystemPromptContext> = {}): string {
+    const cwd = context.cwd || process.cwd()
+    const osRelease = context.osRelease || os.release()
+    const platform = context.platform || os.platform()
+    const shell = context.shell || process.env.SHELL || process.env.COMSPEC || 'unknown'
 
     const envBlock = this.buildEnvContext({
       cwd,
@@ -70,25 +68,19 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ""}
       platform,
       shell,
       workspaceName: context.workspaceName,
-    });
+    })
 
-    const coreBlock = this.buildCoreInstructions();
-    const toolsBlock = context.toolsMetadata ? `# AVAILABLE TOOLS\nYou have access to the following dynamic and core capabilities:\n${context.toolsMetadata}` : "";
+    const coreBlock = this.buildCoreInstructions()
+    const toolsBlock = context.toolsMetadata
+      ? `# AVAILABLE TOOLS\nYou have access to the following dynamic and core capabilities:\n${context.toolsMetadata}`
+      : ''
 
-    const projectBlock = context.projectSummary ? `# PROJECT ARCHITECTURE\n${context.projectSummary}` : "";
-    const rulesBlock = context.projectRules ? `# PROJECT RULES\n${context.projectRules}` : "";
+    const projectBlock = context.projectSummary ? `# PROJECT ARCHITECTURE\n${context.projectSummary}` : ''
+    const rulesBlock = context.projectRules ? `# PROJECT RULES\n${context.projectRules}` : ''
 
     // Assemble modular blocks
-    return [
-      basePrompt,
-      envBlock,
-      projectBlock,
-      rulesBlock,
-      coreBlock,
-      toolsBlock,
-      context.additionalDirectives || "",
-    ]
+    return [basePrompt, envBlock, projectBlock, rulesBlock, coreBlock, toolsBlock, context.additionalDirectives || '']
       .filter((block) => block.trim().length > 0)
-      .join("\n\n---\n\n");
+      .join('\n\n---\n\n')
   }
 }

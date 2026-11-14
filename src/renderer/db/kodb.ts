@@ -10,7 +10,7 @@ export interface KoDBSchema {
   apiKey: string
   model: string
   advisorModel: string
-  providersConfig: Record<string, { apiKey: string, model: string, advisorModel: string }>
+  providersConfig: Record<string, { apiKey: string; model: string; advisorModel: string }>
   kodaCloudBaseUrl: string
   kodaCloudAccepted: boolean
 }

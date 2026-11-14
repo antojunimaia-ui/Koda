@@ -17,16 +17,16 @@ interface IDELayoutProps {
   onInject: (path: string) => void
   onSend: (text: string, images: AttachedFile[], wsId: string) => void
   onAddToInput: (path: string) => void
-  
+
   // Editor props
   showEditorPanel: boolean
-  
+
   // Browser/Terminal props
   showBrowser?: boolean
   showTerminal?: boolean
   onBrowserClose?: () => void
   onTerminalClose?: () => void
-  
+
   // Chat props (será o conteúdo principal quando não há editor)
   children: React.ReactNode
 }
@@ -35,7 +35,7 @@ interface OpenFile {
   path: string
   content: string
   hasUnsavedChanges: boolean
-  isDeleted?: boolean  // Track if file was deleted from disk
+  isDeleted?: boolean // Track if file was deleted from disk
 }
 
 type TabType = 'file' | 'browser' | 'terminal' | 'markdown-preview' | 'video' | 'image'
@@ -46,7 +46,7 @@ interface Tab {
   title: string
   icon?: string
   file?: OpenFile
-  markdownPath?: string  // for markdown-preview tabs
+  markdownPath?: string // for markdown-preview tabs
   videoPath?: string
   imagePath?: string
 }
@@ -56,11 +56,7 @@ interface Tab {
 const ImageViewer: React.FC<{ path: string }> = ({ path }) => {
   return (
     <div className="h-full w-full bg-[#141414] flex items-center justify-center p-8 overflow-auto custom-scrollbar">
-      <img 
-        src={`file://${path}`} 
-        className="max-w-full max-h-full shadow-2xl rounded-sm object-contain"
-        alt={path}
-      />
+      <img src={`file://${path}`} className="max-w-full max-h-full shadow-2xl rounded-sm object-contain" alt={path} />
     </div>
   )
 }
@@ -70,12 +66,7 @@ const ImageViewer: React.FC<{ path: string }> = ({ path }) => {
 const VideoPlayer: React.FC<{ path: string }> = ({ path }) => {
   return (
     <div className="h-full w-full bg-[#141414] flex flex-col items-center justify-center relative group">
-      <video 
-        src={`file://${path}`} 
-        controls 
-        className="max-w-full max-h-full shadow-2xl rounded-lg"
-        autoPlay
-      />
+      <video src={`file://${path}`} controls className="max-w-full max-h-full shadow-2xl rounded-lg" autoPlay />
     </div>
   )
 }
@@ -95,7 +86,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
   showTerminal = false,
   onBrowserClose,
   onTerminalClose,
-  children
+  children,
 }) => {
   const [tabs, setTabs] = useState<Tab[]>([])
   const [pendingImages, setPendingImages] = useState<AttachedFile[]>([])
@@ -126,8 +117,8 @@ const IDELayout: React.FC<IDELayoutProps> = ({
   const [chatWidth, setChatWidth] = useState(448) // Pixels
   const [discordEnabled, setDiscordEnabled] = useState(false)
   const [activityStartTime] = useState(Date.now())
-  
-  const activeTab = tabs.find(t => t.id === activeTabId)
+
+  const activeTab = tabs.find((t) => t.id === activeTabId)
 
   // Check Discord RPC status on mount
   useEffect(() => {
@@ -150,7 +141,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       projectName,
       fileName,
       fileType: fileExt,
-      startTimestamp: activityStartTime
+      startTimestamp: activityStartTime,
     })
   }, [activeTab, discordEnabled, cwd, activityStartTime])
 
@@ -161,11 +152,11 @@ const IDELayout: React.FC<IDELayoutProps> = ({
         id: '__browser__',
         type: 'browser',
         title: 'Browser',
-        icon: 'default_folder.svg'
+        icon: 'default_folder.svg',
       }
-      
-      setTabs(prev => {
-        const hasBrowser = prev.some(t => t.id === '__browser__')
+
+      setTabs((prev) => {
+        const hasBrowser = prev.some((t) => t.id === '__browser__')
         if (!hasBrowser) {
           return [...prev, browserTab]
         }
@@ -173,9 +164,9 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       })
       setActiveTabId('__browser__')
     } else if (!showBrowser) {
-      setTabs(prev => prev.filter(t => t.id !== '__browser__'))
+      setTabs((prev) => prev.filter((t) => t.id !== '__browser__'))
       if (activeTabId === '__browser__') {
-        const remaining = tabs.filter(t => t.id !== '__browser__')
+        const remaining = tabs.filter((t) => t.id !== '__browser__')
         setActiveTabId(remaining.length > 0 ? remaining[0].id : null)
       }
     }
@@ -186,27 +177,29 @@ const IDELayout: React.FC<IDELayoutProps> = ({
     const unsubscribe = window.koda.onFileSystemChange?.((change) => {
       if (change.type === 'rename' || change.type === 'change') {
         // Check if any open tab's file was deleted
-        setTabs(prev => prev.map(tab => {
-          if (tab.type === 'file' && tab.file) {
-            const normalizedTabPath = tab.file.path.replace(/\\/g, '/')
-            const normalizedChangePath = change.path.replace(/\\/g, '/')
-            
-            if (normalizedTabPath === normalizedChangePath) {
-              // File was deleted or renamed, mark as deleted
-              return {
-                ...tab,
-                file: {
-                  ...tab.file,
-                  isDeleted: true
+        setTabs((prev) =>
+          prev.map((tab) => {
+            if (tab.type === 'file' && tab.file) {
+              const normalizedTabPath = tab.file.path.replace(/\\/g, '/')
+              const normalizedChangePath = change.path.replace(/\\/g, '/')
+
+              if (normalizedTabPath === normalizedChangePath) {
+                // File was deleted or renamed, mark as deleted
+                return {
+                  ...tab,
+                  file: {
+                    ...tab.file,
+                    isDeleted: true,
+                  },
                 }
               }
             }
-          }
-          return tab
-        }))
+            return tab
+          }),
+        )
       }
     })
-    
+
     return () => {
       unsubscribe?.()
     }
@@ -223,7 +216,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
   }
 
   const openVideoPlayer = (filePath: string) => {
-    const existingTab = tabs.find(t => t.type === 'video' && t.videoPath === filePath)
+    const existingTab = tabs.find((t) => t.type === 'video' && t.videoPath === filePath)
     if (existingTab) {
       setActiveTabId(existingTab.id)
       return
@@ -235,14 +228,14 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       type: 'video',
       title: fileName,
       icon: getIconForFile(fileName),
-      videoPath: filePath
+      videoPath: filePath,
     }
-    setTabs(prev => [...prev, newTab])
+    setTabs((prev) => [...prev, newTab])
     setActiveTabId(newTab.id)
   }
 
   const openImageViewer = (filePath: string) => {
-    const existingTab = tabs.find(t => t.type === 'image' && t.imagePath === filePath)
+    const existingTab = tabs.find((t) => t.type === 'image' && t.imagePath === filePath)
     if (existingTab) {
       setActiveTabId(existingTab.id)
       return
@@ -254,9 +247,9 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       type: 'image',
       title: fileName,
       icon: getIconForFile(fileName),
-      imagePath: filePath
+      imagePath: filePath,
     }
-    setTabs(prev => [...prev, newTab])
+    setTabs((prev) => [...prev, newTab])
     setActiveTabId(newTab.id)
   }
 
@@ -270,7 +263,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       return
     }
     // Verificar se o arquivo já está aberto
-    const existingTab = tabs.find(t => t.type === 'file' && t.file?.path === filePath)
+    const existingTab = tabs.find((t) => t.type === 'file' && t.file?.path === filePath)
     if (existingTab) {
       setActiveTabId(existingTab.id)
       return
@@ -283,7 +276,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
         const newFile: OpenFile = {
           path: filePath,
           content: result.content || '',
-          hasUnsavedChanges: false
+          hasUnsavedChanges: false,
         }
         const fileName = filePath.replace(/\\/g, '/').split('/').pop() || filePath
         const newTab: Tab = {
@@ -291,9 +284,9 @@ const IDELayout: React.FC<IDELayoutProps> = ({
           type: 'file',
           title: fileName,
           icon: getIconForFile(fileName),
-          file: newFile
+          file: newFile,
         }
-        setTabs(prev => [...prev, newTab])
+        setTabs((prev) => [...prev, newTab])
         setActiveTabId(newTab.id)
       }
     } catch (error) {
@@ -305,7 +298,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
 
   const openMarkdownPreview = async (filePath: string) => {
     // If a preview for this file already exists, just activate it
-    const existingTab = tabs.find(t => t.type === 'markdown-preview' && t.markdownPath === filePath)
+    const existingTab = tabs.find((t) => t.type === 'markdown-preview' && t.markdownPath === filePath)
     if (existingTab) {
       setActiveTabId(existingTab.id)
       return
@@ -326,7 +319,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
             hasUnsavedChanges: false,
           },
         }
-        setTabs(prev => [...prev, newTab])
+        setTabs((prev) => [...prev, newTab])
         setActiveTabId(newTab.id)
       }
     } catch (error) {
@@ -335,41 +328,39 @@ const IDELayout: React.FC<IDELayoutProps> = ({
   }
 
   const saveFileContent = async (tabId: string) => {
-    const tab = tabs.find(t => t.id === tabId && t.type === 'file')
+    const tab = tabs.find((t) => t.id === tabId && t.type === 'file')
     if (!tab || !tab.file) return
-    
+
     try {
       await window.koda.writeFile(tab.file.path, tab.file.content)
-      setTabs(prev => prev.map(t => 
-        t.id === tabId && t.file
-          ? { ...t, file: { ...t.file, hasUnsavedChanges: false } }
-          : t
-      ))
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId && t.file ? { ...t, file: { ...t.file, hasUnsavedChanges: false } } : t)),
+      )
     } catch (error) {
       console.error('Error saving file:', error)
     }
   }
 
   const handleFileContentChange = (tabId: string, newContent: string) => {
-    setTabs(prev => prev.map(t => 
-      t.id === tabId && t.file
-        ? { ...t, file: { ...t.file, content: newContent, hasUnsavedChanges: true } }
-        : t
-    ))
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.id === tabId && t.file ? { ...t, file: { ...t.file, content: newContent, hasUnsavedChanges: true } } : t,
+      ),
+    )
   }
 
   const closeTab = (tabId: string) => {
-    const tab = tabs.find(t => t.id === tabId)
-    
+    const tab = tabs.find((t) => t.id === tabId)
+
     // Se for browser ou terminal, chamar o callback apropriado
     if (tab?.type === 'browser' && onBrowserClose) {
       onBrowserClose()
       return
     }
-    
-    setTabs(prev => prev.filter(t => t.id !== tabId))
+
+    setTabs((prev) => prev.filter((t) => t.id !== tabId))
     if (activeTabId === tabId) {
-      const remainingTabs = tabs.filter(t => t.id !== tabId)
+      const remainingTabs = tabs.filter((t) => t.id !== tabId)
       setActiveTabId(remainingTabs.length > 0 ? remainingTabs[remainingTabs.length - 1].id : null)
     }
   }
@@ -383,7 +374,12 @@ const IDELayout: React.FC<IDELayoutProps> = ({
         closeTab(activeTabId)
       }
       // Ctrl+S to save active file
-      if ((e.ctrlKey || e.metaKey) && e.key === 's' && activeTab?.type === 'file' && activeTab.file?.hasUnsavedChanges) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === 's' &&
+        activeTab?.type === 'file' &&
+        activeTab.file?.hasUnsavedChanges
+      ) {
         e.preventDefault()
         saveFileContent(activeTabId!)
       }
@@ -399,128 +395,128 @@ const IDELayout: React.FC<IDELayoutProps> = ({
     // Handle dotfiles like .gitignore, Dockerfile, etc.
     const lowerName = baseName.toLowerCase()
     const dotfileMap: Record<string, string> = {
-      'dockerfile': 'dockerfile',
+      dockerfile: 'dockerfile',
       '.dockerignore': 'plaintext',
       '.gitignore': 'plaintext',
       '.gitattributes': 'plaintext',
       '.env': 'ini',
       '.editorconfig': 'ini',
-      'makefile': 'makefile',
+      makefile: 'makefile',
       'cmakelists.txt': 'cmake',
-      'gemfile': 'ruby',
-      'rakefile': 'ruby',
-      'procfile': 'plaintext',
+      gemfile: 'ruby',
+      rakefile: 'ruby',
+      procfile: 'plaintext',
     }
     if (dotfileMap[lowerName]) return dotfileMap[lowerName]
 
     const ext = lowerName.split('.').pop() || ''
     const languageMap: Record<string, string> = {
       // Web
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'mjs': 'javascript',
-      'cjs': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'mts': 'typescript',
-      'cts': 'typescript',
-      'html': 'html',
-      'htm': 'html',
-      'xhtml': 'html',
-      'css': 'css',
-      'scss': 'scss',
-      'sass': 'scss',
-      'less': 'less',
-      'vue': 'html',
-      'svelte': 'html',
+      js: 'javascript',
+      jsx: 'javascript',
+      mjs: 'javascript',
+      cjs: 'javascript',
+      ts: 'typescript',
+      tsx: 'typescript',
+      mts: 'typescript',
+      cts: 'typescript',
+      html: 'html',
+      htm: 'html',
+      xhtml: 'html',
+      css: 'css',
+      scss: 'scss',
+      sass: 'scss',
+      less: 'less',
+      vue: 'html',
+      svelte: 'html',
       // Data / Config
-      'json': 'json',
-      'jsonc': 'json',
-      'json5': 'json',
-      'yaml': 'yaml',
-      'yml': 'yaml',
-      'toml': 'ini',
-      'ini': 'ini',
-      'env': 'ini',
-      'xml': 'xml',
-      'svg': 'xml',
-      'plist': 'xml',
-      'csproj': 'xml',
-      'props': 'xml',
-      'targets': 'xml',
-      'gradle': 'kotlin',
-      'pom': 'xml',
+      json: 'json',
+      jsonc: 'json',
+      json5: 'json',
+      yaml: 'yaml',
+      yml: 'yaml',
+      toml: 'ini',
+      ini: 'ini',
+      env: 'ini',
+      xml: 'xml',
+      svg: 'xml',
+      plist: 'xml',
+      csproj: 'xml',
+      props: 'xml',
+      targets: 'xml',
+      gradle: 'kotlin',
+      pom: 'xml',
       // Docs
-      'md': 'markdown',
-      'mdx': 'markdown',
-      'rst': 'restructuredtext',
-      'tex': 'latex',
+      md: 'markdown',
+      mdx: 'markdown',
+      rst: 'restructuredtext',
+      tex: 'latex',
       // Systems
-      'c': 'c',
-      'h': 'c',
-      'cpp': 'cpp',
-      'cc': 'cpp',
-      'cxx': 'cpp',
-      'hpp': 'cpp',
-      'hxx': 'cpp',
-      'cs': 'csharp',
-      'java': 'java',
-      'kt': 'kotlin',
-      'kts': 'kotlin',
-      'rs': 'rust',
-      'go': 'go',
-      'swift': 'swift',
-      'mm': 'objective-c',
-      'm': 'objective-c',
+      c: 'c',
+      h: 'c',
+      cpp: 'cpp',
+      cc: 'cpp',
+      cxx: 'cpp',
+      hpp: 'cpp',
+      hxx: 'cpp',
+      cs: 'csharp',
+      java: 'java',
+      kt: 'kotlin',
+      kts: 'kotlin',
+      rs: 'rust',
+      go: 'go',
+      swift: 'swift',
+      mm: 'objective-c',
+      m: 'objective-c',
       // Scripting
-      'py': 'python',
-      'pyw': 'python',
-      'rb': 'ruby',
-      'php': 'php',
-      'php3': 'php',
-      'php4': 'php',
-      'php5': 'php',
-      'lua': 'lua',
-      'pl': 'perl',
-      'pm': 'perl',
-      'r': 'r',
-      'jl': 'julia',
-      'ex': 'elixir',
-      'exs': 'elixir',
-      'erl': 'erlang',
-      'hrl': 'erlang',
-      'hs': 'haskell',
-      'lhs': 'haskell',
-      'clj': 'clojure',
-      'cljs': 'clojure',
-      'scala': 'scala',
-      'sc': 'scala',
-      'dart': 'dart',
+      py: 'python',
+      pyw: 'python',
+      rb: 'ruby',
+      php: 'php',
+      php3: 'php',
+      php4: 'php',
+      php5: 'php',
+      lua: 'lua',
+      pl: 'perl',
+      pm: 'perl',
+      r: 'r',
+      jl: 'julia',
+      ex: 'elixir',
+      exs: 'elixir',
+      erl: 'erlang',
+      hrl: 'erlang',
+      hs: 'haskell',
+      lhs: 'haskell',
+      clj: 'clojure',
+      cljs: 'clojure',
+      scala: 'scala',
+      sc: 'scala',
+      dart: 'dart',
       // Shell
-      'sh': 'shell',
-      'bash': 'shell',
-      'zsh': 'shell',
-      'fish': 'shell',
-      'ps1': 'powershell',
-      'psm1': 'powershell',
-      'psd1': 'powershell',
-      'bat': 'bat',
-      'cmd': 'bat',
+      sh: 'shell',
+      bash: 'shell',
+      zsh: 'shell',
+      fish: 'shell',
+      ps1: 'powershell',
+      psm1: 'powershell',
+      psd1: 'powershell',
+      bat: 'bat',
+      cmd: 'bat',
       // SQL
-      'sql': 'sql',
-      'pgsql': 'pgsql',
-      'mysql': 'mysql',
+      sql: 'sql',
+      pgsql: 'pgsql',
+      mysql: 'mysql',
       // Other
-      'graphql': 'graphql',
-      'gql': 'graphql',
-      'proto': 'proto',
-      'tf': 'hcl',
-      'hcl': 'hcl',
-      'bicep': 'bicep',
-      'zig': 'zig',
-      'v': 'v',
-      'nim': 'nim',
-      'wasm': 'plaintext',
+      graphql: 'graphql',
+      gql: 'graphql',
+      proto: 'proto',
+      tf: 'hcl',
+      hcl: 'hcl',
+      bicep: 'bicep',
+      zig: 'zig',
+      v: 'v',
+      nim: 'nim',
+      wasm: 'plaintext',
     }
     return languageMap[ext] || 'plaintext'
   }
@@ -575,10 +571,10 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                   </button>
                 </div>
               </div>
-              <FileExplorer 
-                cwd={cwd} 
+              <FileExplorer
+                cwd={cwd}
                 onInject={handleFileClick}
-                onPin={onPin} 
+                onPin={onPin}
                 onAddToInput={onAddToInput}
                 pinnedFiles={pinnedFiles}
                 disableInlineEditor={true}
@@ -586,31 +582,30 @@ const IDELayout: React.FC<IDELayoutProps> = ({
               />
             </div>
           </div>
-          
+
           {/* Explorer Resize Handle */}
           <div
             onMouseDown={(e) => {
               e.preventDefault()
               const startX = e.clientX
               const startWidth = explorerWidth
-              
+
               const handleMouseMove = (moveEvent: MouseEvent) => {
                 const deltaX = moveEvent.clientX - startX
                 const newWidth = Math.max(200, Math.min(600, startWidth + deltaX))
                 setExplorerWidth(newWidth)
               }
-              
+
               const handleMouseUp = () => {
                 document.removeEventListener('mousemove', handleMouseMove)
                 document.removeEventListener('mouseup', handleMouseUp)
               }
-              
+
               document.addEventListener('mousemove', handleMouseMove)
               document.addEventListener('mouseup', handleMouseUp)
             }}
             className="w-1 cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
-          >
-          </div>
+          ></div>
         </>
       )}
 
@@ -620,7 +615,10 @@ const IDELayout: React.FC<IDELayoutProps> = ({
           <div className="flex-1 border-r border-white/10 bg-[#141414] flex flex-col min-w-75">
             {/* Tabs Bar — pill style */}
             {tabs.length > 0 && (
-              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[#1a1a1a] border-b border-white/5 overflow-x-auto custom-scrollbar" style={{ scrollbarWidth: 'none' }}>
+              <div
+                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#1a1a1a] border-b border-white/5 overflow-x-auto custom-scrollbar"
+                style={{ scrollbarWidth: 'none' }}
+              >
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTabId
                   const isDeleted = tab.type === 'file' && tab.file?.isDeleted
@@ -629,29 +627,62 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                   let iconElement: React.ReactNode
                   if (tab.type === 'browser') {
                     iconElement = (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                       </svg>
                     )
                   } else if (tab.type === 'terminal') {
                     iconElement = (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="4 17 10 11 4 5" />
+                        <line x1="12" y1="19" x2="20" y2="19" />
                       </svg>
                     )
                   } else if (tab.type === 'markdown-preview') {
                     iconElement = (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-indigo-400"
+                      >
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
                       </svg>
                     )
                   } else if (tab.icon) {
                     iconElement = (
                       <img
                         src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${tab.icon}`}
-                        width="12" height="12"
-                        className="shrink-0" alt={tab.title}
+                        width="12"
+                        height="12"
+                        className="shrink-0"
+                        alt={tab.title}
                         style={{ objectFit: 'contain' }}
                       />
                     )
@@ -661,42 +692,54 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                     <div
                       key={tab.id}
                       onClick={() => setActiveTabId(tab.id)}
-                      title={tab.type === 'file' ? (isDeleted ? `${tab.file?.path} (deleted)` : tab.file?.path) : tab.title}
+                      title={
+                        tab.type === 'file' ? (isDeleted ? `${tab.file?.path} (deleted)` : tab.file?.path) : tab.title
+                      }
                       className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer transition-all shrink-0 max-w-44 select-none ${
                         isDeleted
                           ? 'text-slate-400 ring-1 ring-red-500/60'
                           : isActive && tab.type === 'file' && tab.file?.hasUnsavedChanges
                             ? 'bg-white/10 text-white ring-1 ring-white'
                             : isActive
-                            ? 'bg-white/10 text-white ring-1 ring-white/15'
-                            : tab.type === 'file' && tab.file?.hasUnsavedChanges
-                            ? 'text-slate-300 hover:bg-white/5 ring-1 ring-white/40'
-                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                              ? 'bg-white/10 text-white ring-1 ring-white/15'
+                              : tab.type === 'file' && tab.file?.hasUnsavedChanges
+                                ? 'text-slate-300 hover:bg-white/5 ring-1 ring-white/40'
+                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                       }`}
                     >
                       {/* Icon */}
                       <span className="shrink-0">{iconElement}</span>
 
                       {/* Title */}
-                      <span className={`text-[10px] font-medium truncate leading-none ${
-                        isDeleted ? 'line-through' : ''
-                      }`}>
+                      <span
+                        className={`text-[10px] font-medium truncate leading-none ${isDeleted ? 'line-through' : ''}`}
+                      >
                         {tab.title}
                       </span>
 
                       {/* Deleted warning */}
                       {isDeleted && (
-                        <span className="text-[9px] text-red-400 shrink-0" title="File deleted from disk">⚠</span>
+                        <span className="text-[9px] text-red-400 shrink-0" title="File deleted from disk">
+                          ⚠
+                        </span>
                       )}
 
                       {/* Close button */}
                       <button
-                        onClick={(e) => { e.stopPropagation(); closeTab(tab.id) }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          closeTab(tab.id)
+                        }}
                         className="opacity-0 group-hover:opacity-100 ml-0.5 p-0.5 rounded-full hover:bg-white/15 transition-all shrink-0"
                         title="Close (Ctrl+W)"
                       >
                         <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
-                          <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                          <path
+                            d="M1.5 1.5l9 9M10.5 1.5l-9 9"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -710,7 +753,10 @@ const IDELayout: React.FC<IDELayoutProps> = ({
               {activeTab ? (
                 <>
                   {/* Main Content Area (Editor or Browser) */}
-                  <div className={`${showTerminal ? 'shrink-0' : 'flex-1'} relative`} style={{ height: showTerminal ? `calc(100% - ${terminalHeight}px - 4px)` : '100%' }}>
+                  <div
+                    className={`${showTerminal ? 'shrink-0' : 'flex-1'} relative`}
+                    style={{ height: showTerminal ? `calc(100% - ${terminalHeight}px - 4px)` : '100%' }}
+                  >
                     {activeTab.type === 'file' && activeTab.file ? (
                       isLoadingFile ? (
                         <div className="flex items-center justify-center h-full">
@@ -744,7 +790,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                           beforeMount={(monaco) => {
                             // Register theme only once to avoid flicker on re-renders
                             if (!(monaco as any).__kodaThemeRegistered) {
-                              (monaco as any).__kodaThemeRegistered = true
+                              ;(monaco as any).__kodaThemeRegistered = true
 
                               // Suppress TS/JS red-squiggles (we're not running a compiler)
                               monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
@@ -866,13 +912,13 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                                   'scrollbarSlider.background': '#79797966',
                                   'scrollbarSlider.hoverBackground': '#646464B3',
                                   'scrollbarSlider.activeBackground': '#BFBFBF66',
-                                }
+                                },
                               })
                             }
                           }}
                           onMount={(editor, monaco) => {
                             monaco.editor.setTheme('koda-dark')
-                            
+
                             // Add Ctrl+S keybinding
                             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
                               saveFileContent(activeTab.id)
@@ -883,17 +929,14 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                     ) : activeTab.type === 'browser' ? (
                       <BrowserPreview onClose={onBrowserClose || (() => {})} />
                     ) : activeTab.type === 'markdown-preview' && activeTab.file ? (
-                      <MarkdownWebview 
-                        content={activeTab.file.content} 
-                        filePath={activeTab.file.path}
-                      />
+                      <MarkdownWebview content={activeTab.file.content} filePath={activeTab.file.path} />
                     ) : activeTab.type === 'video' && activeTab.videoPath ? (
                       <VideoPlayer path={activeTab.videoPath} />
                     ) : activeTab.type === 'image' && activeTab.imagePath ? (
                       <ImageViewer path={activeTab.imagePath} />
                     ) : null}
                   </div>
-                  
+
                   {/* Terminal Split Resize Handle */}
                   {showTerminal && (
                     <div
@@ -901,26 +944,25 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                         e.preventDefault()
                         const startY = e.clientY
                         const startHeight = terminalHeight
-                        
+
                         const handleMouseMove = (moveEvent: MouseEvent) => {
                           const deltaY = startY - moveEvent.clientY // Inverted because we're dragging up
                           const newHeight = Math.max(100, Math.min(600, startHeight + deltaY))
                           setTerminalHeight(newHeight)
                         }
-                        
+
                         const handleMouseUp = () => {
                           document.removeEventListener('mousemove', handleMouseMove)
                           document.removeEventListener('mouseup', handleMouseUp)
                         }
-                        
+
                         document.addEventListener('mousemove', handleMouseMove)
                         document.addEventListener('mouseup', handleMouseUp)
                       }}
                       className="h-1 w-full cursor-row-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-white/5 hover:bg-indigo-500/50"
-                    >
-                    </div>
+                    ></div>
                   )}
-                  
+
                   {/* Terminal Panel Below Editor/Browser */}
                   {showTerminal && (
                     <div className="shrink-0 relative" style={{ height: `${terminalHeight}px` }}>
@@ -938,14 +980,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                     xmlns="http://www.w3.org/2000/svg"
                     className="text-slate-700 opacity-30"
                   >
-                    <circle
-                      cx="100"
-                      cy="100"
-                      r="78"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
+                    <circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" strokeWidth="4" />
                     <ellipse
                       cx="97"
                       cy="70"
@@ -971,7 +1006,7 @@ const IDELayout: React.FC<IDELayoutProps> = ({
               )}
             </div>
           </div>
-          
+
           {/* Editor-Chat Resize Handle — only when Editor is visible */}
           {showEditorPanel && (
             <div
@@ -979,24 +1014,23 @@ const IDELayout: React.FC<IDELayoutProps> = ({
                 e.preventDefault()
                 const startX = e.clientX
                 const startWidth = chatWidth
-                
+
                 const handleMouseMove = (moveEvent: MouseEvent) => {
                   const deltaX = startX - moveEvent.clientX // Inverted because chat is on the right
                   const newWidth = Math.max(300, Math.min(800, startWidth + deltaX))
                   setChatWidth(newWidth)
                 }
-                
+
                 const handleMouseUp = () => {
                   document.removeEventListener('mousemove', handleMouseMove)
                   document.removeEventListener('mouseup', handleMouseUp)
                 }
-                
+
                 document.addEventListener('mousemove', handleMouseMove)
                 document.addEventListener('mouseup', handleMouseUp)
               }}
               className="w-1 cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
-            >
-            </div>
+            ></div>
           )}
         </>
       )}

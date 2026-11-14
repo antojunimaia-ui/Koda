@@ -18,10 +18,7 @@ const pendingSnapshots = new Map<number, Promise<void>>()
 // Use Electron's net.fetch (avoids Node.js TLS issues)
 const efetch: typeof fetch = (input: any, init?: any) => net.fetch(input, init) as any
 
-export function registerAgentHandlers(
-  agents: Map<string, Agent>,
-  broadcastAgentUpdate: (data: object) => void
-) {
+export function registerAgentHandlers(agents: Map<string, Agent>, broadcastAgentUpdate: (data: object) => void) {
   function getAgent(id: string): Agent | null {
     return agents.get(id) ?? null
   }
@@ -48,33 +45,44 @@ export function registerAgentHandlers(
     }
   })
 
-  ipcMain.handle(IPC_CHANNELS.agent.message, async (_event, workspaceId: string, messageId: number, message: string, images?: any[]) => {
-    const agent = agents.get(workspaceId)
-    if (!agent) return { error: 'Agent not initialized' }
+  ipcMain.handle(
+    IPC_CHANNELS.agent.message,
+    async (_event, workspaceId: string, messageId: number, message: string, images?: any[]) => {
+      const agent = agents.get(workspaceId)
+      if (!agent) return { error: 'Agent not initialized' }
 
-    const convLength = agent.getConversationLength()
-    const cwd = agent.getInfo().cwd || process.cwd()
-    const snapshotPromise = createSnapshot(cwd, messageId, convLength)
-    pendingSnapshots.set(messageId, snapshotPromise)
-    snapshotPromise.finally(() => pendingSnapshots.delete(messageId))
+      const convLength = agent.getConversationLength()
+      const cwd = agent.getInfo().cwd || process.cwd()
+      const snapshotPromise = createSnapshot(cwd, messageId, convLength)
+      pendingSnapshots.set(messageId, snapshotPromise)
+      snapshotPromise.finally(() => pendingSnapshots.delete(messageId))
 
-    try {
-      await agent.processMessage(
-        message,
-        (text) => broadcastAgentUpdate({ workspaceId, type: 'text', content: text }),
-        (name, args) => broadcastAgentUpdate({ workspaceId, type: 'tool_start', name, args }),
-        (name, chunk) => broadcastAgentUpdate({ workspaceId, type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
-        (name, result, success, args) => broadcastAgentUpdate({ workspaceId, type: 'tool_end', name, result, success, args }),
-        (error) => broadcastAgentUpdate({ workspaceId, type: 'error', message: error }),
-        images as any,
-        snapshotPromise
-      )
-      broadcastAgentUpdate({ workspaceId, type: 'done' })
-      return { success: true }
-    } catch (error) {
-      return { success: false, error: (error as Error).message }
-    }
-  })
+      try {
+        await agent.processMessage(
+          message,
+          (text) => broadcastAgentUpdate({ workspaceId, type: 'text', content: text }),
+          (name, args) => broadcastAgentUpdate({ workspaceId, type: 'tool_start', name, args }),
+          (name, chunk) =>
+            broadcastAgentUpdate({
+              workspaceId,
+              type: 'tool_progress',
+              event: 'writing',
+              toolName: name,
+              content: chunk,
+            }),
+          (name, result, success, args) =>
+            broadcastAgentUpdate({ workspaceId, type: 'tool_end', name, result, success, args }),
+          (error) => broadcastAgentUpdate({ workspaceId, type: 'error', message: error }),
+          images as any,
+          snapshotPromise,
+        )
+        broadcastAgentUpdate({ workspaceId, type: 'done' })
+        return { success: true }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    },
+  )
 
   ipcMain.handle(IPC_CHANNELS.agent.snapshotRestore, async (_event, workspaceId: string, messageId: number) => {
     const agent = agents.get(workspaceId)
@@ -141,25 +149,28 @@ export function registerAgentHandlers(
     return sessionManager.getSession(projectPath)
   })
 
-  ipcMain.handle(IPC_CHANNELS.agent.saveSession, async (_event, workspaceId: string, projectPath: string, data: any) => {
-    const agent = agents.get(workspaceId)
-    const { rendererMessages, backendMessages, pinnedFiles } = data
+  ipcMain.handle(
+    IPC_CHANNELS.agent.saveSession,
+    async (_event, workspaceId: string, projectPath: string, data: any) => {
+      const agent = agents.get(workspaceId)
+      const { rendererMessages, backendMessages, pinnedFiles } = data
 
-    let historyToSave = backendMessages
-    if (agent && !historyToSave) {
-      historyToSave = agent.getHistory()
-    } else if (agent && historyToSave) {
-      agent.setHistory(historyToSave)
-    }
+      let historyToSave = backendMessages
+      if (agent && !historyToSave) {
+        historyToSave = agent.getHistory()
+      } else if (agent && historyToSave) {
+        agent.setHistory(historyToSave)
+      }
 
-    return sessionManager.saveSession(projectPath, {
-      messages: rendererMessages,
-      backendHistory: historyToSave,
-      pinnedFiles,
-      timestamp: Date.now(),
-      projectPath,
-    } as any)
-  })
+      return sessionManager.saveSession(projectPath, {
+        messages: rendererMessages,
+        backendHistory: historyToSave,
+        pinnedFiles,
+        timestamp: Date.now(),
+        projectPath,
+      } as any)
+    },
+  )
 
   ipcMain.handle(IPC_CHANNELS.agent.listSessions, async (_event, projectPath: string) => {
     return sessionManager.listSessions(projectPath)
@@ -180,16 +191,23 @@ export function registerAgentHandlers(
     return { success: true, info: agent.getInfo() }
   })
 
-  ipcMain.handle(IPC_CHANNELS.agent.setup, async (_event, workspaceId: string, config: { provider?: string; model?: string; advisorModel?: string; apiKey?: string; kodaCloudBaseUrl?: string }) => {
-    const agent = agents.get(workspaceId)
-    if (!agent) return { error: 'Agent not initialized' }
-    try {
-      await agent.updateSettings(config)
-      return { success: true, info: agent.getInfo() }
-    } catch (err: any) {
-      return { success: false, error: err.message }
-    }
-  })
+  ipcMain.handle(
+    IPC_CHANNELS.agent.setup,
+    async (
+      _event,
+      workspaceId: string,
+      config: { provider?: string; model?: string; advisorModel?: string; apiKey?: string; kodaCloudBaseUrl?: string },
+    ) => {
+      const agent = agents.get(workspaceId)
+      if (!agent) return { error: 'Agent not initialized' }
+      try {
+        await agent.updateSettings(config)
+        return { success: true, info: agent.getInfo() }
+      } catch (err: any) {
+        return { success: false, error: err.message }
+      }
+    },
+  )
 
   ipcMain.handle(IPC_CHANNELS.agent.openFile, async (_event, filePath: string, line?: number) => {
     try {
@@ -219,10 +237,13 @@ export function registerAgentHandlers(
     return { success: true }
   })
 
-  ipcMain.handle(IPC_CHANNELS.agent.shellResponse, async (_event, approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => {
-    ShellTool.resolveApproval(approved, alwaysAllowBase, alwaysAllowFull)
-    return { success: true }
-  })
+  ipcMain.handle(
+    IPC_CHANNELS.agent.shellResponse,
+    async (_event, approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => {
+      ShellTool.resolveApproval(approved, alwaysAllowBase, alwaysAllowFull)
+      return { success: true }
+    },
+  )
 
   ipcMain.handle(IPC_CHANNELS.agent.getApprovedCommands, async () => {
     return ShellTool.getApprovedCommands()
@@ -248,7 +269,9 @@ export function registerAgentHandlers(
         const data = await res.json()
         const models = Array.isArray(data?.data)
           ? data.data.map((m: any) => m.id)
-          : Array.isArray(data) ? data.map((m: any) => m.id || m) : []
+          : Array.isArray(data)
+            ? data.map((m: any) => m.id || m)
+            : []
         return { success: true, models }
       }
 
@@ -283,7 +306,15 @@ export function registerAgentHandlers(
           const data = await res.json()
           return { success: true, models: data.data.map((m: any) => m.id) }
         }
-        return { success: true, models: ['claude-3-7-sonnet-20250219', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'] }
+        return {
+          success: true,
+          models: [
+            'claude-3-7-sonnet-20250219',
+            'claude-3-5-sonnet-20241022',
+            'claude-3-5-haiku-20241022',
+            'claude-3-opus-20240229',
+          ],
+        }
       }
 
       if (provider === 'google') {
@@ -385,7 +416,20 @@ export function registerAgentHandlers(
             const data = await res.json()
             if (data.data?.length > 0) return { success: true, models: data.data.map((m: any) => m.id) }
           }
-          return { success: true, models: ['glm-5', 'glm-5-turbo', 'glm-4.7', 'glm-4.6', 'glm-4.5', 'glm-4-plus', 'glm-4-air', 'glm-4-flash', 'glm-4v-plus'] }
+          return {
+            success: true,
+            models: [
+              'glm-5',
+              'glm-5-turbo',
+              'glm-4.7',
+              'glm-4.6',
+              'glm-4.5',
+              'glm-4-plus',
+              'glm-4-air',
+              'glm-4-flash',
+              'glm-4v-plus',
+            ],
+          }
         } catch {
           return { success: true, models: ['glm-5', 'glm-4.7', 'glm-4-air'] }
         }

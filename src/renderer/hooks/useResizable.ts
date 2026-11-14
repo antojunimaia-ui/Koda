@@ -38,11 +38,14 @@ export function useResizable(): UseResizableReturn {
   const startResizing = useCallback(() => setIsResizing(true), [])
   const stopResizing = useCallback(() => setIsResizing(false), [])
 
-  const resize = useCallback((e: MouseEvent) => {
-    if (!isResizing) return
-    const newWidth = (e.clientX / window.innerWidth) * 100
-    if (newWidth > 10 && newWidth < 80) setLeftPanelWidth(newWidth)
-  }, [isResizing])
+  const resize = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing) return
+      const newWidth = (e.clientX / window.innerWidth) * 100
+      if (newWidth > 10 && newWidth < 80) setLeftPanelWidth(newWidth)
+    },
+    [isResizing],
+  )
 
   useEffect(() => {
     if (isResizing) {
@@ -62,11 +65,14 @@ export function useResizable(): UseResizableReturn {
   const startResizingRight = useCallback(() => setIsResizingRight(true), [])
   const stopResizingRight = useCallback(() => setIsResizingRight(false), [])
 
-  const resizeRight = useCallback((e: MouseEvent) => {
-    if (!isResizingRight) return
-    const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100
-    if (newWidth > 10 && newWidth < 80) setRightPanelWidth(newWidth)
-  }, [isResizingRight])
+  const resizeRight = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizingRight) return
+      const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100
+      if (newWidth > 10 && newWidth < 80) setRightPanelWidth(newWidth)
+    },
+    [isResizingRight],
+  )
 
   useEffect(() => {
     if (isResizingRight) {
@@ -86,12 +92,15 @@ export function useResizable(): UseResizableReturn {
   const startResizingHeight = useCallback(() => setIsResizingHeight(true), [])
   const stopResizingHeight = useCallback(() => setIsResizingHeight(false), [])
 
-  const resizeHeight = useCallback((e: MouseEvent) => {
-    if (!isResizingHeight) return
-    const containerHeight = window.innerHeight - 40 // TitleBar ~40px
-    const newHeight = ((e.clientY - 40) / containerHeight) * 100
-    if (newHeight > 10 && newHeight < 90) setBrowserHeight(newHeight)
-  }, [isResizingHeight])
+  const resizeHeight = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizingHeight) return
+      const containerHeight = window.innerHeight - 40 // TitleBar ~40px
+      const newHeight = ((e.clientY - 40) / containerHeight) * 100
+      if (newHeight > 10 && newHeight < 90) setBrowserHeight(newHeight)
+    },
+    [isResizingHeight],
+  )
 
   useEffect(() => {
     if (isResizingHeight) {
@@ -111,11 +120,14 @@ export function useResizable(): UseResizableReturn {
   const startResizingContext = useCallback(() => setIsResizingContext(true), [])
   const stopResizingContext = useCallback(() => setIsResizingContext(false), [])
 
-  const resizeContext = useCallback((e: MouseEvent) => {
-    if (!isResizingContext) return
-    const newWidth = Math.max(180, Math.min(520, window.innerWidth - e.clientX))
-    setContextPanelWidth(newWidth)
-  }, [isResizingContext])
+  const resizeContext = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizingContext) return
+      const newWidth = Math.max(180, Math.min(520, window.innerWidth - e.clientX))
+      setContextPanelWidth(newWidth)
+    },
+    [isResizingContext],
+  )
 
   useEffect(() => {
     if (isResizingContext) {
@@ -135,11 +147,14 @@ export function useResizable(): UseResizableReturn {
   const startResizingExplorer = useCallback(() => setIsResizingExplorer(true), [])
   const stopResizingExplorer = useCallback(() => setIsResizingExplorer(false), [])
 
-  const resizeExplorer = useCallback((e: MouseEvent) => {
-    if (!isResizingExplorer) return
-    const newWidth = Math.max(180, Math.min(520, window.innerWidth - e.clientX))
-    setExplorerWidth(newWidth)
-  }, [isResizingExplorer])
+  const resizeExplorer = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizingExplorer) return
+      const newWidth = Math.max(180, Math.min(520, window.innerWidth - e.clientX))
+      setExplorerWidth(newWidth)
+    },
+    [isResizingExplorer],
+  )
 
   useEffect(() => {
     if (isResizingExplorer) {

@@ -17,16 +17,20 @@ describe('OllamaProvider', () => {
     const create = vi.fn(async function* () {
       yield { choices: [{ delta: { content: 'Hi' }, finish_reason: null }] }
       yield {
-        choices: [{
-          delta: {
-            tool_calls: [{
-              index: 0,
-              id: 'c1',
-              function: { name: 'file_read', arguments: '{"path":"a.txt"}' },
-            }],
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                {
+                  index: 0,
+                  id: 'c1',
+                  function: { name: 'file_read', arguments: '{"path":"a.txt"}' },
+                },
+              ],
+            },
+            finish_reason: null,
           },
-          finish_reason: null,
-        }],
+        ],
       }
       yield { choices: [{ delta: {}, finish_reason: 'tool_calls' }] }
     })
@@ -34,10 +38,10 @@ describe('OllamaProvider', () => {
 
     const chunks = await collect(provider.chat([{ role: 'user', content: 'hi' }], makeRegistry()))
 
-    expect(chunks.find(c => c.type === 'text' && c.content === 'Hi')).toBeTruthy()
-    expect(chunks.find(c => c.type === 'tool_call_start')?.toolCall.name).toBe('file_read')
-    expect(chunks.find(c => c.type === 'tool_call_end')?.toolCall.arguments).toEqual({ path: 'a.txt' })
-    expect(chunks.every(c => c.type !== 'done')).toBe(true)
+    expect(chunks.find((c) => c.type === 'text' && c.content === 'Hi')).toBeTruthy()
+    expect(chunks.find((c) => c.type === 'tool_call_start')?.toolCall.name).toBe('file_read')
+    expect(chunks.find((c) => c.type === 'tool_call_end')?.toolCall.arguments).toEqual({ path: 'a.txt' })
+    expect(chunks.every((c) => c.type !== 'done')).toBe(true)
   })
 
   it('emits done when the model stops', async () => {

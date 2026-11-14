@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import {
-  MessageEntry,
-  AgentInfo,
-  TrackedFile,
-  Question,
-} from '../types/index.js'
+import { MessageEntry, AgentInfo, TrackedFile, Question } from '../types/index.js'
 
 let _nextId = 0
 export const nextId = () => ++_nextId
@@ -16,7 +11,10 @@ interface UseAgentStreamOptions {
   onTrackedFiles: (workspaceId: string, files: TrackedFile[]) => void
   onPendingPlan: (workspaceId: string, plan: string | null) => void
   onPendingQuestions: (workspaceId: string, questions: Question[] | null) => void
-  onPendingShell: (workspaceId: string, shell: { command: string; baseCommand: string; description?: string } | null) => void
+  onPendingShell: (
+    workspaceId: string,
+    shell: { command: string; baseCommand: string; description?: string } | null,
+  ) => void
   onPlanMode: (workspaceId: string, inPlanMode: boolean) => void
   scheduleScroll: (workspaceId: string) => void
   activeWorkspaceId: string | null
@@ -43,29 +41,40 @@ export function useAgentStream({
   const taskStartsRef = useRef<Map<string, number | null>>(new Map())
   // Keep a ref so the IPC listener always sees the latest activeId without re-subscribing
   const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId)
-  useEffect(() => { activeWorkspaceIdRef.current = activeWorkspaceId }, [activeWorkspaceId])
+  useEffect(() => {
+    activeWorkspaceIdRef.current = activeWorkspaceId
+  }, [activeWorkspaceId])
 
-  const flushStreaming = useCallback((workspaceId: string) => {
-    rafRefs.current.set(workspaceId, null)
-    const chunk = chunkBuffersRef.current.get(workspaceId)
-    if (!chunk) return
-    chunkBuffersRef.current.set(workspaceId, '')
+  const flushStreaming = useCallback(
+    (workspaceId: string) => {
+      rafRefs.current.set(workspaceId, null)
+      const chunk = chunkBuffersRef.current.get(workspaceId)
+      if (!chunk) return
+      chunkBuffersRef.current.set(workspaceId, '')
 
-    onUpdate(workspaceId, (prev: MessageEntry[]) => {
-      const updated = [...prev]
-      const last = updated[updated.length - 1]
-      if (last && last.type === 'assistant' && !last.done) {
-        updated[updated.length - 1] = { ...last, text: (last.text || '') + chunk }
-        return updated
-      }
-      return [...updated, { id: nextId(), type: 'assistant', text: chunk, done: false }]
-    })
-  }, [onUpdate])
+      onUpdate(workspaceId, (prev: MessageEntry[]) => {
+        const updated = [...prev]
+        const last = updated[updated.length - 1]
+        if (last && last.type === 'assistant' && !last.done) {
+          updated[updated.length - 1] = { ...last, text: (last.text || '') + chunk }
+          return updated
+        }
+        return [...updated, { id: nextId(), type: 'assistant', text: chunk, done: false }]
+      })
+    },
+    [onUpdate],
+  )
 
-  const scheduleFlush = useCallback((workspaceId: string) => {
-    if (rafRefs.current.get(workspaceId)) return
-    rafRefs.current.set(workspaceId, requestAnimationFrame(() => flushStreaming(workspaceId)))
-  }, [flushStreaming])
+  const scheduleFlush = useCallback(
+    (workspaceId: string) => {
+      if (rafRefs.current.get(workspaceId)) return
+      rafRefs.current.set(
+        workspaceId,
+        requestAnimationFrame(() => flushStreaming(workspaceId)),
+      )
+    },
+    [flushStreaming],
+  )
 
   useEffect(() => {
     if (!window.koda) return
@@ -76,19 +85,21 @@ export function useAgentStream({
       // Fall back to the currently active workspace.
       const workspaceId: string = rawWsId ?? activeWorkspaceIdRef.current ?? ''
       if (!workspaceId) return
-      
+
       if (update.type === 'text') {
         const current = chunkBuffersRef.current.get(workspaceId) || ''
         chunkBuffersRef.current.set(workspaceId, current + update.content)
         scheduleFlush(workspaceId)
-
       } else if (update.type === 'tool_start') {
         const chunk = chunkBuffersRef.current.get(workspaceId) || ''
         chunkBuffersRef.current.set(workspaceId, '')
         const raf = rafRefs.current.get(workspaceId)
-        if (raf) { cancelAnimationFrame(raf); rafRefs.current.set(workspaceId, null) }
+        if (raf) {
+          cancelAnimationFrame(raf)
+          rafRefs.current.set(workspaceId, null)
+        }
 
-        onUpdate(workspaceId, prev => {
+        onUpdate(workspaceId, (prev) => {
           const updated = [...prev]
           const last = updated[updated.length - 1]
           let finalized = updated
@@ -104,88 +115,110 @@ export function useAgentStream({
               updated[updated.length - 1] = { ...last, done: true }
             }
           }
-          return [...finalized, { id: nextId(), type: 'tool', tool: { name: update.name, args: update.args, status: 'running' as const, success: false } }]
+          return [
+            ...finalized,
+            {
+              id: nextId(),
+              type: 'tool',
+              tool: { name: update.name, args: update.args, status: 'running' as const, success: false },
+            },
+          ]
         })
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'tool_progress') {
-        onUpdate(workspaceId, prev =>
-          prev.map(m =>
-            m.type === 'tool' && m.tool && m.tool.name === update.toolName && (m.tool.status === 'running' || m.tool.status === 'writing')
-              ? { 
-                  ...m, 
-                  tool: { 
-                    ...m.tool, 
+        onUpdate(workspaceId, (prev) =>
+          prev.map((m) =>
+            m.type === 'tool' &&
+            m.tool &&
+            m.tool.name === update.toolName &&
+            (m.tool.status === 'running' || m.tool.status === 'writing')
+              ? {
+                  ...m,
+                  tool: {
+                    ...m.tool,
                     status: 'writing' as const,
                     args: { ...(m.tool.args || {}), ...(update.args || {}) },
                     isNew: update.isNew ?? m.tool.isNew,
-                    output: (m.tool.output || '') + (update.content || '')
-                  } 
+                    output: (m.tool.output || '') + (update.content || ''),
+                  },
                 }
-              : m
-          )
+              : m,
+          ),
         )
-
       } else if (update.type === 'tool_end') {
         // Clear shell approval panel when the shell tool resolves
         if (update.name === 'shell') {
           onPendingShell(workspaceId, null)
         }
-        const applyEnd = () => onUpdate(workspaceId, prev =>
-          prev.map(m =>
-            m.type === 'tool' && m.tool && m.tool.name === update.name && (m.tool.status === 'running' || m.tool.status === 'writing' || m.tool.status === 'awaiting_approval')
-              ? { ...m, tool: { ...m.tool, status: 'done' as const, success: update.success, output: update.result, args: update.args || m.tool.args } }
-              : m
+        const applyEnd = () =>
+          onUpdate(workspaceId, (prev) =>
+            prev.map((m) =>
+              m.type === 'tool' &&
+              m.tool &&
+              m.tool.name === update.name &&
+              (m.tool.status === 'running' || m.tool.status === 'writing' || m.tool.status === 'awaiting_approval')
+                ? {
+                    ...m,
+                    tool: {
+                      ...m.tool,
+                      status: 'done' as const,
+                      success: update.success,
+                      output: update.result,
+                      args: update.args || m.tool.args,
+                    },
+                  }
+                : m,
+            ),
           )
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            applyEnd()
+            scheduleScroll(workspaceId)
+          }),
         )
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          applyEnd()
-          scheduleScroll(workspaceId)
-        }))
-
       } else if (update.type === 'error') {
         chunkBuffersRef.current.set(workspaceId, '')
-        onUpdate(workspaceId, prev => [...prev, { id: nextId(), type: 'error', text: update.message }])
+        onUpdate(workspaceId, (prev) => [...prev, { id: nextId(), type: 'error', text: update.message }])
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'pty_output') {
-        onUpdate(workspaceId, prev => {
+        onUpdate(workspaceId, (prev) => {
           const updated = [...prev]
-          const ptyIndex = updated.map(m => m.type === 'pty' ? m.pty?.pid : null).lastIndexOf(update.pid)
+          const ptyIndex = updated.map((m) => (m.type === 'pty' ? m.pty?.pid : null)).lastIndexOf(update.pid)
           if (ptyIndex !== -1) {
             updated[ptyIndex] = {
               ...updated[ptyIndex],
-              pty: { ...updated[ptyIndex].pty!, output: updated[ptyIndex].pty!.output + update.data }
+              pty: { ...updated[ptyIndex].pty!, output: updated[ptyIndex].pty!.output + update.data },
             }
             return updated
           }
           return [...updated, { id: nextId(), type: 'pty', pty: { pid: update.pid, output: update.data } }]
         })
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'pty_exit') {
-        onUpdate(workspaceId, prev => prev.map(m =>
-          m.type === 'pty' && m.pty?.pid === update.pid
-            ? { ...m, pty: { ...m.pty!, exited: true } }
-            : m
-        ))
-
+        onUpdate(workspaceId, (prev) =>
+          prev.map((m) =>
+            m.type === 'pty' && m.pty?.pid === update.pid ? { ...m, pty: { ...m.pty!, exited: true } } : m,
+          ),
+        )
       } else if (update.type === 'plan_mode_entered') {
         onPlanMode(workspaceId, true)
-        onUpdate(workspaceId, prev => [...prev, { id: nextId(), type: 'system', text: '📋 Koda exited Plan Mode — all changes approved and history updated.' }])
+        onUpdate(workspaceId, (prev) => [
+          ...prev,
+          {
+            id: nextId(),
+            type: 'system',
+            text: '📋 Koda exited Plan Mode — all changes approved and history updated.',
+          },
+        ])
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'info_updated') {
         onAgentInfo(workspaceId, update.info)
-
       } else if (update.type === 'plan_approval_requested') {
         onPendingPlan(workspaceId, update.plan)
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'questions_requested') {
         onPendingQuestions(workspaceId, update.questions)
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'shell_awaiting_approval') {
         // Show the inline approval panel above the input
         onPendingShell(workspaceId, {
@@ -194,9 +227,11 @@ export function useAgentStream({
           description: update.description,
         })
         // Also update the tool message status in the chat
-        onUpdate(workspaceId, prev => {
+        onUpdate(workspaceId, (prev) => {
           const updated = [...prev]
-          const lastToolIdx = updated.map(m => m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null).lastIndexOf('shell')
+          const lastToolIdx = updated
+            .map((m) => (m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null))
+            .lastIndexOf('shell')
           if (lastToolIdx !== -1) {
             updated[lastToolIdx] = {
               ...updated[lastToolIdx],
@@ -204,36 +239,34 @@ export function useAgentStream({
                 ...updated[lastToolIdx].tool!,
                 status: 'awaiting_approval',
                 command: update.command,
-                baseCommand: update.baseCommand
-              }
+                baseCommand: update.baseCommand,
+              },
             }
           }
           return updated
         })
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'plan_mode_exited') {
         onPlanMode(workspaceId, false)
         onPendingPlan(workspaceId, null)
         const msg = update.approved
           ? '✅ Plan approved! Koda will start implementation now.'
           : '❌ Plan rejected. Koda will refine the approach.'
-        onUpdate(workspaceId, prev => [...prev, { id: nextId(), type: 'system', text: msg }])
+        onUpdate(workspaceId, (prev) => [...prev, { id: nextId(), type: 'system', text: msg }])
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'files_tracked') {
         onTrackedFiles(workspaceId, update.files)
-
       } else if (update.type === 'pty_spawned') {
-        onUpdate(workspaceId, prev => {
+        onUpdate(workspaceId, (prev) => {
           const updated = [...prev]
-          const index = updated.map(m => m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null).lastIndexOf(update.name)
+          const index = updated
+            .map((m) => (m.type === 'tool' && m.tool?.status === 'running' ? m.tool.name : null))
+            .lastIndexOf(update.name)
           if (index !== -1) {
             updated[index] = { ...updated[index], tool: { ...updated[index].tool!, pid: update.pid } }
           }
           return updated
         })
-
       } else if (update.type === 'done') {
         onProcessing(workspaceId, false)
         const start = taskStartsRef.current.get(workspaceId)
@@ -242,28 +275,43 @@ export function useAgentStream({
         if (elapsed > 3000 && !document.hasFocus() && Notification.permission === 'granted') {
           new Notification('Koda', { body: 'Task completed ✔', icon: '/icon.png', silent: true })
         }
-
       } else if (update.type === 'remote_task') {
-        onUpdate(workspaceId, prev => [...prev, {
-          id: update.messageId,
-          type: 'user' as const,
-          text: update.message,
-          remote: true,
-        }])
+        onUpdate(workspaceId, (prev) => [
+          ...prev,
+          {
+            id: update.messageId,
+            type: 'user' as const,
+            text: update.message,
+            remote: true,
+          },
+        ])
         onProcessing(workspaceId, true)
         taskStartsRef.current.set(workspaceId, Date.now())
         scheduleScroll(workspaceId)
-
       } else if (update.type === 'remote_reset') {
-        onUpdate(workspaceId, prev => [...prev, { id: nextId(), type: 'system', text: '🌐 Remote: conversation reset.' }])
+        onUpdate(workspaceId, (prev) => [
+          ...prev,
+          { id: nextId(), type: 'system', text: '🌐 Remote: conversation reset.' },
+        ])
       }
     })
 
     return () => {
       window.koda.removeUpdateListener()
-      rafRefs.current.forEach(raf => raf && cancelAnimationFrame(raf))
+      rafRefs.current.forEach((raf) => raf && cancelAnimationFrame(raf))
     }
-  }, [scheduleFlush, scheduleScroll, onAgentInfo, onPlanMode, onProcessing, onUpdate, onPendingPlan, onPendingQuestions, onPendingShell, onTrackedFiles])
+  }, [
+    scheduleFlush,
+    scheduleScroll,
+    onAgentInfo,
+    onPlanMode,
+    onProcessing,
+    onUpdate,
+    onPendingPlan,
+    onPendingQuestions,
+    onPendingShell,
+    onTrackedFiles,
+  ])
 
   return { chunkBuffersRef, rafRefs, taskStartsRef, scheduleFlush }
 }

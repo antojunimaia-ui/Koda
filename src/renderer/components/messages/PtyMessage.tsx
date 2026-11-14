@@ -4,7 +4,7 @@ import ansi from '../../utils/ansi.js'
 
 type PtyEntry = MessageEntry['pty']
 
-const PtyMessage = memo(({ pty, settings }: { pty: PtyEntry, settings: KodaSettings }) => {
+const PtyMessage = memo(({ pty, settings }: { pty: PtyEntry; settings: KodaSettings }) => {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [sending, setSending] = useState(false)
 

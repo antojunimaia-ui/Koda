@@ -26,24 +26,27 @@ const AssistantMessage = memo(({ text, done, uiMode = 'classic' }: AssistantMess
       const codeText = copyBtn.getAttribute('data-code')
       if (codeText) {
         const decoded = decodeURIComponent(codeText)
-        navigator.clipboard.writeText(decoded).then(() => {
-          const textSpan = copyBtn.querySelector('span')
-          const iconEl = copyBtn.querySelector('.codicon')
-          if (textSpan) {
-            textSpan.textContent = 'Copied!'
-            if (iconEl) {
-              iconEl.className = 'codicon codicon-check text-emerald-400 pointer-events-none'
-            }
-            setTimeout(() => {
-              textSpan.textContent = 'Copy'
+        navigator.clipboard
+          .writeText(decoded)
+          .then(() => {
+            const textSpan = copyBtn.querySelector('span')
+            const iconEl = copyBtn.querySelector('.codicon')
+            if (textSpan) {
+              textSpan.textContent = 'Copied!'
               if (iconEl) {
-                iconEl.className = 'codicon codicon-copy text-[10px] pointer-events-none'
+                iconEl.className = 'codicon codicon-check text-emerald-400 pointer-events-none'
               }
-            }, 2000)
-          }
-        }).catch(err => {
-          console.error('Failed to copy text: ', err)
-        })
+              setTimeout(() => {
+                textSpan.textContent = 'Copy'
+                if (iconEl) {
+                  iconEl.className = 'codicon codicon-copy text-[10px] pointer-events-none'
+                }
+              }, 2000)
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to copy text: ', err)
+          })
       }
     }
   }
@@ -55,30 +58,30 @@ const AssistantMessage = memo(({ text, done, uiMode = 'classic' }: AssistantMess
         <div className="flex-shrink-0">
           {!done ? (
             // Loading animation quando está processando
-            <video 
-              src="/Loading.webm" 
-              autoPlay 
-              loop 
-              muted 
+            <video
+              src="/Loading.webm"
+              autoPlay
+              loop
+              muted
               className="w-7 h-7 object-contain border-0 outline-0"
               style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
             />
           ) : (
             // Ícone estático do Koda quando terminou
-            <img 
-              src="/icon.png" 
-              alt="Koda" 
+            <img
+              src="/icon.png"
+              alt="Koda"
               className="w-7 h-7 object-contain border-0 outline-0"
               style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
             />
           )}
         </div>
         {uiMode === 'classic' && (
-          <span className="font-bold opacity-60 text-sm" style={{ color: 'var(--koda-accent)' }}>Koda</span>
+          <span className="font-bold opacity-60 text-sm" style={{ color: 'var(--koda-accent)' }}>
+            Koda
+          </span>
         )}
-        {uiMode === 'modern' && (
-          <span className="font-bold text-slate-300 text-sm">Koda</span>
-        )}
+        {uiMode === 'modern' && <span className="font-bold text-slate-300 text-sm">Koda</span>}
       </div>
 
       {/* Message Content */}

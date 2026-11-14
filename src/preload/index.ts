@@ -6,8 +6,10 @@ const api: KodaApi = {
   openIDE: () => ipcRenderer.invoke(IPC_CHANNELS.window.openIDE),
   openAgent: () => ipcRenderer.invoke(IPC_CHANNELS.window.openAgent),
   openADE: () => ipcRenderer.invoke(IPC_CHANNELS.window.openADE),
-  sendMessage: (workspaceId: string, messageId: number, message: string, images?: unknown[]) => ipcRenderer.invoke(IPC_CHANNELS.agent.message, workspaceId, messageId, message, images),
-  snapshotRestore: (workspaceId: string, messageId: number) => ipcRenderer.invoke(IPC_CHANNELS.agent.snapshotRestore, workspaceId, messageId),
+  sendMessage: (workspaceId: string, messageId: number, message: string, images?: unknown[]) =>
+    ipcRenderer.invoke(IPC_CHANNELS.agent.message, workspaceId, messageId, message, images),
+  snapshotRestore: (workspaceId: string, messageId: number) =>
+    ipcRenderer.invoke(IPC_CHANNELS.agent.snapshotRestore, workspaceId, messageId),
   reset: (workspaceId: string) => ipcRenderer.invoke(IPC_CHANNELS.agent.reset, workspaceId),
   softReset: (workspaceId: string) => ipcRenderer.invoke(IPC_CHANNELS.agent.softReset, workspaceId),
   getTokens: (workspaceId: string) => ipcRenderer.invoke(IPC_CHANNELS.agent.tokens, workspaceId),
@@ -19,7 +21,8 @@ const api: KodaApi = {
   setup: (workspaceId: string, config) => ipcRenderer.invoke(IPC_CHANNELS.agent.setup, workspaceId, config),
   // O renderer chama openFile(workspaceId, filePath, line?) — o workspaceId é descartado
   // aqui, pois o handler `agent:open_file` espera (filePath, line?).
-  openFile: (workspaceId: string, filePath: string, line?: number) => ipcRenderer.invoke(IPC_CHANNELS.agent.openFile, filePath, line),
+  openFile: (workspaceId: string, filePath: string, line?: number) =>
+    ipcRenderer.invoke(IPC_CHANNELS.agent.openFile, filePath, line),
   onUpdate: (callback) => {
     const listener = (_event: unknown, update: Record<string, unknown>) => callback(update)
     ipcRenderer.on(IPC_CHANNELS.agent.update, listener)
@@ -35,7 +38,8 @@ const api: KodaApi = {
   },
   planResponse: (approved: boolean) => ipcRenderer.invoke(IPC_CHANNELS.agent.planResponse, approved),
   questionsResponse: (answers: unknown[]) => ipcRenderer.invoke(IPC_CHANNELS.agent.questionsResponse, answers),
-  shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => ipcRenderer.invoke(IPC_CHANNELS.agent.shellResponse, approved, alwaysAllowBase, alwaysAllowFull),
+  shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) =>
+    ipcRenderer.invoke(IPC_CHANNELS.agent.shellResponse, approved, alwaysAllowBase, alwaysAllowFull),
   getApprovedCommands: () => ipcRenderer.invoke(IPC_CHANNELS.agent.getApprovedCommands),
   updateApprovedCommands: (lists) => ipcRenderer.invoke(IPC_CHANNELS.agent.updateApprovedCommands, lists),
   getSlashCommands: () => ipcRenderer.invoke(IPC_CHANNELS.agent.getSlashCommands),
@@ -48,20 +52,24 @@ const api: KodaApi = {
   listDirLazy: (dirPath?: string) => ipcRenderer.invoke(IPC_CHANNELS.project.listDirLazy, dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.project.readFile, filePath),
   readFileBase64: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.project.readFileBase64, filePath),
-  writeFile: (filePath: string, content: string) => ipcRenderer.invoke(IPC_CHANNELS.project.writeFile, filePath, content),
+  writeFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.project.writeFile, filePath, content),
   deleteFile: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.project.deleteFile, filePath),
-  renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke(IPC_CHANNELS.project.renameFile, oldPath, newPath),
+  renameFile: (oldPath: string, newPath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.project.renameFile, oldPath, newPath),
   createFolder: (folderPath: string) => ipcRenderer.invoke(IPC_CHANNELS.project.createFolder, folderPath),
   getMcpConfigs: () => ipcRenderer.invoke(IPC_CHANNELS.mcp.getConfigs),
   saveMcpConfigs: (configs: unknown[]) => ipcRenderer.invoke(IPC_CHANNELS.mcp.saveConfigs, configs),
   getProjectSession: (projectPath: string) => ipcRenderer.invoke(IPC_CHANNELS.agent.getSession, projectPath),
-  saveProjectSession: (workspaceId: string, projectPath: string, data: unknown) => ipcRenderer.invoke(IPC_CHANNELS.agent.saveSession, workspaceId, projectPath, data),
+  saveProjectSession: (workspaceId: string, projectPath: string, data: unknown) =>
+    ipcRenderer.invoke(IPC_CHANNELS.agent.saveSession, workspaceId, projectPath, data),
   listProjectSessions: (projectPath: string) => ipcRenderer.invoke(IPC_CHANNELS.agent.listSessions, projectPath),
   getSessionById: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.agent.getSessionById, sessionId),
   deleteSession: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.agent.deleteSession, sessionId),
   listSkills: () => ipcRenderer.invoke(IPC_CHANNELS.skills.list),
   marketplaceFetch: () => ipcRenderer.invoke(IPC_CHANNELS.marketplace.fetch),
-  marketplaceInstall: (skillName: string, version?: string) => ipcRenderer.invoke(IPC_CHANNELS.marketplace.install, skillName, version),
+  marketplaceInstall: (skillName: string, version?: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.marketplace.install, skillName, version),
   marketplaceUninstall: (skillName: string) => ipcRenderer.invoke(IPC_CHANNELS.marketplace.uninstall, skillName),
   koClawStart: (config) => ipcRenderer.invoke(IPC_CHANNELS.koclaw.start, config),
   koClawStop: () => ipcRenderer.invoke(IPC_CHANNELS.koclaw.stop),
@@ -99,7 +107,7 @@ const api: KodaApi = {
       ipcRenderer.removeListener(IPC_CHANNELS.updater.updateAvailable, available)
       ipcRenderer.removeListener(IPC_CHANNELS.updater.updateDownloaded, downloaded)
     }
-  }
+  },
 }
 
 contextBridge.exposeInMainWorld('koda', api)

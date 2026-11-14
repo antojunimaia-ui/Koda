@@ -22,9 +22,12 @@ const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'imag
 export function useDragDrop({ setInput, setPendingImages }: UseDragDropOptions): UseDragDropReturn {
   const [isDragging, setIsDragging] = useState(false)
 
-  const handleInjectFile = useCallback((path: string) => {
-    setInput(prev => prev + ` @[${path}] `)
-  }, [setInput])
+  const handleInjectFile = useCallback(
+    (path: string) => {
+      setInput((prev) => prev + ` @[${path}] `)
+    },
+    [setInput],
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -36,38 +39,41 @@ export function useDragDrop({ setInput, setPendingImages }: UseDragDropOptions):
     setIsDragging(false)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragging(false)
 
-    const dropped = Array.from(e.dataTransfer.files)
-    dropped.forEach(file => {
-      if (IMAGE_TYPES.includes(file.type)) {
-        const reader = new FileReader()
-        reader.onload = () => {
-          setPendingImages(prev => [
-            ...prev,
-            { 
-              dataUrl: reader.result as string, 
-              mimeType: file.type, 
-              name: file.name,
-              isImage: true
-            }
-          ])
+      const dropped = Array.from(e.dataTransfer.files)
+      dropped.forEach((file) => {
+        if (IMAGE_TYPES.includes(file.type)) {
+          const reader = new FileReader()
+          reader.onload = () => {
+            setPendingImages((prev) => [
+              ...prev,
+              {
+                dataUrl: reader.result as string,
+                mimeType: file.type,
+                name: file.name,
+                isImage: true,
+              },
+            ])
+          }
+          reader.readAsDataURL(file)
+        } else {
+          // Non-image: inject @[path] mention using Electron's file.path
+          const filePath = (file as unknown as { path: string }).path
+          if (filePath) handleInjectFile(filePath)
         }
-        reader.readAsDataURL(file)
-      } else {
-        // Non-image: inject @[path] mention using Electron's file.path
-        const filePath = (file as unknown as { path: string }).path
-        if (filePath) handleInjectFile(filePath)
-      }
-    })
+      })
 
-    setTimeout(() => {
-      const inputEl = document.querySelector('textarea')
-      inputEl?.focus()
-    }, 0)
-  }, [handleInjectFile, setPendingImages])
+      setTimeout(() => {
+        const inputEl = document.querySelector('textarea')
+        inputEl?.focus()
+      }, 0)
+    },
+    [handleInjectFile, setPendingImages],
+  )
 
   return { isDragging, handleDragOver, handleDragLeave, handleDrop }
 }

@@ -29,31 +29,27 @@ describe('runHyperEdit (validação e parsing)', () => {
 
   it('rejeita arquivo inexistente', async () => {
     writeFile('a.ts', 'export const a = 1;\n')
-    await expect(
-      runHyperEdit('refactor --files a.ts missing.ts', tmp, noop),
-    ).rejects.toThrow('Arquivo não encontrado: missing.ts')
+    await expect(runHyperEdit('refactor --files a.ts missing.ts', tmp, noop)).rejects.toThrow(
+      'Arquivo não encontrado: missing.ts',
+    )
   })
 
   it('rejeita arquivos fora do workspace', async () => {
     writeFile('a.ts', 'x')
-    await expect(
-      runHyperEdit('task --files ../evil.ts', tmp, noop),
-    ).rejects.toThrow('Arquivo fora do workspace')
+    await expect(runHyperEdit('task --files ../evil.ts', tmp, noop)).rejects.toThrow('Arquivo fora do workspace')
   })
 
   it('rejeita plano vazio do coordenador', async () => {
     writeFile('a.ts', 'x')
     const coordinator = async () => ({ agents: [{ files: [], prompt: 'task' }] })
-    await expect(
-      runHyperEdit('task --files a.ts', tmp, noop, coordinator),
-    ).rejects.toThrow(/coordenador não selecionou arquivos/)
+    await expect(runHyperEdit('task --files a.ts', tmp, noop, coordinator)).rejects.toThrow(
+      /coordenador não selecionou arquivos/,
+    )
   })
 
   it('rejeita quando nenhum arquivo é editável', async () => {
     writeFile('a.ts', 'x')
     const coordinator = async () => ({ agents: [{ files: ['nope.ts'], prompt: 'task' }] })
-    await expect(
-      runHyperEdit('task', tmp, noop, coordinator),
-    ).rejects.toThrow('Arquivo não encontrado: nope.ts')
+    await expect(runHyperEdit('task', tmp, noop, coordinator)).rejects.toThrow('Arquivo não encontrado: nope.ts')
   })
 })

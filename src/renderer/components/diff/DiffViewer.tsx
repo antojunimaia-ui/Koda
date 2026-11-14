@@ -26,14 +26,20 @@ const DiffViewer = memo(({ output }: { output: string }) => {
 
                 if (line.type === 'ctx') {
                   rows.push(
-                    <div key={`ctx-l-${i}`} className="px-2 py-0.5 bg-transparent text-slate-500 border-r border-slate-700/30 flex gap-2 min-h-[1.4em]">
+                    <div
+                      key={`ctx-l-${i}`}
+                      className="px-2 py-0.5 bg-transparent text-slate-500 border-r border-slate-700/30 flex gap-2 min-h-[1.4em]"
+                    >
                       <span className="text-slate-600 select-none w-6 text-right flex-shrink-0">{line.oldNum}</span>
                       <span className="whitespace-pre-wrap break-all">{line.content || ' '}</span>
                     </div>,
-                    <div key={`ctx-r-${i}`} className="px-2 py-0.5 bg-transparent text-slate-500 flex gap-2 min-h-[1.4em]">
+                    <div
+                      key={`ctx-r-${i}`}
+                      className="px-2 py-0.5 bg-transparent text-slate-500 flex gap-2 min-h-[1.4em]"
+                    >
                       <span className="text-slate-600 select-none w-6 text-right flex-shrink-0">{line.newNum}</span>
                       <span className="whitespace-pre-wrap break-all">{line.content || ' '}</span>
-                    </div>
+                    </div>,
                   )
                   i++
                 } else if (line.type === 'del') {
@@ -49,24 +55,37 @@ const DiffViewer = memo(({ output }: { output: string }) => {
                     const d = delBlock[j]
                     const a = addBlock[j]
                     rows.push(
-                      <div key={`del-${i}-${j}`} className={`px-2 py-0.5 flex gap-2 min-h-[1.4em] border-r border-slate-700/30 ${d ? 'bg-rose-950/40 text-rose-300' : 'bg-transparent'}`}>
-                        <span className="text-rose-600/60 select-none w-6 text-right flex-shrink-0">{d?.oldNum ?? ''}</span>
-                        <span className="whitespace-pre-wrap break-all">{d ? (d.content || ' ') : ''}</span>
+                      <div
+                        key={`del-${i}-${j}`}
+                        className={`px-2 py-0.5 flex gap-2 min-h-[1.4em] border-r border-slate-700/30 ${d ? 'bg-rose-950/40 text-rose-300' : 'bg-transparent'}`}
+                      >
+                        <span className="text-rose-600/60 select-none w-6 text-right flex-shrink-0">
+                          {d?.oldNum ?? ''}
+                        </span>
+                        <span className="whitespace-pre-wrap break-all">{d ? d.content || ' ' : ''}</span>
                       </div>,
-                      <div key={`add-${i}-${j}`} className={`px-2 py-0.5 flex gap-2 min-h-[1.4em] ${a ? 'bg-cyan-950/40 text-cyan-300' : 'bg-transparent'}`}>
-                        <span className="text-cyan-600/60 select-none w-6 text-right flex-shrink-0">{a?.newNum ?? ''}</span>
-                        <span className="whitespace-pre-wrap break-all">{a ? (a.content || ' ') : ''}</span>
-                      </div>
+                      <div
+                        key={`add-${i}-${j}`}
+                        className={`px-2 py-0.5 flex gap-2 min-h-[1.4em] ${a ? 'bg-cyan-950/40 text-cyan-300' : 'bg-transparent'}`}
+                      >
+                        <span className="text-cyan-600/60 select-none w-6 text-right flex-shrink-0">
+                          {a?.newNum ?? ''}
+                        </span>
+                        <span className="whitespace-pre-wrap break-all">{a ? a.content || ' ' : ''}</span>
+                      </div>,
                     )
                   }
                 } else if (line.type === 'add') {
                   // Orphan add (no preceding del)
                   rows.push(
-                    <div key={`emp-${i}`} className="px-2 py-0.5 bg-transparent border-r border-slate-700/30 min-h-[1.4em]" />,
+                    <div
+                      key={`emp-${i}`}
+                      className="px-2 py-0.5 bg-transparent border-r border-slate-700/30 min-h-[1.4em]"
+                    />,
                     <div key={`add-${i}`} className="px-2 py-0.5 bg-cyan-950/40 text-cyan-300 flex gap-2 min-h-[1.4em]">
                       <span className="text-cyan-600/60 select-none w-6 text-right flex-shrink-0">{line.newNum}</span>
                       <span className="whitespace-pre-wrap break-all">{line.content || ' '}</span>
-                    </div>
+                    </div>,
                   )
                   i++
                 } else {

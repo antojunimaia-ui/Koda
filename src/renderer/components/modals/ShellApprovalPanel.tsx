@@ -32,22 +32,28 @@ const ShellApprovalPanel = memo(({ command, baseCommand, variant = 'modern' }: S
   }, [showDropdown])
 
   return (
-    <div className={`w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl shadow-lg overflow-visible
+    <div
+      className={`w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl shadow-lg overflow-visible
       ${variant === 'modern' ? 'rounded-2xl rounded-b-none border-b-0' : 'rounded-xl rounded-b-none border-b-0'}
-    `}>
+    `}
+    >
       <div className="px-4 py-3 flex items-center gap-3">
-
         {/* Left: command */}
         <div
           className="flex-1 min-w-0 bg-neutral-950/60 border border-neutral-700/40 rounded-xl px-3 py-2 cursor-pointer"
-          onClick={() => setExpanded(e => !e)}
+          onClick={() => setExpanded((e) => !e)}
           title={command}
         >
           <div className="flex items-center gap-2">
             <span className="text-amber-400 font-mono text-[11px] flex-shrink-0">$</span>
             <span className="text-slate-200 font-mono text-[11px] truncate">{command}</span>
             {command.length > 60 && (
-              <svg className={`w-3 h-3 text-slate-500 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className={`w-3 h-3 text-slate-500 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
               </svg>
             )}
@@ -61,7 +67,6 @@ const ShellApprovalPanel = memo(({ command, baseCommand, variant = 'modern' }: S
 
         {/* Right: Deny + Accept (with dropdown) */}
         <div className="flex items-center gap-2 flex-shrink-0">
-
           {/* Deny */}
           <button
             onClick={() => window.koda.shellResponse(false, false, false)}
@@ -79,10 +84,15 @@ const ShellApprovalPanel = memo(({ command, baseCommand, variant = 'modern' }: S
               Accept
             </button>
             <button
-              onClick={() => setShowDropdown(d => !d)}
+              onClick={() => setShowDropdown((d) => !d)}
               className={`px-2 flex items-center justify-center transition-colors rounded-r-[5px] ${showDropdown ? 'bg-emerald-500/40 text-white' : 'bg-emerald-700/40 hover:bg-emerald-700/60 text-emerald-400 border-l border-emerald-500/30'}`}
             >
-              <svg className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -122,7 +132,10 @@ const ShellApprovalPanel = memo(({ command, baseCommand, variant = 'modern' }: S
                 </button>
 
                 <button
-                  onClick={() => { window.koda.shellResponse(true, false, false); setShowDropdown(false) }}
+                  onClick={() => {
+                    window.koda.shellResponse(true, false, false)
+                    setShowDropdown(false)
+                  }}
                   className="w-full px-4 py-2.5 text-left hover:bg-slate-700/50 transition-colors"
                 >
                   <span className="text-slate-300 font-bold text-[11px] flex items-center gap-1.5">
@@ -132,7 +145,6 @@ const ShellApprovalPanel = memo(({ command, baseCommand, variant = 'modern' }: S
               </div>
             )}
           </div>
-
         </div>
       </div>
     </div>

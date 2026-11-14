@@ -1,79 +1,74 @@
-import { readFile, writeFile } from "fs/promises";
-import { resolve } from "path";
-import { existsSync } from "fs";
-import { BaseTool, ToolParameter, ToolResult } from "./base.js";
-import { applyStringEdit, generateDiff } from "../utils/diff.js";
-import { checkKodaIgnore } from "../utils/kodaignore.js";
+import { readFile, writeFile } from 'fs/promises'
+import { resolve } from 'path'
+import { existsSync } from 'fs'
+import { BaseTool, ToolParameter, ToolResult } from './base.js'
+import { applyStringEdit, generateDiff } from '../utils/diff.js'
+import { checkKodaIgnore } from '../utils/kodaignore.js'
 
 export class FileEditTool extends BaseTool {
-  name = "file_edit";
+  name = 'file_edit'
   description =
-    "Edit a file by replacing a specific string with new content. The target string must be an exact match of existing content in the file.";
+    'Edit a file by replacing a specific string with new content. The target string must be an exact match of existing content in the file.'
   parameters: ToolParameter[] = [
     {
-      name: "path",
-      type: "string",
-      description: "Absolute or relative path to the file to edit",
+      name: 'path',
+      type: 'string',
+      description: 'Absolute or relative path to the file to edit',
       required: true,
     },
     {
-      name: "target",
-      type: "string",
-      description:
-        "The exact string to find and replace. Must match existing content exactly, including whitespace.",
+      name: 'target',
+      type: 'string',
+      description: 'The exact string to find and replace. Must match existing content exactly, including whitespace.',
       required: true,
     },
     {
-      name: "replacement",
-      type: "string",
-      description: "The new content to replace the target with",
+      name: 'replacement',
+      type: 'string',
+      description: 'The new content to replace the target with',
       required: true,
     },
-  ];
+  ]
 
   async execute(args: Record<string, unknown>): Promise<ToolResult> {
-    const error = this.validateArgs(args);
-    if (error) return this.failure(error);
+    const error = this.validateArgs(args)
+    if (error) return this.failure(error)
 
-    const filePath = resolve((args.__cwd as string) ?? process.cwd(), args.path as string);
-    const target = args.target as string;
-    const replacement = args.replacement as string;
+    const filePath = resolve((args.__cwd as string) ?? process.cwd(), args.path as string)
+    const target = args.target as string
+    const replacement = args.replacement as string
 
-    const blocked = checkKodaIgnore(args.path as string);
-    if (blocked) return this.failure(blocked);
+    const blocked = checkKodaIgnore(args.path as string)
+    if (blocked) return this.failure(blocked)
 
     if (!existsSync(filePath)) {
-      return this.failure(`File not found: ${filePath}`);
+      return this.failure(`File not found: ${filePath}`)
     }
 
     try {
-      const oldContent = await readFile(filePath, "utf-8");
-      const { success, result, matchCount } = applyStringEdit(
-        oldContent,
-        target,
-        replacement
-      );
+      const oldContent = await readFile(filePath, 'utf-8')
+      const { success, result, matchCount } = applyStringEdit(oldContent, target, replacement)
 
       if (!success) {
         return this.failure(
-          `Target string not found in ${filePath}. Make sure the target matches exactly, including whitespace and indentation.`
-        );
+          `Target string not found in ${filePath}. Make sure the target matches exactly, including whitespace and indentation.`,
+        )
       }
 
-      await writeFile(filePath, result, "utf-8");
+      await writeFile(filePath, result, 'utf-8')
 
       // Notify renderer that the actual disk write just happened
       this.onProgress?.('writing', { path: args.path as string })
 
-      const diff = generateDiff(filePath, oldContent, result);
-      let message = `✅ Edited ${filePath}`;
+      const diff = generateDiff(filePath, oldContent, result)
+      let message = `✅ Edited ${filePath}`
       if (matchCount > 1) {
-        message += ` (found ${matchCount} matches, replaced first occurrence)`;
+        message += ` (found ${matchCount} matches, replaced first occurrence)`
       }
 
-      return this.success(`${message}\n\n${diff}`);
+      return this.success(`${message}\n\n${diff}`)
     } catch (err) {
-      return this.failure(`Failed to edit file: ${(err as Error).message}`);
+      return this.failure(`Failed to edit file: ${(err as Error).message}`)
     }
   }
 }

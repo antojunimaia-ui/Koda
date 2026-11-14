@@ -9,7 +9,9 @@ function generateToken(): string {
 
 const RemoteControlTab = memo(() => {
   const [port, setPort] = useState(() => Number(localStorage.getItem('koda_koclaw_port') || DEFAULT_PORT))
-  const [allowRemoteAccess, setAllowRemoteAccess] = useState(() => localStorage.getItem('koda_koclaw_remote') === 'true')
+  const [allowRemoteAccess, setAllowRemoteAccess] = useState(
+    () => localStorage.getItem('koda_koclaw_remote') === 'true',
+  )
   const [token] = useState(() => {
     let t = localStorage.getItem('koda_koclaw_token')
     if (!t) {
@@ -57,7 +59,6 @@ const RemoteControlTab = memo(() => {
 
   return (
     <div className="flex flex-col gap-6 animate-in slide-in-from-left-2 duration-300">
-
       {/* Header */}
       <section>
         <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-1">
@@ -65,7 +66,8 @@ const RemoteControlTab = memo(() => {
           KoClaw — Agent API
         </h3>
         <p className="text-slate-400 text-[10px] leading-relaxed">
-          Exposes a local HTTP API so other agents can send messages to Koda, read the conversation history, and reset the session.
+          Exposes a local HTTP API so other agents can send messages to Koda, read the conversation history, and reset
+          the session.
         </p>
       </section>
 
@@ -86,7 +88,9 @@ const RemoteControlTab = memo(() => {
           onClick={handleToggle}
           className={`w-10 h-5 rounded-full relative transition-all ${status.running ? 'bg-indigo-500' : 'bg-slate-700'}`}
         >
-          <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${status.running ? 'left-6' : 'left-1'}`} />
+          <div
+            className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${status.running ? 'left-6' : 'left-1'}`}
+          />
         </button>
       </div>
 
@@ -100,7 +104,7 @@ const RemoteControlTab = memo(() => {
             type="number"
             value={port}
             disabled={status.running}
-            onChange={e => {
+            onChange={(e) => {
               const v = Number(e.target.value)
               setPort(v)
               localStorage.setItem('koda_koclaw_port', String(v))
@@ -142,7 +146,8 @@ const RemoteControlTab = memo(() => {
             </button>
           </div>
           <p className="text-[10px] text-slate-500">
-            Pass as <code className="bg-slate-900 px-1 rounded">Authorization: Bearer &lt;token&gt;</code> on all requests.
+            Pass as <code className="bg-slate-900 px-1 rounded">Authorization: Bearer &lt;token&gt;</code> on all
+            requests.
           </p>
         </div>
       </div>
@@ -155,24 +160,35 @@ const RemoteControlTab = memo(() => {
         </h3>
         <div className="flex flex-col gap-1.5">
           {[
-            { method: 'GET',  path: '/help',     auth: false, desc: 'API documentation for agents — no auth required' },
-            { method: 'POST', path: '/message',  auth: true,  desc: 'Send a task to Koda (returns 202 immediately)' },
-            { method: 'GET',  path: '/messages', auth: true,  desc: 'Read full conversation history' },
-            { method: 'POST', path: '/reset',    auth: true,  desc: 'Clear conversation and reset the session' },
-          ].map(e => (
-            <div key={e.path} className="flex items-center gap-3 bg-slate-800/40 px-3 py-2 rounded-lg border border-slate-700/40">
-              <span className={`text-[10px] font-black font-mono w-8 ${e.method === 'GET' ? 'text-emerald-400' : 'text-amber-400'}`}>{e.method}</span>
+            { method: 'GET', path: '/help', auth: false, desc: 'API documentation for agents — no auth required' },
+            { method: 'POST', path: '/message', auth: true, desc: 'Send a task to Koda (returns 202 immediately)' },
+            { method: 'GET', path: '/messages', auth: true, desc: 'Read full conversation history' },
+            { method: 'POST', path: '/reset', auth: true, desc: 'Clear conversation and reset the session' },
+          ].map((e) => (
+            <div
+              key={e.path}
+              className="flex items-center gap-3 bg-slate-800/40 px-3 py-2 rounded-lg border border-slate-700/40"
+            >
+              <span
+                className={`text-[10px] font-black font-mono w-8 ${e.method === 'GET' ? 'text-emerald-400' : 'text-amber-400'}`}
+              >
+                {e.method}
+              </span>
               <code className="text-indigo-300 text-xs font-mono w-24 shrink-0">{e.path}</code>
               <span className="text-slate-500 text-[10px]">{e.desc}</span>
-              {!e.auth && <span className="ml-auto text-[9px] text-slate-600 border border-slate-700 rounded px-1.5 py-0.5">public</span>}
+              {!e.auth && (
+                <span className="ml-auto text-[9px] text-slate-600 border border-slate-700 rounded px-1.5 py-0.5">
+                  public
+                </span>
+              )}
             </div>
           ))}
         </div>
         <p className="text-slate-600 text-[10px] mt-2">
-          Point agents to <code className="text-slate-500">GET http://localhost:{activePort}/help</code> to let them discover the API on their own.
+          Point agents to <code className="text-slate-500">GET http://localhost:{activePort}/help</code> to let them
+          discover the API on their own.
         </p>
       </section>
-
     </div>
   )
 })

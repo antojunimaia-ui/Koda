@@ -1,180 +1,205 @@
-import { BaseTool, ToolDefinition } from "./base.js";
-import { FileReadTool } from "./file-read.js";
-import { FileWriteTool } from "./file-write.js";
-import { FileEditTool } from "./file-edit.js";
-import { FileMoveTool } from "./file-move.js";
-import { FileDeleteTool } from "./file-delete.js";
-import { ShellTool, KillPtyTool, ListPtyTool, ShellInputTool, ShellWaitTool } from "./shell.js";
-import { SearchTool } from "./search.js";
-import { ListDirTool } from "./list-dir.js";
-import { FileFindTool } from "./file-find.js";
-import { BrowserTool } from "./browser.js";
-import { LSPTool } from "./lsp.js";
-import { StartColabTool, SendColabTool, EndColabTool } from "./collaborate.js";
-import { EnterPlanModeTool, ExitPlanModeTool } from "./plan.js";
-import { LoadSkillTool } from "./skill.js";
-import { DiagnosticsTool } from "./diagnostics.js";
-import { WebSearchTool } from "./web-search.js";
-import { WebFetchTool } from "./web-fetch.js";
-import { QuestionsTool } from "./questions.js";
-import { trackFile } from "../services/file-tracker.js";
-import { AppSettings } from "../config/settings.js";
-import { resolve } from "path";
+import { BaseTool, ToolDefinition } from './base.js'
+import { FileReadTool } from './file-read.js'
+import { FileWriteTool } from './file-write.js'
+import { FileEditTool } from './file-edit.js'
+import { FileMoveTool } from './file-move.js'
+import { FileDeleteTool } from './file-delete.js'
+import { ShellTool, KillPtyTool, ListPtyTool, ShellInputTool, ShellWaitTool } from './shell.js'
+import { SearchTool } from './search.js'
+import { ListDirTool } from './list-dir.js'
+import { FileFindTool } from './file-find.js'
+import { BrowserTool } from './browser.js'
+import { LSPTool } from './lsp.js'
+import { StartColabTool, SendColabTool, EndColabTool } from './collaborate.js'
+import { EnterPlanModeTool, ExitPlanModeTool } from './plan.js'
+import { LoadSkillTool } from './skill.js'
+import { DiagnosticsTool } from './diagnostics.js'
+import { WebSearchTool } from './web-search.js'
+import { WebFetchTool } from './web-fetch.js'
+import { QuestionsTool } from './questions.js'
+import { trackFile } from '../services/file-tracker.js'
+import { AppSettings } from '../config/settings.js'
+import { resolve } from 'path'
 
 export class ToolRegistry {
-  private tools: Map<string, BaseTool> = new Map();
-  private progressEmitter?: (event: string, toolName: string, data?: Record<string, unknown>) => void;
+  private tools: Map<string, BaseTool> = new Map()
+  private progressEmitter?: (event: string, toolName: string, data?: Record<string, unknown>) => void
   /** CWD isolado por instância de agente */
-  private cwd: string = process.cwd();
+  private cwd: string = process.cwd()
 
   setCwd(cwd: string): void {
-    this.cwd = cwd;
+    this.cwd = cwd
   }
 
   setProgressEmitter(fn: (event: string, toolName: string, data?: Record<string, unknown>) => void): void {
-    this.progressEmitter = fn;
+    this.progressEmitter = fn
   }
 
   constructor(settings: AppSettings) {
-    this.register(new FileReadTool());
-    this.register(new FileWriteTool());
-    this.register(new FileEditTool());
-    this.register(new FileMoveTool());
-    this.register(new FileDeleteTool());
-    this.register(new ShellTool());
-    this.register(new SearchTool());
-    this.register(new ListDirTool());
-    this.register(new FileFindTool());
-    this.register(new BrowserTool());
-    this.register(new LSPTool());
-    this.register(new EnterPlanModeTool());
-    this.register(new ExitPlanModeTool());
-    this.register(new KillPtyTool());
-    this.register(new ListPtyTool());
-    this.register(new ShellInputTool());
-    this.register(new ShellWaitTool());
-    this.register(new StartColabTool(settings));
-    this.register(new SendColabTool());
-    this.register(new EndColabTool());
-    this.register(new LoadSkillTool());
-    this.register(new DiagnosticsTool());
-    this.register(new WebSearchTool());
-    this.register(new WebFetchTool());
-    this.register(new QuestionsTool());
+    this.register(new FileReadTool())
+    this.register(new FileWriteTool())
+    this.register(new FileEditTool())
+    this.register(new FileMoveTool())
+    this.register(new FileDeleteTool())
+    this.register(new ShellTool())
+    this.register(new SearchTool())
+    this.register(new ListDirTool())
+    this.register(new FileFindTool())
+    this.register(new BrowserTool())
+    this.register(new LSPTool())
+    this.register(new EnterPlanModeTool())
+    this.register(new ExitPlanModeTool())
+    this.register(new KillPtyTool())
+    this.register(new ListPtyTool())
+    this.register(new ShellInputTool())
+    this.register(new ShellWaitTool())
+    this.register(new StartColabTool(settings))
+    this.register(new SendColabTool())
+    this.register(new EndColabTool())
+    this.register(new LoadSkillTool())
+    this.register(new DiagnosticsTool())
+    this.register(new WebSearchTool())
+    this.register(new WebFetchTool())
+    this.register(new QuestionsTool())
   }
 
   clearNonCoreTools(): void {
-    const coreTools = ["file_read", "file_write", "file_edit", "shell", "search", "list_dir", "file_find", "browser", "lsp", "enter_plan_mode", "exit_plan_mode", "kill_pty", "list_pty", "shell_input", "shell_wait", "start_collaboration", "send_to_advisor", "end_collaboration", "load_skill", "get_diagnostics", "web_search", "web_fetch", "questions", "file_move", "file_delete"];
+    const coreTools = [
+      'file_read',
+      'file_write',
+      'file_edit',
+      'shell',
+      'search',
+      'list_dir',
+      'file_find',
+      'browser',
+      'lsp',
+      'enter_plan_mode',
+      'exit_plan_mode',
+      'kill_pty',
+      'list_pty',
+      'shell_input',
+      'shell_wait',
+      'start_collaboration',
+      'send_to_advisor',
+      'end_collaboration',
+      'load_skill',
+      'get_diagnostics',
+      'web_search',
+      'web_fetch',
+      'questions',
+      'file_move',
+      'file_delete',
+    ]
     for (const name of this.tools.keys()) {
       if (!coreTools.includes(name)) {
-        this.tools.delete(name);
+        this.tools.delete(name)
       }
     }
   }
 
   registerDynamic(tool: BaseTool): void {
-    this.register(tool);
+    this.register(tool)
   }
 
-  private activeMode: 'fast' | 'planner' | 'colab' = 'fast';
+  private activeMode: 'fast' | 'planner' | 'colab' = 'fast'
 
   setActiveMode(mode: 'fast' | 'planner' | 'colab'): void {
-    this.activeMode = mode;
+    this.activeMode = mode
   }
 
   register(tool: BaseTool): void {
-    this.tools.set(tool.name, tool);
+    this.tools.set(tool.name, tool)
   }
 
   get(name: string): BaseTool | undefined {
-    const colabTools = ['start_collaboration', 'send_to_advisor', 'end_collaboration'];
-    
+    const colabTools = ['start_collaboration', 'send_to_advisor', 'end_collaboration']
+
     if (this.activeMode !== 'colab' && colabTools.includes(name)) {
-      return undefined;
+      return undefined
     }
 
     if (this.activeMode === 'fast' && (name === 'enter_plan_mode' || name === 'exit_plan_mode')) {
-      return undefined;
+      return undefined
     }
-    return this.tools.get(name);
+    return this.tools.get(name)
   }
 
   getAll(): BaseTool[] {
-    const all = Array.from(this.tools.values());
-    const colabTools = ['start_collaboration', 'send_to_advisor', 'end_collaboration'];
+    const all = Array.from(this.tools.values())
+    const colabTools = ['start_collaboration', 'send_to_advisor', 'end_collaboration']
 
-    let filtered = all;
+    let filtered = all
 
     if (this.activeMode !== 'colab') {
-      filtered = filtered.filter(t => !colabTools.includes(t.name));
+      filtered = filtered.filter((t) => !colabTools.includes(t.name))
     }
 
     if (this.activeMode === 'fast') {
-      filtered = filtered.filter(t => t.name !== 'enter_plan_mode' && t.name !== 'exit_plan_mode');
+      filtered = filtered.filter((t) => t.name !== 'enter_plan_mode' && t.name !== 'exit_plan_mode')
     }
 
-    return filtered;
+    return filtered
   }
 
   getDefinitions(): ToolDefinition[] {
-    return this.getAll().map((t) => t.getDefinition());
+    return this.getAll().map((t) => t.getDefinition())
   }
 
   async execute(
     name: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
   ): Promise<{ success: boolean; output: string; error?: string }> {
-    const tool = this.get(name);
+    const tool = this.get(name)
     if (!tool) {
       return {
         success: false,
-        output: "",
+        output: '',
         error: `Unknown tool: ${name}`,
-      };
+      }
     }
 
     // Hard-enforce Plan Mode restrictions
-    const { getPlanMode } = await import("./plan.js");
-    if (getPlanMode() === "plan") {
-      const destructiveTools = ["file_write", "file_edit", "shell", "file_move", "file_delete"];
+    const { getPlanMode } = await import('./plan.js')
+    if (getPlanMode() === 'plan') {
+      const destructiveTools = ['file_write', 'file_edit', 'shell', 'file_move', 'file_delete']
       if (destructiveTools.includes(name)) {
         // Allow writing/editing to specs.md specifically
-        const pathArg = args.path as string | undefined;
-        const isSpecsMd = pathArg && (pathArg === "specs.md" || pathArg.endsWith("/specs.md") || pathArg.endsWith("\\specs.md"));
+        const pathArg = args.path as string | undefined
+        const isSpecsMd =
+          pathArg && (pathArg === 'specs.md' || pathArg.endsWith('/specs.md') || pathArg.endsWith('\\specs.md'))
         if (!isSpecsMd) {
           return {
             success: false,
-            output: "",
+            output: '',
             error: `[RESTRICTION] You are currently in Spec Development mode. You are FORBIDDEN from using destructive tools like '${name}' on any file other than 'specs.md' until the user approves your plan. Please write your specifications to 'specs.md' and call 'exit_plan_mode' to present your strategy for approval.`,
-          };
+          }
         }
       }
     }
 
     // Inject progress emitter so tools can signal real-time I/O events
-    tool.onProgress = this.progressEmitter
-      ? (event, data) => this.progressEmitter!(event, name, data)
-      : undefined;
+    tool.onProgress = this.progressEmitter ? (event, data) => this.progressEmitter!(event, name, data) : undefined
 
     // Inject agent-local CWD so each tool resolves paths relative to its own workspace
-    const enrichedArgs = { ...args, __cwd: args.__cwd ?? this.cwd };
+    const enrichedArgs = { ...args, __cwd: args.__cwd ?? this.cwd }
 
-    const result = await tool.execute(enrichedArgs);
-    this.afterExecute(name, enrichedArgs, result.success);
-    return result;
+    const result = await tool.execute(enrichedArgs)
+    this.afterExecute(name, enrichedArgs, result.success)
+    return result
   }
 
   private afterExecute(name: string, args: Record<string, unknown>, success: boolean): void {
-    if (!success) return;
-    const FILE_READ_TOOLS = new Set(["file_read"]);
-    const FILE_WRITE_TOOLS = new Set(["file_write", "file_edit", "file_move", "file_delete"]);
-    const pathArg = args.path as string | undefined || args.sourcePath as string | undefined;
-    if (!pathArg) return;
-    const absPath = resolve(this.cwd, pathArg);
+    if (!success) return
+    const FILE_READ_TOOLS = new Set(['file_read'])
+    const FILE_WRITE_TOOLS = new Set(['file_write', 'file_edit', 'file_move', 'file_delete'])
+    const pathArg = (args.path as string | undefined) || (args.sourcePath as string | undefined)
+    if (!pathArg) return
+    const absPath = resolve(this.cwd, pathArg)
     if (FILE_WRITE_TOOLS.has(name)) {
-      trackFile(absPath, "modified");
+      trackFile(absPath, 'modified')
     } else if (FILE_READ_TOOLS.has(name)) {
-      trackFile(absPath, "read");
+      trackFile(absPath, 'read')
     }
   }
 
@@ -182,94 +207,93 @@ export class ToolRegistry {
    * Convert tool definitions to the OpenAI function calling format
    */
   toOpenAITools(): Array<{
-    type: "function";
+    type: 'function'
     function: {
-      name: string;
-      description: string;
-      parameters: Record<string, unknown>;
-    };
+      name: string
+      description: string
+      parameters: Record<string, unknown>
+    }
   }> {
     return this.getAll().map((tool) => ({
-      type: "function" as const,
+      type: 'function' as const,
       function: {
         name: tool.name,
         description: tool.description,
         parameters: {
-          type: "object",
+          type: 'object',
           properties: Object.fromEntries(
             tool.parameters.map((p) => [
               p.name,
               {
-                type: p.type === "array" ? "array" : p.type,
+                type: p.type === 'array' ? 'array' : p.type,
                 description: p.description,
               },
-            ])
+            ]),
           ),
-          required: tool.parameters
-            .filter((p) => p.required)
-            .map((p) => p.name),
+          required: tool.parameters.filter((p) => p.required).map((p) => p.name),
         },
       },
-    }));
+    }))
   }
 
   /**
    * Convert tool definitions to the Anthropic tool use format
    */
   toAnthropicTools(): Array<{
-    name: string;
-    description: string;
-    input_schema: Record<string, unknown>;
+    name: string
+    description: string
+    input_schema: Record<string, unknown>
   }> {
     return this.getAll().map((tool) => ({
       name: tool.name,
       description: tool.description,
       input_schema: {
-        type: "object",
+        type: 'object',
         properties: Object.fromEntries(
           tool.parameters.map((p) => [
             p.name,
             {
-              type: p.type === "array" ? "array" : p.type,
+              type: p.type === 'array' ? 'array' : p.type,
               description: p.description,
             },
-          ])
+          ]),
         ),
-        required: tool.parameters
-          .filter((p) => p.required)
-          .map((p) => p.name),
+        required: tool.parameters.filter((p) => p.required).map((p) => p.name),
       },
-    }));
+    }))
   }
 
   /**
    * Convert tool definitions to the Google Gemini function declarations format
    */
   toGoogleTools(): Array<{
-    name: string;
-    description: string;
-    parameters: Record<string, unknown>;
+    name: string
+    description: string
+    parameters: Record<string, unknown>
   }> {
     return this.getAll().map((tool) => ({
       name: tool.name,
       description: tool.description,
       parameters: {
-        type: "OBJECT",
+        type: 'OBJECT',
         properties: Object.fromEntries(
           tool.parameters.map((p) => [
             p.name,
             {
-              type: p.type === "number" ? "NUMBER" :
-                    p.type === "boolean" ? "BOOLEAN" :
-                    p.type === "array" ? "ARRAY" : "STRING",
+              type:
+                p.type === 'number'
+                  ? 'NUMBER'
+                  : p.type === 'boolean'
+                    ? 'BOOLEAN'
+                    : p.type === 'array'
+                      ? 'ARRAY'
+                      : 'STRING',
               description: p.description,
             },
-          ])
+          ]),
         ),
-        required: tool.parameters
-          .filter((p) => p.required)
-          .map((p) => p.name),
+        required: tool.parameters.filter((p) => p.required).map((p) => p.name),
       },
-    }));
+    }))
   }
 }

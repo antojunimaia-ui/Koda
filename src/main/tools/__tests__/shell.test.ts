@@ -33,7 +33,19 @@ describe('PTY control tools (empty registry)', () => {
 describe('ShellTool.isReadOnly', () => {
   it('treats known safe prefixes as read-only', () => {
     const tool = new ShellTool()
-    for (const cmd of ['ls -la', 'cat package.json', 'echo hi', 'pwd', 'whoami', 'grep foo', 'git status', 'git log', 'git diff', 'dir', 'type a.txt']) {
+    for (const cmd of [
+      'ls -la',
+      'cat package.json',
+      'echo hi',
+      'pwd',
+      'whoami',
+      'grep foo',
+      'git status',
+      'git log',
+      'git diff',
+      'dir',
+      'type a.txt',
+    ]) {
       expect(tool.isReadOnly(cmd)).toBe(true)
     }
   })
@@ -107,7 +119,14 @@ describe('ShellTool.execute', () => {
   it('rejects the command when the user denies approval', async () => {
     const fakeWindow = { webContents: { send: vi.fn() } }
     vi.mocked(BrowserWindow.getAllWindows).mockReturnValue([fakeWindow as never])
-    spawnMock.mockReturnValue({ pid: 5, write: vi.fn(), kill: vi.fn(), resize: vi.fn(), onData: vi.fn(), onExit: vi.fn() })
+    spawnMock.mockReturnValue({
+      pid: 5,
+      write: vi.fn(),
+      kill: vi.fn(),
+      resize: vi.fn(),
+      onData: vi.fn(),
+      onExit: vi.fn(),
+    })
 
     const resultPromise = new ShellTool().execute({ command: 'npm install', description: 'install deps' })
     ShellTool.resolveApproval(false)

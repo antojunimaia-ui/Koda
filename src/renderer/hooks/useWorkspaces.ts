@@ -7,20 +7,17 @@ export function useWorkspaces() {
   const [isSplitEnabled, setIsSplitEnabled] = useState(false)
   const [splitViewIds, setSplitViewIds] = useState<[string, string] | null>(null)
 
-  const activeWorkspace = workspaces.find(w => w.id === activeId) || null
+  const activeWorkspace = workspaces.find((w) => w.id === activeId) || null
 
-  const updateWorkspace = useCallback(
-    (id: string, updates: Partial<Workspace> | ((prev: Workspace) => Workspace)) => {
-      setWorkspaces(prev =>
-        prev.map(w => {
-          if (w.id !== id) return w
-          if (typeof updates === 'function') return updates(w)
-          return { ...w, ...updates }
-        })
-      )
-    },
-    []
-  )
+  const updateWorkspace = useCallback((id: string, updates: Partial<Workspace> | ((prev: Workspace) => Workspace)) => {
+    setWorkspaces((prev) =>
+      prev.map((w) => {
+        if (w.id !== id) return w
+        if (typeof updates === 'function') return updates(w)
+        return { ...w, ...updates }
+      }),
+    )
+  }, [])
 
   const createNewWorkspace = useCallback(
     async (cwd?: string) => {
@@ -32,7 +29,12 @@ export function useWorkspaces() {
         messages: [],
         isProcessing: false,
         agentInfo: {
-          providerId: '...', provider: '...', model: '...', advisorModel: '...', project: '...', cwd: cwd || '...',
+          providerId: '...',
+          provider: '...',
+          model: '...',
+          advisorModel: '...',
+          project: '...',
+          cwd: cwd || '...',
         },
         mode: 'fast',
         trackedFiles: [],
@@ -47,27 +49,27 @@ export function useWorkspaces() {
         terminalOutput: '',
         currentSessionId: null,
       }
-      setWorkspaces(prev => [...prev, newWorkspace])
+      setWorkspaces((prev) => [...prev, newWorkspace])
       setActiveId(id)
       await window.koda.init(id)
       if (cwd) await window.koda.cd(id, cwd)
       const info = await window.koda.getInfo(id)
       updateWorkspace(id, { agentInfo: info, cwd: info.cwd })
     },
-    [workspaces.length, updateWorkspace]
+    [workspaces.length, updateWorkspace],
   )
 
   const onCloseWorkspace = useCallback(
     (id: string) => {
       if (workspaces.length <= 1) return
-      setWorkspaces(prev => {
-        const remaining = prev.filter(w => w.id !== id)
+      setWorkspaces((prev) => {
+        const remaining = prev.filter((w) => w.id !== id)
         if (activeId === id) setActiveId(remaining[0]?.id || null)
         if (splitViewIds?.includes(id)) setSplitViewIds(null)
         return remaining
       })
     },
-    [workspaces.length, activeId, splitViewIds]
+    [workspaces.length, activeId, splitViewIds],
   )
 
   const onSplitWith = useCallback(
@@ -79,7 +81,7 @@ export function useWorkspaces() {
         setSplitViewIds([id, activeId])
       }
     },
-    [activeId, splitViewIds]
+    [activeId, splitViewIds],
   )
 
   const handleSwitchWorkspace = useCallback(
@@ -87,10 +89,10 @@ export function useWorkspaces() {
       setActiveId(id)
       if (splitViewIds && !splitViewIds.includes(id)) setSplitViewIds(null)
     },
-    [splitViewIds]
+    [splitViewIds],
   )
 
-  const toggleSplit = useCallback(() => setIsSplitEnabled(p => !p), [])
+  const toggleSplit = useCallback(() => setIsSplitEnabled((p) => !p), [])
 
   return {
     workspaces,

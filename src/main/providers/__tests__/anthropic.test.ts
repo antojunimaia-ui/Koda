@@ -27,11 +27,12 @@ describe('AnthropicProvider', () => {
 
     const chunks = await collect(provider.chat([{ role: 'user', content: 'hi' }], makeRegistry()))
 
-    expect(chunks.find(c => c.type === 'text' && c.content === 'Hi')).toBeTruthy()
-    expect(chunks.find(c => c.type === 'tool_call_start')?.toolCall)
-      .toMatchObject({ id: 'toolu_1', name: 'file_read' })
-    expect(chunks.find(c => c.type === 'tool_call_end')?.toolCall.arguments)
-      .toEqual({ path: 'a.txt' })
+    expect(chunks.find((c) => c.type === 'text' && c.content === 'Hi')).toBeTruthy()
+    expect(chunks.find((c) => c.type === 'tool_call_start')?.toolCall).toMatchObject({
+      id: 'toolu_1',
+      name: 'file_read',
+    })
+    expect(chunks.find((c) => c.type === 'tool_call_end')?.toolCall.arguments).toEqual({ path: 'a.txt' })
     expect(chunks.at(-1)?.type).toBe('done')
   })
 
@@ -46,6 +47,6 @@ describe('AnthropicProvider', () => {
     ;(provider as any).client = { messages: { stream } }
 
     const chunks = await collect(provider.chat([{ role: 'user', content: 'hi' }], makeRegistry()))
-    expect(chunks.some(c => c.type === 'error' && c.error?.includes('Failed to parse tool arguments'))).toBe(true)
+    expect(chunks.some((c) => c.type === 'error' && c.error?.includes('Failed to parse tool arguments'))).toBe(true)
   })
 })

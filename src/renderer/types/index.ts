@@ -66,39 +66,39 @@ export interface KodaTheme {
   name: string
   colors: {
     // ── Base surfaces ──────────────────────────────
-    bg: string           // Main background
-    bgAlt: string        // Slightly lighter bg (panels, cards)
-    sidebar: string      // Sidebar / left panel bg
+    bg: string // Main background
+    bgAlt: string // Slightly lighter bg (panels, cards)
+    sidebar: string // Sidebar / left panel bg
 
     // ── Typography ─────────────────────────────────
-    text: string         // Primary text
-    textDim: string      // Muted / secondary text
-    textFaint: string    // Very faint text (watermarks, placeholders)
+    text: string // Primary text
+    textDim: string // Muted / secondary text
+    textFaint: string // Very faint text (watermarks, placeholders)
 
     // ── Borders ────────────────────────────────────
-    border: string       // Default border
-    borderFaint: string  // Subtle dividers
+    border: string // Default border
+    borderFaint: string // Subtle dividers
 
     // ── Accent colors ──────────────────────────────
-    accent: string       // Primary accent (cyan / neon)
-    accentAlt: string    // Secondary accent (magenta / purple)
-    accentGlow: string   // Glow / shadow color for accent (rgba)
+    accent: string // Primary accent (cyan / neon)
+    accentAlt: string // Secondary accent (magenta / purple)
+    accentGlow: string // Glow / shadow color for accent (rgba)
 
     // ── Semantic status colors ──────────────────────
-    statusOk: string     // Ready / success (green)
-    statusBusy: string   // Processing / busy (yellow/amber)
-    statusError: string  // Error (red/rose)
-    statusInfo: string   // Info / neutral (blue/indigo)
+    statusOk: string // Ready / success (green)
+    statusBusy: string // Processing / busy (yellow/amber)
+    statusError: string // Error (red/rose)
+    statusInfo: string // Info / neutral (blue/indigo)
 
     // ── Terminal / code ────────────────────────────
-    codeBg: string       // Code block background
-    codeText: string     // Code block text
-    codeSyntax: string   // Syntax highlighting accent
-    inlineCode: string   // Inline `code` text color
+    codeBg: string // Code block background
+    codeText: string // Code block text
+    codeSyntax: string // Syntax highlighting accent
+    inlineCode: string // Inline `code` text color
 
     // ── Message bubbles ────────────────────────────
-    userMsg: string      // User message background (rgba)
-    toolMsg: string      // Tool output background (rgba)
+    userMsg: string // User message background (rgba)
+    toolMsg: string // Tool output background (rgba)
   }
 }
 

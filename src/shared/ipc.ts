@@ -215,7 +215,12 @@ export const IPC_CHANNELS = {
 export interface KodaApi {
   // ── Agente ─────────────────────────────────────────────
   init: (workspaceId: string) => Promise<{ success: boolean; info: AgentInfo; error?: string }>
-  sendMessage: (workspaceId: string, messageId: number, message: string, images?: unknown[]) => Promise<{ success: boolean; response?: string; error?: string }>
+  sendMessage: (
+    workspaceId: string,
+    messageId: number,
+    message: string,
+    images?: unknown[],
+  ) => Promise<{ success: boolean; response?: string; error?: string }>
   snapshotRestore: (workspaceId: string, messageId: number) => Promise<{ success: boolean; error?: string }>
   reset: (workspaceId: string) => Promise<{ success: boolean; error?: string }>
   softReset: (workspaceId: string) => Promise<{ success: boolean; error?: string }>
@@ -227,11 +232,15 @@ export interface KodaApi {
   getModels: (provider: string, apiKey: string) => Promise<{ success: boolean; models?: string[]; error?: string }>
   setup: (workspaceId: string, config: SetupConfig) => Promise<{ success: boolean; info?: AgentInfo; error?: string }>
   openFile: (workspaceId: string, filePath: string, line?: number) => Promise<{ success: boolean; error?: string }>
-  onUpdate: (callback: (update: Record<string, unknown>) => void) => (() => void)
+  onUpdate: (callback: (update: Record<string, unknown>) => void) => () => void
   removeUpdateListener: () => void
   planResponse: (approved: boolean) => Promise<{ success: boolean }>
   questionsResponse: (answers: unknown[]) => Promise<{ success: boolean }>
-  shellResponse: (approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => Promise<{ success: boolean }>
+  shellResponse: (
+    approved: boolean,
+    alwaysAllowBase: boolean,
+    alwaysAllowFull: boolean,
+  ) => Promise<{ success: boolean }>
   getApprovedCommands: () => Promise<ApprovedCommands>
   updateApprovedCommands: (lists: { base?: string[]; full?: string[] }) => Promise<{ success: boolean }>
   getSlashCommands: () => Promise<{ success: boolean; commands: SlashCommand[] }>
@@ -259,7 +268,7 @@ export interface KodaApi {
   deleteFile: (filePath: string) => Promise<{ success: boolean; error?: string }>
   renameFile: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>
-  onFileSystemChange: (callback: (change: FileSystemChange) => void) => (() => void)
+  onFileSystemChange: (callback: (change: FileSystemChange) => void) => () => void
 
   // ── MCP ────────────────────────────────────────────────
   getMcpConfigs: () => Promise<unknown[]>
@@ -302,7 +311,7 @@ export interface KodaApi {
   close: () => Promise<void>
   selectDirectory: () => Promise<string | null>
   updaterInstall: () => Promise<void>
-  onUpdaterEvent: (callback: (event: string, data?: unknown) => void) => (() => void)
+  onUpdaterEvent: (callback: (event: string, data?: unknown) => void) => () => void
   openIDE: () => Promise<void>
   openAgent: () => Promise<void>
   openADE: () => Promise<void>

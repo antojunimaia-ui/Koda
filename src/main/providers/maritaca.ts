@@ -1,39 +1,31 @@
-import OpenAI from "openai";
-import { BaseProvider, Message, StreamChunk, ToolCall } from "./base.js";
-import { ToolRegistry } from "../tools/index.js";
+import OpenAI from 'openai'
+import { BaseProvider, Message, StreamChunk, ToolCall } from './base.js'
+import { ToolRegistry } from '../tools/index.js'
 
 export class MaritacaProvider extends BaseProvider {
-  private client: OpenAI;
+  private client: OpenAI
 
-  constructor(
-    model: string,
-    apiKey: string,
-    maxTokens: number,
-    temperature: number
-  ) {
-    super(model, apiKey, maxTokens, temperature);
+  constructor(model: string, apiKey: string, maxTokens: number, temperature: number) {
+    super(model, apiKey, maxTokens, temperature)
     // Maritaca uses 'Key <api_key>' as the Authorization header.
     // However, some versions of OpenAI SDK might append 'Bearer ' automatically if only apiKey is provided.
     // To be safe, we set defaultHeaders explicitly.
-    this.client = new OpenAI({ 
+    this.client = new OpenAI({
       apiKey: apiKey,
-      baseURL: "https://chat.maritaca.ai/api",
+      baseURL: 'https://chat.maritaca.ai/api',
       defaultHeaders: {
-        "Authorization": `Key ${apiKey}`
-      }
-    });
+        Authorization: `Key ${apiKey}`,
+      },
+    })
   }
 
   get providerName() {
-    return "Maritaca AI";
+    return 'Maritaca AI'
   }
 
-  async *chat(
-    messages: Message[],
-    tools: ToolRegistry
-  ): AsyncGenerator<StreamChunk> {
-    const openAIMessages = this.convertMessages(messages);
-    const openAITools = tools.toOpenAITools();
+  async *chat(messages: Message[], tools: ToolRegistry): AsyncGenerator<StreamChunk> {
+    const openAIMessages = this.convertMessages(messages)
+    const openAITools = tools.toOpenAITools()
 
     try {
       const stream = await this.client.chat.completions.create({
@@ -44,115 +36,110 @@ export class MaritacaProvider extends BaseProvider {
         max_tokens: this.maxTokens,
         temperature: this.temperature,
         stream: true,
-      });
+      })
 
-      const toolCalls: Map<
-        number,
-        { id: string; name: string; arguments: string }
-      > = new Map();
+      const toolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map()
 
       for await (const chunk of stream) {
-        const choice = chunk.choices[0];
-        if (!choice) continue;
+        const choice = chunk.choices[0]
+        if (!choice) continue
 
-        const delta = choice.delta;
+        const delta = choice.delta
 
         // Handle text content
         if (delta.content) {
-          yield { type: "text", content: delta.content };
+          yield { type: 'text', content: delta.content }
         }
 
         // Handle tool calls
         if (delta.tool_calls) {
           for (const tc of delta.tool_calls) {
-            const index = tc.index;
+            const index = tc.index
 
             if (!toolCalls.has(index)) {
-              toolCalls.set(index, { id: "", name: "", arguments: "" });
+              toolCalls.set(index, { id: '', name: '', arguments: '' })
             }
-            const current = toolCalls.get(index)!;
+            const current = toolCalls.get(index)!
 
             if (tc.id) {
-              current.id = tc.id;
+              current.id = tc.id
             }
             if (tc.function?.name) {
-              current.name = tc.function.name;
+              current.name = tc.function.name
               yield {
-                type: "tool_call_start",
+                type: 'tool_call_start',
                 toolCall: { id: current.id, name: current.name },
-              };
+              }
             }
             if (tc.function?.arguments) {
-              current.arguments += tc.function.arguments;
+              current.arguments += tc.function.arguments
               yield {
-                type: "tool_call_args",
+                type: 'tool_call_args',
                 content: tc.function.arguments,
-              };
+              }
             }
           }
         }
 
         // Handle finish
-        if (choice.finish_reason === "tool_calls") {
+        if (choice.finish_reason === 'tool_calls') {
           for (const [, tc] of toolCalls) {
             try {
-              const args = JSON.parse(tc.arguments);
+              const args = JSON.parse(tc.arguments)
               yield {
-                type: "tool_call_end",
+                type: 'tool_call_end',
                 toolCall: { id: tc.id, name: tc.name, arguments: args },
-              };
+              }
             } catch {
               yield {
-                type: "error",
+                type: 'error',
                 error: `Failed to parse tool arguments for ${tc.name}`,
-              };
+              }
             }
           }
         }
 
-        if (choice.finish_reason === "stop") {
-          yield { type: "done" };
+        if (choice.finish_reason === 'stop') {
+          yield { type: 'done' }
         }
       }
     } catch (err) {
       yield {
-        type: "error",
+        type: 'error',
         error: `Maritaca AI API error: ${(err as Error).message}`,
-      };
+      }
     }
   }
 
-  private convertMessages(
-    messages: Message[]
-  ): any[] {
+  private convertMessages(messages: Message[]): any[] {
     return messages.map((msg) => {
-      if (msg.role === "tool") {
+      if (msg.role === 'tool') {
         return {
-          role: "tool" as const,
+          role: 'tool' as const,
           content: msg.content,
-          tool_call_id: msg.toolCallId || "",
-        };
+          tool_call_id: msg.toolCallId || '',
+        }
       }
 
-      if (msg.role === "assistant" && msg.toolCalls?.length) {
+      if (msg.role === 'assistant' && msg.toolCalls?.length) {
         return {
-          role: "assistant" as const,
+          role: 'assistant' as const,
           content: msg.content || null,
           tool_calls: msg.toolCalls.map((tc) => ({
             id: tc.id,
-            type: "function" as const,
+            type: 'function' as const,
             function: {
               name: tc.name,
               arguments: JSON.stringify(tc.arguments),
             },
           })),
-        };
+        }
       }
 
       return {
-        role: msg.role === "system" ? "system" : msg.role === "assistant" ? "assistant" : "user",
+        role: msg.role === 'system' ? 'system' : msg.role === 'assistant' ? 'assistant' : 'user',
         content: msg.content,
-      };
-    });
+      }
+    })
   }
 }

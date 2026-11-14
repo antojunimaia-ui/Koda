@@ -31,42 +31,49 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'inside' | null>(null)
   const [loadedPaths, setLoadedPaths] = useState<Set<string>>(new Set())
 
-  const reloadFolder = useCallback((folderPath: string) => {
-    const normalPath = folderPath.replace(/\\/g, '/')
-    window.koda.listDirLazy(normalPath).then((res: any) => {
-      if (res?.success) {
-        const childNodes = res.files.map((f: any) => ({
-          name: f.name,
-          path: f.path,
-          isDir: f.isDir,
-          children: f.isDir ? [] : undefined,
-        }))
+  const reloadFolder = useCallback(
+    (folderPath: string) => {
+      const normalPath = folderPath.replace(/\\/g, '/')
+      window.koda.listDirLazy(normalPath).then((res: any) => {
+        if (res?.success) {
+          const childNodes = res.files.map((f: any) => ({
+            name: f.name,
+            path: f.path,
+            isDir: f.isDir,
+            children: f.isDir ? [] : undefined,
+          }))
 
-        const normalCwd = cwd.replace(/\\/g, '/')
-        if (normalPath === normalCwd) {
-          setTree(prevTree => {
-            return childNodes.map((n: any) => {
-              const existingNode = prevTree.find(p => p.path === n.path)
-              if (existingNode && existingNode.isDir) {
-                return { ...n, children: existingNode.children }
-              }
-              return n
+          const normalCwd = cwd.replace(/\\/g, '/')
+          if (normalPath === normalCwd) {
+            setTree((prevTree) => {
+              return childNodes.map((n: any) => {
+                const existingNode = prevTree.find((p) => p.path === n.path)
+                if (existingNode && existingNode.isDir) {
+                  return { ...n, children: existingNode.children }
+                }
+                return n
+              })
             })
-          })
-        } else {
-          setTree(prevTree => {
-            return updateNodeInTree(prevTree, normalPath, childNodes.map((n: any) => {
-              const existingNode = findNodeInTree(prevTree, n.path)
-              if (existingNode && existingNode.isDir) {
-                return { ...n, children: existingNode.children }
-              }
-              return n
-            }))
-          })
+          } else {
+            setTree((prevTree) => {
+              return updateNodeInTree(
+                prevTree,
+                normalPath,
+                childNodes.map((n: any) => {
+                  const existingNode = findNodeInTree(prevTree, n.path)
+                  if (existingNode && existingNode.isDir) {
+                    return { ...n, children: existingNode.children }
+                  }
+                  return n
+                }),
+              )
+            })
+          }
         }
-      }
-    })
-  }, [cwd])
+      })
+    },
+    [cwd],
+  )
 
   const handleCreateFile = async (parentPath: string, fileName: string) => {
     try {
@@ -248,7 +255,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
         label: 'New File',
         icon: 'new-file',
         onClick: () => {
-          setExpanded(prev => new Set(prev).add(filePath))
+          setExpanded((prev) => new Set(prev).add(filePath))
           setCreatingNew({ type: 'file', parentPath: filePath })
         },
       })
@@ -257,7 +264,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
         label: 'New Folder',
         icon: 'new-folder',
         onClick: () => {
-          setExpanded(prev => new Set(prev).add(filePath))
+          setExpanded((prev) => new Set(prev).add(filePath))
           setCreatingNew({ type: 'folder', parentPath: filePath })
         },
       })
@@ -426,13 +433,13 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
             isDir: f.isDir,
             children: f.isDir ? [] : undefined,
           }))
-          setTree(prevTree => updateNodeInTree(prevTree, normalPath, childNodes))
-          setLoadedPaths(prev => {
+          setTree((prevTree) => updateNodeInTree(prevTree, normalPath, childNodes))
+          setLoadedPaths((prev) => {
             const next = new Set(prev)
             next.add(normalPath)
             return next
           })
-          setExpanded(prev => {
+          setExpanded((prev) => {
             const next = new Set(prev)
             next.add(normalPath)
             return next
@@ -440,7 +447,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
         }
       })
     } else {
-      setExpanded(prev => {
+      setExpanded((prev) => {
         const next = new Set(prev)
         next.has(normalPath) ? next.delete(normalPath) : next.add(normalPath)
         return next
@@ -494,7 +501,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
         onInject={onInject}
         onPin={onPin}
         onAddToInput={onAddToInput}
-        renderChildren={(children, nextDepth) => children.map(c => renderNode(c, nextDepth))}
+        renderChildren={(children, nextDepth) => children.map((c) => renderNode(c, nextDepth))}
       />
     )
   }
@@ -526,9 +533,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
               <span className="text-slate-300 text-[10px] font-medium truncate" title={selectedFile}>
                 {selectedFile.split('/').pop()}
               </span>
-              {hasUnsavedChanges && (
-                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" title="Unsaved changes" />
-              )}
+              {hasUnsavedChanges && <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" title="Unsaved changes" />}
             </div>
             <div className="flex items-center gap-1">
               {hasUnsavedChanges && (
@@ -567,7 +572,9 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
                 value={fileContent}
                 onChange={(e) => handleFileContentChange(e.target.value)}
                 className="w-full h-full p-3 bg-transparent text-slate-300 text-[11px] font-mono leading-relaxed resize-none outline-none"
-                style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace' }}
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+                }}
                 placeholder="File content will appear here..."
                 onKeyDown={(e) => {
                   if (e.ctrlKey && e.key === 's') {
@@ -582,11 +589,17 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
       )}
 
       {/* File Tree */}
-      <div className={`${selectedFile ? 'w-1/2' : 'w-full'} transition-all duration-200 flex flex-col overflow-y-auto custom-scrollbar`}>
+      <div
+        className={`${selectedFile ? 'w-1/2' : 'w-full'} transition-all duration-200 flex flex-col overflow-y-auto custom-scrollbar`}
+      >
         <div className="px-1 py-1">
           {creatingNew && creatingNew.parentPath === cwd && (
             <div className="flex items-center gap-1.5 py-[3px] pr-2 rounded-md mb-1" style={{ paddingLeft: '6px' }}>
-              {creatingNew.type === 'folder' ? <IconFolder open={false} /> : <Codicon icon="file" size={14} className="text-slate-400" />}
+              {creatingNew.type === 'folder' ? (
+                <IconFolder open={false} />
+              ) : (
+                <Codicon icon="file" size={14} className="text-slate-400" />
+              )}
               <input
                 type="text"
                 placeholder={creatingNew.type === 'file' ? 'filename.txt' : 'foldername'}
@@ -623,7 +636,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
               />
             </div>
           )}
-          {tree.map(n => renderNode(n))}
+          {tree.map((n) => renderNode(n))}
         </div>
       </div>
 

@@ -4,9 +4,9 @@ import AnsiConverter from 'ansi-to-html'
 const ansi = new AnsiConverter({
   fg: '#CCC',
   bg: '#000',
-  newline: false,  // Prevents double spacing since we split lines
+  newline: false, // Prevents double spacing since we split lines
   escapeXML: true,
-  stream: false,   // Process each line independently
+  stream: false, // Process each line independently
 })
 
 export default ansi

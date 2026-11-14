@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Agent } from '../../core/agent.js'
-import {
-  getWebhookStatus,
-  startWebhookServer,
-  stopWebhookServer,
-} from '../webhook-server.js'
+import { getWebhookStatus, startWebhookServer, stopWebhookServer } from '../webhook-server.js'
 
 let lastMessage = ''
 
@@ -25,11 +21,7 @@ const TOKEN = 'test-token'
 
 async function startServer() {
   const port = 34000 + Math.floor(Math.random() * 500)
-  await startWebhookServer(
-    { port, token: TOKEN, enabled: true },
-    getAgent,
-    () => [],
-  )
+  await startWebhookServer({ port, token: TOKEN, enabled: true }, getAgent, () => [])
   return port
 }
 
@@ -54,7 +46,7 @@ describe('webhook-server (KoClaw)', () => {
     const port = await startServer()
     const res = await fetch(`${base(port)}/help`)
     expect(res.status).toBe(200)
-    const body = await res.json() as any
+    const body = (await res.json()) as any
     expect(body.name).toContain('KoClaw')
     expect(body.endpoints.map((e: any) => e.path)).toContain('/message')
   })
@@ -69,7 +61,7 @@ describe('webhook-server (KoClaw)', () => {
     const port = await startServer()
     const res = await fetch(`${base(port)}/messages`, { headers: authHeaders() })
     expect(res.status).toBe(200)
-    const body = await res.json() as any
+    const body = (await res.json()) as any
     expect(body.messages).toHaveLength(1)
   })
 

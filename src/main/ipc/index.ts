@@ -17,7 +17,7 @@ export function registerAllHandlers(
   discordRPC: DiscordRPCManager,
   getMainWindow: () => BrowserWindow | null,
   getWindows: () => (BrowserWindow | null)[],
-  broadcastAgentUpdate: (data: object) => void
+  broadcastAgentUpdate: (data: object) => void,
 ) {
   registerWindowHandlers(getMainWindow)
   registerAgentHandlers(agents, broadcastAgentUpdate)

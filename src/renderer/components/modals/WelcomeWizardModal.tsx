@@ -7,109 +7,115 @@ import { formatModelName } from '../../utils/formatModelName.js'
 interface WelcomeWizardModalProps {
   currentTheme: KodaTheme
   setTheme: React.Dispatch<React.SetStateAction<KodaTheme>>
-  onComplete: (config: { provider: string; model: string; advisorModel: string; apiKey: string; theme: KodaTheme }) => void
+  onComplete: (config: {
+    provider: string
+    model: string
+    advisorModel: string
+    apiKey: string
+    theme: KodaTheme
+  }) => void
   loadedModels: Record<string, string[] | undefined>
   fetchModelsForProvider: (provId: string, apiKey: string) => Promise<void>
 }
 
 const PROVIDERS = [
-  { 
-    id: 'koda-cloud', 
-    name: 'Koda Cloud', 
-    description: 'Ready to use, no API Key required.', 
+  {
+    id: 'koda-cloud',
+    name: 'Koda Cloud',
+    description: 'Ready to use, no API Key required.',
     recommended: true,
-    requiresKey: false, 
+    requiresKey: false,
     defaultModel: 'gemini-1.5-flash',
     defaultAdvisorModel: 'gemini-1.5-flash',
-    popularModels: ['gemini-1.5-flash', 'gemini-1.5-pro']
+    popularModels: ['gemini-1.5-flash', 'gemini-1.5-pro'],
   },
-  { 
-    id: 'opencode-zen', 
-    name: 'OpenCode Zen', 
-    description: 'Curated AI gateway optimized for coding agents.', 
-    requiresKey: true, 
+  {
+    id: 'opencode-zen',
+    name: 'OpenCode Zen',
+    description: 'Curated AI gateway optimized for coding agents.',
+    requiresKey: true,
     placeholder: 'opencode_...',
     defaultModel: '',
     defaultAdvisorModel: '',
-    popularModels: []
+    popularModels: [],
   },
-  { 
-    id: 'google', 
-    name: 'Google Gemini', 
-    description: 'Gemini Flash and Pro models from Google.', 
-    requiresKey: true, 
+  {
+    id: 'google',
+    name: 'Google Gemini',
+    description: 'Gemini Flash and Pro models from Google.',
+    requiresKey: true,
     placeholder: 'AIzaSy...',
     defaultModel: 'gemini-1.5-flash',
     defaultAdvisorModel: 'gemini-1.5-pro',
-    popularModels: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp']
+    popularModels: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'],
   },
-  { 
-    id: 'openai', 
-    name: 'OpenAI', 
-    description: 'GPT-4o and GPT-4o-mini models from OpenAI.', 
-    requiresKey: true, 
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    description: 'GPT-4o and GPT-4o-mini models from OpenAI.',
+    requiresKey: true,
     placeholder: 'sk-proj-...',
     defaultModel: 'gpt-4o',
     defaultAdvisorModel: 'gpt-4o',
-    popularModels: ['gpt-4o', 'gpt-4o-mini', 'o1-mini']
+    popularModels: ['gpt-4o', 'gpt-4o-mini', 'o1-mini'],
   },
-  { 
-    id: 'anthropic', 
-    name: 'Anthropic Claude', 
-    description: 'Claude 3.5 Sonnet for reasoning and code engineering.', 
-    requiresKey: true, 
+  {
+    id: 'anthropic',
+    name: 'Anthropic Claude',
+    description: 'Claude 3.5 Sonnet for reasoning and code engineering.',
+    requiresKey: true,
     placeholder: 'sk-ant-...',
     defaultModel: 'claude-3-5-sonnet-20241022',
     defaultAdvisorModel: 'claude-3-5-sonnet-20241022',
-    popularModels: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022']
+    popularModels: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
   },
-  { 
-    id: 'openrouter', 
-    name: 'OpenRouter', 
-    description: 'Unified access to dozens of AI models.', 
-    requiresKey: true, 
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    description: 'Unified access to dozens of AI models.',
+    requiresKey: true,
     placeholder: 'sk-or-v1-...',
     defaultModel: 'google/gemini-2.0-flash-exp:free',
     defaultAdvisorModel: 'anthropic/claude-3.5-sonnet',
-    popularModels: ['google/gemini-2.0-flash-exp:free', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat']
+    popularModels: ['google/gemini-2.0-flash-exp:free', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat'],
   },
-  { 
-    id: 'deepseek', 
-    name: 'DeepSeek', 
-    description: 'High-performance DeepSeek R1 and V3 models.', 
-    requiresKey: true, 
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    description: 'High-performance DeepSeek R1 and V3 models.',
+    requiresKey: true,
     placeholder: 'sk-...',
     defaultModel: 'deepseek-chat',
     defaultAdvisorModel: 'deepseek-reasoner',
-    popularModels: ['deepseek-chat', 'deepseek-reasoner']
+    popularModels: ['deepseek-chat', 'deepseek-reasoner'],
   },
-  { 
-    id: 'groq', 
-    name: 'Groq', 
-    description: 'Ultra-low latency inference with Llama 3.', 
-    requiresKey: true, 
+  {
+    id: 'groq',
+    name: 'Groq',
+    description: 'Ultra-low latency inference with Llama 3.',
+    requiresKey: true,
     placeholder: 'gsk_...',
     defaultModel: 'llama-3.3-70b-versatile',
     defaultAdvisorModel: 'llama-3.3-70b-versatile',
-    popularModels: ['llama-3.3-70b-versatile', 'llama3-8b-8192']
+    popularModels: ['llama-3.3-70b-versatile', 'llama3-8b-8192'],
   },
-  { 
-    id: 'ollama', 
-    name: 'Ollama (Local)', 
-    description: 'Run 100% local models directly on your machine.', 
-    requiresKey: false, 
+  {
+    id: 'ollama',
+    name: 'Ollama (Local)',
+    description: 'Run 100% local models directly on your machine.',
+    requiresKey: false,
     placeholder: 'Optional (if using proxy with auth)',
     defaultModel: 'llama3',
     defaultAdvisorModel: 'llama3',
-    popularModels: ['llama3', 'qwen2.5-coder', 'deepseek-r1']
-  }
+    popularModels: ['llama3', 'qwen2.5-coder', 'deepseek-r1'],
+  },
 ]
 
 const STEPS = [
-  { num: 1, label: 'Theme',    icon: Palette },
-  { num: 2, label: 'Provider', icon: Key     },
-  { num: 3, label: 'Model',    icon: Cpu     },
-  { num: 4, label: 'Advisor',  icon: Users   },
+  { num: 1, label: 'Theme', icon: Palette },
+  { num: 2, label: 'Provider', icon: Key },
+  { num: 3, label: 'Model', icon: Cpu },
+  { num: 4, label: 'Advisor', icon: Users },
 ]
 
 export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
@@ -146,7 +152,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
 
   const handleSelectProvider = (provId: string) => {
     setProvider(provId)
-    const prov = PROVIDERS.find(p => p.id === provId)
+    const prov = PROVIDERS.find((p) => p.id === provId)
     if (prov) {
       setModel(prov.defaultModel)
       setAdvisorModel(prov.defaultAdvisorModel)
@@ -154,7 +160,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
     setApiKey('')
   }
 
-  const selectedProvObj = PROVIDERS.find(p => p.id === provider) || PROVIDERS[0]
+  const selectedProvObj = PROVIDERS.find((p) => p.id === provider) || PROVIDERS[0]
   const availableModels = loadedModels[provider] ?? selectedProvObj.popularModels
 
   const handleContinue = () => {
@@ -174,33 +180,39 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
       advisorModel: advisorModel || model,
       apiKey: selectedProvObj.requiresKey ? apiKey : '',
       theme: selectedTheme,
-      ...(provider === 'koda-cloud' ? { kodaCloudBaseUrl } : {})
+      ...(provider === 'koda-cloud' ? { kodaCloudBaseUrl } : {}),
     })
   }
 
   return (
-    <div className="fixed inset-0 z-wizard flex flex-col font-sans select-none overflow-hidden" style={{ background: '#09090b' }}>
-
+    <div
+      className="fixed inset-0 z-wizard flex flex-col font-sans select-none overflow-hidden"
+      style={{ background: '#09090b' }}
+    >
       {/* Titlebar — drag region + window controls only */}
       <div className="titlebar-drag w-full h-8 shrink-0 flex items-center justify-end pr-0 border-b border-white/5">
         <button
           onClick={() => window.koda.minimize()}
           className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
         >
-          <svg width="12" height="1" viewBox="0 0 12 1" fill="currentColor"><rect width="12" height="1"/></svg>
+          <svg width="12" height="1" viewBox="0 0 12 1" fill="currentColor">
+            <rect width="12" height="1" />
+          </svg>
         </button>
         <button
           onClick={() => window.koda.maximize()}
           className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-colors no-drag"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1"><rect x="1" y="1" width="8" height="8"/></svg>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
+            <rect x="1" y="1" width="8" height="8" />
+          </svg>
         </button>
         <button
           onClick={() => window.koda.close()}
           className="w-11 h-8 flex items-center justify-center text-slate-400 hover:bg-rose-600 hover:text-white transition-colors no-drag"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <path d="M1 1L9 9M9 1L1 9"/>
+            <path d="M1 1L9 9M9 1L1 9" />
           </svg>
         </button>
       </div>
@@ -214,17 +226,18 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
           </div>
           <span className="text-[11px] font-bold tracking-widest text-zinc-400 uppercase">Koda</span>
         </div>
-
         {/* Step pills */}
         <div className="flex items-center gap-1.5">
-          {STEPS.map(s => {
+          {STEPS.map((s) => {
             const active = step === s.num
-            const done   = step > s.num
+            const done = step > s.num
             return (
               <button
                 key={s.num}
                 disabled={!done && !active}
-                onClick={() => { if (done) setStep(s.num as any) }}
+                onClick={() => {
+                  if (done) setStep(s.num as any)
+                }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[11px] font-medium transition-all ${
                   active
                     ? 'bg-white/10 border border-white/15 text-white'
@@ -233,9 +246,11 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                       : 'text-zinc-700 border border-transparent cursor-default'
                 }`}
               >
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
-                  done ? 'bg-white/20 text-white' : active ? 'bg-white/10 text-white' : 'bg-white/5 text-zinc-600'
-                }`}>
+                <div
+                  className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
+                    done ? 'bg-white/20 text-white' : active ? 'bg-white/10 text-white' : 'bg-white/5 text-zinc-600'
+                  }`}
+                >
                   {done ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : s.num}
                 </div>
                 <span className="hidden sm:inline">{s.label}</span>
@@ -243,13 +258,11 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
             )
           })}
         </div>
-
         <div className="w-24" /> {/* spacer */}
       </header>
 
       {/* Main content */}
       <main className="relative z-raised flex-1 w-full max-w-3xl mx-auto px-6 py-10 flex flex-col justify-center overflow-y-auto custom-scrollbar">
-
         {/* STEP 1: Theme */}
         {step === 1 && (
           <div className="space-y-6 animate-fadeIn">
@@ -280,10 +293,22 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                       )}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10" style={{ backgroundColor: t.colors.bg }} />
-                      <div className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10" style={{ backgroundColor: t.colors.sidebar }} />
-                      <div className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10" style={{ backgroundColor: t.colors.accent }} />
-                      <div className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10" style={{ backgroundColor: t.colors.text }} />
+                      <div
+                        className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10"
+                        style={{ backgroundColor: t.colors.bg }}
+                      />
+                      <div
+                        className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10"
+                        style={{ backgroundColor: t.colors.sidebar }}
+                      />
+                      <div
+                        className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10"
+                        style={{ backgroundColor: t.colors.accent }}
+                      />
+                      <div
+                        className="w-3.5 h-3.5 rounded-full ring-1 ring-white/10"
+                        style={{ backgroundColor: t.colors.text }}
+                      />
                     </div>
                   </button>
                 )
@@ -297,7 +322,9 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
           <div className="space-y-5 animate-fadeIn">
             <div className="space-y-1.5">
               <h2 className="text-lg font-semibold text-white tracking-tight">AI Provider</h2>
-              <p className="text-[12px] text-zinc-500">Choose <span className="text-zinc-300">Koda Cloud</span> for zero setup, or connect your own API key.</p>
+              <p className="text-[12px] text-zinc-500">
+                Choose <span className="text-zinc-300">Koda Cloud</span> for zero setup, or connect your own API key.
+              </p>
             </div>
 
             {/* Koda Cloud card */}
@@ -315,8 +342,8 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                   <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10">
                     Recommended · Free
                   </span>
-                  {provider === 'koda-cloud' && (
-                    kodaCloudAccepted ? (
+                  {provider === 'koda-cloud' &&
+                    (kodaCloudAccepted ? (
                       <span className="text-[9px] font-semibold px-2 py-0.5 rounded bg-white/10 text-zinc-200 border border-white/10">
                         Terms Accepted ✓
                       </span>
@@ -324,8 +351,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                       <span className="text-[9px] font-semibold px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
                         Requires Confirmation
                       </span>
-                    )
-                  )}
+                    ))}
                 </div>
                 <div className="flex items-center gap-2">
                   {provider === 'koda-cloud' && (
@@ -344,10 +370,12 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
               </div>
             </div>
 
-            <div className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Or choose another provider</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-zinc-600">
+              Or choose another provider
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {PROVIDERS.filter(p => p.id !== 'koda-cloud').map((p) => {
+              {PROVIDERS.filter((p) => p.id !== 'koda-cloud').map((p) => {
                 const isSelected = provider === p.id
                 return (
                   <div
@@ -370,9 +398,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
 
             {selectedProvObj.requiresKey && (
               <div className="pt-1 animate-fadeIn space-y-1.5">
-                <label className="block text-[11px] font-medium text-zinc-400">
-                  API Key — {selectedProvObj.name}
-                </label>
+                <label className="block text-[11px] font-medium text-zinc-400">API Key — {selectedProvObj.name}</label>
                 <input
                   type="password"
                   value={apiKey}
@@ -388,7 +414,6 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
         {/* STEP 3: Default Model */}
         {step === 3 && (
           <div className="space-y-5 animate-fadeIn">
-
             {availableModels.length === 0 ? (
               <div className="py-8 text-center text-zinc-600 text-[12px] border border-white/5 rounded-lg bg-white/[0.02]">
                 {selectedProvObj.requiresKey && !apiKey
@@ -427,7 +452,6 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
         {/* STEP 4: Advisor Model */}
         {step === 4 && (
           <div className="space-y-5 animate-fadeIn">
-
             {availableModels.length === 0 ? (
               <div className="py-8 text-center text-zinc-600 text-[12px] border border-white/5 rounded-lg bg-white/[0.02]">
                 No models available.
@@ -460,7 +484,6 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
             )}
           </div>
         )}
-
       </main>
 
       {/* Footer */}
@@ -523,7 +546,8 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
             <div className="p-6 space-y-4">
               <div className="p-3.5 rounded-lg border border-white/8 bg-white/[0.02] space-y-2">
                 <p className="text-[12px] text-zinc-300 leading-relaxed font-medium">
-                  When using <strong className="text-white font-semibold">Koda Cloud</strong>, your conversation messages and local agent tool schemas are routed through an operator-hosted proxy.
+                  When using <strong className="text-white font-semibold">Koda Cloud</strong>, your conversation
+                  messages and local agent tool schemas are routed through an operator-hosted proxy.
                 </p>
                 <div className="text-[11px] text-zinc-400 space-y-1 pt-1">
                   <p className="font-semibold text-zinc-300">Each request sends:</p>
@@ -536,9 +560,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
 
               {/* Proxy URL input */}
               <div className="space-y-1.5 pt-1">
-                <label className="block text-[11px] font-medium text-zinc-400">
-                  Proxy Base URL
-                </label>
+                <label className="block text-[11px] font-medium text-zinc-400">Proxy Base URL</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -599,8 +621,6 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
           </div>
         </div>
       )}
-
-
     </div>
   )
 }

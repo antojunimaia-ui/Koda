@@ -3,8 +3,7 @@ import { resolve, relative, normalize } from 'path'
 import { minimatch } from 'minimatch'
 
 const KODAIGNORE_FILE = '.kodaignore'
-const BLOCKED_MSG = (path: string) =>
-  `🚫 Access denied: "${path}" exists but is restricted by .kodaignore`
+const BLOCKED_MSG = (path: string) => `🚫 Access denied: "${path}" exists but is restricted by .kodaignore`
 
 let cachedPatterns: string[] | null = null
 let cachedCwd: string | null = null
@@ -21,8 +20,8 @@ function loadPatterns(cwd: string): string[] {
 
   const lines = readFileSync(ignoreFile, 'utf-8')
     .split('\n')
-    .map(l => l.trim())
-    .filter(l => l && !l.startsWith('#'))
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('#'))
 
   cachedCwd = cwd
   cachedPatterns = lines

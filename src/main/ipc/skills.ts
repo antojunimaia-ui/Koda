@@ -6,7 +6,7 @@ import { net } from 'electron'
 import { Agent } from '../core/agent.js'
 
 const MARKETPLACE_INDEX_URL = 'https://raw.githubusercontent.com/antojunimaia-ui/koda-skills/main/index.json'
-const MARKETPLACE_RAW_BASE  = 'https://raw.githubusercontent.com/antojunimaia-ui/koda-skills/main/skills'
+const MARKETPLACE_RAW_BASE = 'https://raw.githubusercontent.com/antojunimaia-ui/koda-skills/main/skills'
 
 const efetch: typeof fetch = (input: any, init?: any) => net.fetch(input, init) as any
 import { IPC_CHANNELS } from '../../shared/ipc.js'
@@ -18,7 +18,12 @@ export function registerSkillsHandlers(agents: Map<string, Agent>) {
       const skills = await skillManager.getAll()
       return {
         success: true,
-        skills: skills.map(s => ({ name: s.name, description: s.description, triggers: s.triggers, filePath: s.filePath })),
+        skills: skills.map((s) => ({
+          name: s.name,
+          description: s.description,
+          triggers: s.triggers,
+          filePath: s.filePath,
+        })),
       }
     } catch (err: any) {
       return { success: false, error: err.message }
@@ -63,11 +68,16 @@ export function registerSkillsHandlers(agents: Map<string, Agent>) {
   ipcMain.handle(IPC_CHANNELS.marketplace.uninstall, async (_event, skillName: string) => {
     try {
       const globalPath = path.join(os.homedir(), '.koda', 'skills', `${skillName}.md`)
-      const localPath  = path.join(process.cwd(), '.koda', 'skills', `${skillName}.md`)
+      const localPath = path.join(process.cwd(), '.koda', 'skills', `${skillName}.md`)
 
       let removed = false
       for (const p of [globalPath, localPath]) {
-        try { await fs.unlink(p); removed = true } catch { /* not there */ }
+        try {
+          await fs.unlink(p)
+          removed = true
+        } catch {
+          /* not there */
+        }
       }
       if (!removed) throw new Error(`Skill "${skillName}" not found on disk`)
 

@@ -1,53 +1,51 @@
-import { writeFile, mkdir } from "fs/promises";
-import { resolve, dirname } from "path";
-import { existsSync } from "fs";
-import { BaseTool, ToolParameter, ToolResult } from "./base.js";
-import { checkKodaIgnore } from "../utils/kodaignore.js";
+import { writeFile, mkdir } from 'fs/promises'
+import { resolve, dirname } from 'path'
+import { existsSync } from 'fs'
+import { BaseTool, ToolParameter, ToolResult } from './base.js'
+import { checkKodaIgnore } from '../utils/kodaignore.js'
 
 export class FileWriteTool extends BaseTool {
-  name = "file_write";
+  name = 'file_write'
   description =
-    "Write content to a file. Creates the file and any parent directories if they don't exist. Overwrites existing files.";
+    "Write content to a file. Creates the file and any parent directories if they don't exist. Overwrites existing files."
   parameters: ToolParameter[] = [
     {
-      name: "path",
-      type: "string",
-      description: "Absolute or relative path to the file to write",
+      name: 'path',
+      type: 'string',
+      description: 'Absolute or relative path to the file to write',
       required: true,
     },
     {
-      name: "content",
-      type: "string",
-      description: "The content to write to the file",
+      name: 'content',
+      type: 'string',
+      description: 'The content to write to the file',
       required: true,
     },
-  ];
+  ]
 
   async execute(args: Record<string, unknown>): Promise<ToolResult> {
-    const error = this.validateArgs(args);
-    if (error) return this.failure(error);
+    const error = this.validateArgs(args)
+    if (error) return this.failure(error)
 
-    const filePath = resolve((args.__cwd as string) ?? process.cwd(), args.path as string);
-    const content = args.content as string;
-    const isNew = !existsSync(filePath);
+    const filePath = resolve((args.__cwd as string) ?? process.cwd(), args.path as string)
+    const content = args.content as string
+    const isNew = !existsSync(filePath)
 
-    const blocked = checkKodaIgnore(args.path as string);
-    if (blocked) return this.failure(blocked);
+    const blocked = checkKodaIgnore(args.path as string)
+    if (blocked) return this.failure(blocked)
 
     try {
       // Ensure parent directories exist
-      await mkdir(dirname(filePath), { recursive: true });
+      await mkdir(dirname(filePath), { recursive: true })
       // Notify renderer that the actual disk write is about to happen
       this.onProgress?.('writing', { path: args.path as string, isNew })
-      await writeFile(filePath, content, "utf-8");
+      await writeFile(filePath, content, 'utf-8')
 
-      const lineCount = content.split("\n").length;
-      const action = isNew ? "Created" : "Updated";
-      return this.success(
-        `✅ ${action} file: ${filePath} (${lineCount} lines, ${content.length} bytes)`
-      );
+      const lineCount = content.split('\n').length
+      const action = isNew ? 'Created' : 'Updated'
+      return this.success(`✅ ${action} file: ${filePath} (${lineCount} lines, ${content.length} bytes)`)
     } catch (err) {
-      return this.failure(`Failed to write file: ${(err as Error).message}`);
+      return this.failure(`Failed to write file: ${(err as Error).message}`)
     }
   }
 }

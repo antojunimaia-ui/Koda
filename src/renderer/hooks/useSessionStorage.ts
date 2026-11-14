@@ -35,7 +35,7 @@ function registerProject(projectPath: string): void {
   try {
     const raw = localStorage.getItem('koda_projects_registry')
     const registry: Array<{ path: string; name: string; lastActive: number }> = raw ? JSON.parse(raw) : []
-    const idx = registry.findIndex(p => p.path === projectPath)
+    const idx = registry.findIndex((p) => p.path === projectPath)
     const entry = { path: projectPath, name: getProjectName(projectPath), lastActive: Date.now() }
     if (idx >= 0) {
       registry[idx] = entry
@@ -135,11 +135,11 @@ export const sessionStorage = {
     const index = readIndex(projectPath)
     return index
       .sort((a, b) => b.timestamp - a.timestamp)
-      .map(entry => ({
+      .map((entry) => ({
         id: entry.id,
         title: entry.title,
         timestamp: entry.timestamp,
-        messages: [],    // not loaded — use get() for full data
+        messages: [], // not loaded — use get() for full data
         pinnedFiles: [],
       }))
   },
@@ -154,7 +154,7 @@ export const sessionStorage = {
       for (const proj of registry) {
         const sessions = readIndex(proj.path)
           .sort((a, b) => b.timestamp - a.timestamp)
-          .map(entry => ({
+          .map((entry) => ({
             id: entry.id,
             title: entry.title,
             timestamp: entry.timestamp,
@@ -163,7 +163,7 @@ export const sessionStorage = {
           }))
 
         if (sessions.length > 0) {
-          const newestTime = Math.max(...sessions.map(s => s.timestamp), proj.lastActive)
+          const newestTime = Math.max(...sessions.map((s) => s.timestamp), proj.lastActive)
           results.push({
             path: proj.path,
             name: proj.name,
@@ -197,7 +197,7 @@ export const sessionStorage = {
     migrateIfNeeded(projectPath)
     if (projectPath) registerProject(projectPath)
     const id = session.id || generateId()
-    const title = session.title || session.messages.find(m => m.type === 'user')?.text?.slice(0, 50) || 'Untitled'
+    const title = session.title || session.messages.find((m) => m.type === 'user')?.text?.slice(0, 50) || 'Untitled'
 
     const updated: StoredSession = {
       id,
@@ -212,7 +212,7 @@ export const sessionStorage = {
 
     // Update the lightweight index
     const index = readIndex(projectPath)
-    const existingIdx = index.findIndex(e => e.id === id)
+    const existingIdx = index.findIndex((e) => e.id === id)
     const entry: SessionIndexEntry = { id, title, timestamp: updated.timestamp }
 
     if (existingIdx >= 0) {
@@ -237,7 +237,7 @@ export const sessionStorage = {
   delete(projectPath: string, sessionId: string): void {
     migrateIfNeeded(projectPath)
     localStorage.removeItem(sessionKey(sessionId))
-    const index = readIndex(projectPath).filter(e => e.id !== sessionId)
+    const index = readIndex(projectPath).filter((e) => e.id !== sessionId)
     writeIndex(projectPath, index)
   },
 
@@ -249,4 +249,3 @@ export const sessionStorage = {
     return sessionStorage.get(projectPath, sorted[0].id)
   },
 }
-

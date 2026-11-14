@@ -5,9 +5,7 @@ const { autoUpdater } = electronUpdater
 import { createIDEWindow } from '../windows.js'
 import { IPC_CHANNELS } from '../../shared/ipc.js'
 
-export function registerWindowHandlers(
-  getMainWindow: () => BrowserWindow | null
-) {
+export function registerWindowHandlers(getMainWindow: () => BrowserWindow | null) {
   ipcMain.handle(IPC_CHANNELS.window.minimize, (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize()
   })

@@ -22,10 +22,10 @@ export function selfInstallOnLinux(): void {
   if (fs.existsSync(markerPath)) return
 
   try {
-    const installDir  = path.join(os.homedir(), '.local', 'bin')
-    const desktopDir  = path.join(os.homedir(), '.local', 'share', 'applications')
-    const iconDir     = path.join(os.homedir(), '.local', 'share', 'icons', 'hicolor', '256x256', 'apps')
-    const markerDir   = path.join(os.homedir(), '.local', 'share', 'koda')
+    const installDir = path.join(os.homedir(), '.local', 'bin')
+    const desktopDir = path.join(os.homedir(), '.local', 'share', 'applications')
+    const iconDir = path.join(os.homedir(), '.local', 'share', 'icons', 'hicolor', '256x256', 'apps')
+    const markerDir = path.join(os.homedir(), '.local', 'share', 'koda')
     const destAppImage = path.join(installDir, 'koda.AppImage')
 
     // Create required directories
@@ -67,8 +67,12 @@ export function selfInstallOnLinux(): void {
     fs.chmodSync(desktopPath, 0o755)
 
     // Refresh desktop database (best-effort)
-    try { execSync(`update-desktop-database "${desktopDir}"`, { stdio: 'ignore' }) } catch {}
-    try { execSync('xdg-icon-resource forceupdate', { stdio: 'ignore' }) } catch {}
+    try {
+      execSync(`update-desktop-database "${desktopDir}"`, { stdio: 'ignore' })
+    } catch {}
+    try {
+      execSync('xdg-icon-resource forceupdate', { stdio: 'ignore' })
+    } catch {}
 
     // Write marker so we don't repeat this on next launch
     fs.writeFileSync(markerPath, new Date().toISOString(), 'utf-8')
