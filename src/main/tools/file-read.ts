@@ -6,6 +6,23 @@ import { detectLanguage, highlightCode } from '../utils/syntax.js'
 import { checkKodaIgnore } from '../utils/kodaignore.js'
 import { isFreshCacheableRead } from '../services/file-tracker.js'
 
+// ─── Instrumentação de debug (temporária) ──────────────────────────────────────
+// Conta leituras FÍSICAS reais por arquivo, para comparar com o número de cards
+// mostrados pela UI (diagnóstico de duplicação visual vs releitura real).
+const debugReadCounts = new Map<string, number>()
+
+function debugRead(level: 'request' | 'blocked' | 'executed', filePath: string) {
+  if (level === 'executed') {
+    const count = (debugReadCounts.get(filePath) || 0) + 1
+    debugReadCounts.set(filePath, count)
+    console.log(`[DEBUG][READ:executed] ${filePath} — leitura física real #${count}`)
+  } else if (level === 'blocked') {
+    console.log(`[DEBUG][READ:blocked] ${filePath} — já lido, inalterado (guard)`)
+  } else {
+    console.log(`[DEBUG][READ:request] ${filePath}`)
+  }
+}
+
 export class FileReadTool extends BaseTool {
   name = 'file_read'
   description = 'Read the contents of a file from the filesystem. Returns the file content with line numbers.'
@@ -35,6 +52,7 @@ export class FileReadTool extends BaseTool {
     if (error) return this.failure(error)
 
     const filePath = resolve((args.__cwd as string) ?? process.cwd(), args.path as string)
+    debugRead('request', filePath)
 
     const blocked = checkKodaIgnore(args.path as string)
     if (blocked) return this.failure(blocked)
@@ -46,12 +64,14 @@ export class FileReadTool extends BaseTool {
     // Guard anti-releitura: se o arquivo já foi lido nesta sessão e não mudou
     // no disco, não relê — indica o histórico como fonte.
     if (isFreshCacheableRead(filePath)) {
+      debugRead('blocked', filePath)
       return this.success(
         `📄 ${filePath} já foi lido nesta sessão e não mudou desde então — o conteúdo completo está no histórico da conversa. Evite reler a menos que precise do conteúdo atualizado.`,
       )
     }
 
     try {
+      debugRead('executed', filePath)
       const content = await readFile(filePath, 'utf-8')
       const lines = content.split('\n')
       const startLine = Math.max(1, (args.start_line as number) || 1)
