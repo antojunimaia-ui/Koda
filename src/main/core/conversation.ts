@@ -65,67 +65,40 @@ export class Conversation {
   }
 
   /**
-   * MicroCompact: Clears out old, heavy tool results (like logs and file contents)
-   * that the model has already read and digested, keeping only the most recent N turns.
+   * True quando a estimativa atual de tokens atinge `ratio` do orçamento.
+   * Usado para disparar a compactação por resumo antes de estourar.
    */
-  microCompact(keepRecentAssistantTurns = 2): boolean {
-    let compacted = false
-    const compactableTools = new Set([
-      'bash_command',
-      'read_file',
-      'search_directory',
-      'fetch_url',
-      'lsp_query',
-      'list_directory',
-      'read_browser_page',
-    ])
+  shouldCompactAt(ratio = 0.95): boolean {
+    return this.getTokenEstimate() >= this.maxContextTokens * ratio
+  }
 
-    let assistantCount = 0
+  /**
+   * Substitui as mensagens antigas por um resumo (gerado pelo modelo),
+   * mantendo o system prompt e as últimas `keepRecent` mensagens intactas.
+   * Retorna quantas mensagens foram removidas/absorvidas pelo resumo.
+   */
+  applyCompaction(summary: string, keepRecent = 8): { removed: number } {
+    if (this.messages.length <= 1) return { removed: 0 }
 
-    // Travel from the newest messages to the oldest
-    for (let i = this.messages.length - 1; i >= 0; i--) {
-      const msg = this.messages[i]
-      if (msg.role === 'assistant') {
-        assistantCount++
-      }
+    const removed = Math.max(0, this.messages.length - 1 - keepRecent)
+    const system = this.messages[0]
+    const recent = this.messages.slice(-keepRecent)
 
-      // If this tool result is older than the kept turns
-      if (assistantCount > keepRecentAssistantTurns) {
-        if (msg.role === 'tool' && msg.toolCallId) {
-          // Identify tool name by looking backwards for the assistant message that spawned it
-          let toolName = 'unknown'
-          for (let j = i - 1; j >= 0; j--) {
-            const prevMsg = this.messages[j]
-            if (prevMsg.role === 'assistant' && prevMsg.toolCalls) {
-              const call = prevMsg.toolCalls.find((c) => c.id === msg.toolCallId)
-              if (call) {
-                toolName = call.name
-                break
-              }
-            }
-          }
-
-          const clearanceNotice = '[Tool output compacted to save context memory]'
-          if (compactableTools.has(toolName) && msg.content !== clearanceNotice) {
-            // Check length to see if it's worth compacting
-            if (msg.content.length > 100) {
-              msg.content = clearanceNotice
-              compacted = true
-            }
-          }
-        }
-      }
+    const summaryMsg: Message = {
+      role: 'user',
+      content: `[CONTEXTO COMPACTADO — resumo da parte anterior da conversa]\n\n${summary}`,
     }
-    return compacted
+
+    this.messages = [system, summaryMsg, ...recent]
+    return { removed }
   }
 
   /**
    * Trim old messages to stay within token limits,
-   * always preserving the system message and the last N messages
+   * always preserving the system message and the last N messages.
+   * Fallback de segurança — o fluxo principal é a compactação por resumo.
    */
   trimIfNeeded(preserveLastN = 10): boolean {
-    this.microCompact(2) // Always run microCompact before trimming
-
     const estimate = this.getTokenEstimate()
     if (estimate <= this.maxContextTokens) return false
 

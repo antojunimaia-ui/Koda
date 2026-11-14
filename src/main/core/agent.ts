@@ -29,6 +29,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import { HyperEditPlan, runHyperEdit } from '../services/hyperedit.js'
 import { NATIVE_SLASH_COMMANDS } from './slash-commands.js'
+import { COMPACTION_KEEP_RECENT, COMPACTION_RATIO, summarizeConversation } from '../services/context-compactor.js'
 
 export class Agent {
   private provider: BaseProvider | null = null
@@ -355,8 +356,11 @@ export class Agent {
 
         if (signal.aborted) break
 
-        // Trim context if needed
-        this.conversation.trimIfNeeded()
+        // Compactação por resumo (model-based) quando o contexto atinge ~95%.
+        // Fallback para trim duro apenas se o resumo falhar.
+        if (this.conversation.shouldCompactAt(COMPACTION_RATIO)) {
+          await this.compactConversation(onText)
+        }
 
         const messages = this.conversation.getMessages()
         let assistantText = ''
@@ -708,6 +712,23 @@ Regras: use entre 1 e ${maxAgents} agentes; selecione apenas arquivos candidatos
       this.conversation.updateSystemPrompt(this.dynamicSystemPrompt)
     } else {
       this.conversation = new Conversation(this.dynamicSystemPrompt)
+    }
+  }
+
+  /**
+   * Compacta a conversa chamando o PRÓPRIO modelo para resumir a parte antiga,
+   * mantendo as últimas mensagens intactas. Se falhar, cai no trim duro.
+   */
+  private async compactConversation(onText?: (text: string) => void): Promise<void> {
+    try {
+      const summary = await summarizeConversation(this.provider!, this.conversation.getMessages())
+      const { removed } = this.conversation.applyCompaction(summary, COMPACTION_KEEP_RECENT)
+      if (removed > 0) {
+        onText?.(`\n🧠 Contexto compactado: ${removed} mensagens anteriores foram resumidas pelo modelo.\n`)
+      }
+    } catch (err) {
+      console.warn('[Agent] Summarization compaction failed, using hard trim fallback:', err)
+      this.conversation.trimIfNeeded()
     }
   }
 

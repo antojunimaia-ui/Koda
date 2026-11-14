@@ -54,33 +54,41 @@ describe('Conversation', () => {
     expect(last).toMatchObject({ toolCallId: 'call_1', toolName: 'read_file' })
   })
 
-  describe('microCompact', () => {
-    it('compacts heavy old tool outputs beyond the kept assistant turns', () => {
-      const conv = makeConversation()
-      conv.addAssistant('using read_file', [{ id: 'call_1', name: 'read_file', arguments: {} }])
-      conv.addToolResult('call_1', 'x'.repeat(200), 'read_file')
-      conv.addAssistant('second turn')
-      conv.addAssistant('third turn')
-      conv.addAssistant('fourth turn')
-
-      const compacted = conv.microCompact(2)
-      expect(compacted).toBe(true)
-
-      const toolMsg = conv.getMessages().find((m) => m.role === 'tool')
-      expect(toolMsg?.content).toBe('[Tool output compacted to save context memory]')
+  describe('shouldCompactAt', () => {
+    it('returns false when well within the budget', () => {
+      const conv = new Conversation(SYSTEM, 100_000)
+      conv.addUser('short message')
+      expect(conv.shouldCompactAt(0.95)).toBe(false)
     })
 
-    it('keeps short tool outputs intact even beyond the kept turns', () => {
-      const conv = makeConversation()
-      conv.addAssistant('using read_file', [{ id: 'call_1', name: 'read_file', arguments: {} }])
-      conv.addToolResult('call_1', 'ok', 'read_file')
-      conv.addAssistant('second')
-      conv.addAssistant('third')
-      conv.addAssistant('fourth')
+    it('returns true when the estimate reaches the ratio of the budget', () => {
+      const conv = new Conversation(SYSTEM, 160)
+      // ~40 chars → ~10 tokens por mensagem; 16 mensagens ≈ 160 tokens
+      for (let i = 0; i < 16; i++) conv.addUser('x'.repeat(40))
+      expect(conv.shouldCompactAt(0.95)).toBe(true)
+    })
+  })
 
-      expect(conv.microCompact(2)).toBe(false)
-      const toolMsg = conv.getMessages().find((m) => m.role === 'tool')
-      expect(toolMsg?.content).toBe('ok')
+  describe('applyCompaction', () => {
+    it('keeps system + summary + the N recent messages', () => {
+      const conv = makeConversation()
+      for (let i = 1; i <= 12; i++) conv.addUser(`message ${i}`)
+
+      const { removed } = conv.applyCompaction('SUMMARY TEXT', 4)
+      expect(removed).toBe(8) // 13 (system + 12) - 1 - keepRecent(4)
+
+      const messages = conv.getMessages()
+      expect(messages).toHaveLength(6) // system + summary + 4 recentes
+      expect(messages[0].role).toBe('system')
+      expect(messages[1].role).toBe('user')
+      expect(String(messages[1].content)).toContain('[CONTEXTO COMPACTADO')
+      expect(String(messages[1].content)).toContain('SUMMARY TEXT')
+      expect(String(messages.at(-1)?.content)).toBe('message 12')
+    })
+
+    it('returns removed 0 when there is nothing to compact', () => {
+      const conv = makeConversation()
+      expect(conv.applyCompaction('S', 8)).toEqual({ removed: 0 })
     })
   })
 
