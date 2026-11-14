@@ -7,6 +7,7 @@ import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings } 
 import TitleBar from '../TitleBar.js'
 import { BrailleSpinner } from '../BrailleSpinner.js'
 import MessageRow from '../messages/MessageRow.js'
+import { useActiveWorkspaceData } from '../../stores/workspaceStore.js'
 import BrowserPreview from '../BrowserPreview.js'
 import TerminalPanel from '../TerminalPanel.js'
 import WorkspaceTabs from '../WorkspaceTabs.js'
@@ -147,15 +148,8 @@ const ExplorerButton: React.FC<{
 }
 
 interface ModernUIProps {
-  messages: MessageEntry[]
   input: string
   setInput: (val: string) => void
-  isProcessing: boolean
-  agentInfo: AgentInfo
-  mode: Mode
-  setMode: (m: Mode) => void
-  pendingImages: AttachedFile[]
-  setPendingImages: React.Dispatch<React.SetStateAction<AttachedFile[]>>
   handleSend: (overrideText?: string, overrideImages?: AttachedFile[]) => void
   handleStop: () => void
   handlePathClick: () => void
@@ -224,7 +218,6 @@ interface ModernUIProps {
   onShellDismiss?: () => void
   onAddToInput?: (path: string) => void
   onInject?: (path: string) => void
-  pinnedFiles: string[]
   onPin: (path: string) => void
   inputFiles: string[]
   onRemoveInputFile: (path: string) => void
@@ -296,15 +289,8 @@ function useAutoResizeTextarea({ minHeight, maxHeight }: UseAutoResizeTextareaPr
 }
 
 const ModernUI: React.FC<ModernUIProps> = ({
-  messages,
   input,
   setInput,
-  isProcessing,
-  agentInfo,
-  mode,
-  setMode,
-  pendingImages,
-  setPendingImages,
   handleSend,
   handleStop,
   handlePathClick,
@@ -372,7 +358,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
   onLoadSession,
   onAddToInput,
   onInject,
-  pinnedFiles,
   onPin,
   inputFiles,
   onRemoveInputFile,
@@ -385,6 +370,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
   onToggleSourceControl,
   onStartResizeSourceControl,
 }) => {
+  const { messages, isProcessing, agentInfo, mode, setMode, pendingImages, setPendingImages, pinnedFiles } =
+    useActiveWorkspaceData()
   const [showChatHistory, setShowChatHistory] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
 

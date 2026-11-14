@@ -447,16 +447,6 @@ const App: React.FC = () => {
   const sharedUIProps = {
     input,
     setInput,
-    isProcessing: activeWorkspace.isProcessing,
-    agentInfo: activeWorkspace.agentInfo,
-    mode: activeWorkspace.mode,
-    setMode: (m: Mode) => updateWorkspace(activeWorkspace.id, { mode: m }),
-    pendingImages: activeWorkspace.pendingImages,
-    setPendingImages: (imgs: any) =>
-      updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
-        ...prev,
-        pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs,
-      })),
     handleSend,
     handleStop,
     handlePathClick,
@@ -611,7 +601,6 @@ const App: React.FC = () => {
       {kodaSettings.uiMode === 'modern' ? (
         <ModernUI
           {...sharedUIProps}
-          messages={activeWorkspace.messages}
           kodaSettings={activeSettings}
           setKodaSettings={setKodaSettings}
           isIDEWindow={isIDEWindow}
@@ -632,25 +621,12 @@ const App: React.FC = () => {
           onLoadSession={handleLoadSession}
           onAddToInput={handleAddToInput}
           onInject={handleInjectFile}
-          pinnedFiles={activeWorkspace.pinnedFiles}
           onPin={handlePinFile}
           inputFiles={activeWorkspace.inputFiles || []}
           onRemoveInputFile={handleRemoveInputFile}
         />
       ) : (
-        <ClassicUI
-          {...sharedUIProps}
-          {...classicOnlyProps}
-          messages={activeWorkspace.messages}
-          initializing={initializing}
-          taskQueue={activeWorkspace.taskQueue}
-          setTaskQueue={(queue: any) =>
-            updateWorkspace(activeWorkspace.id, (prev: Workspace) => ({
-              ...prev,
-              taskQueue: typeof queue === 'function' ? queue(prev.taskQueue) : queue,
-            }))
-          }
-        />
+        <ClassicUI {...sharedUIProps} {...classicOnlyProps} initializing={initializing} />
       )}
 
       {/* ── Context Panel overlay ─────────────────────────────────────────── */}

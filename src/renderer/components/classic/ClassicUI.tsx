@@ -22,24 +22,12 @@ import { ArrowUpIcon } from 'lucide-react'
 import QuestionsModal from '../modals/QuestionsModal.js'
 import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
 import UpdateBanner from '../UpdateBanner.js'
+import { useActiveWorkspaceData } from '../../stores/workspaceStore.js'
 
 interface ClassicUIProps {
-  messages: MessageEntry[]
   input: string
   setInput: (val: string) => void
   initializing: boolean
-  isProcessing: boolean
-  agentInfo: AgentInfo
-  mode: Mode
-  setMode: (m: Mode) => void
-  pendingImages: AttachedFile[]
-  setPendingImages: (imgs: AttachedFile[] | ((p: AttachedFile[]) => AttachedFile[])) => void
-  taskQueue: { text: string; images: AttachedFile[] }[]
-  setTaskQueue: (
-    queue:
-      | { text: string; images: AttachedFile[] }[]
-      | ((p: { text: string; images: AttachedFile[] }[]) => { text: string; images: AttachedFile[] }[]),
-  ) => void
   handleSend: (overrideText?: string, overrideImages?: AttachedFile[]) => void
   handlePathClick: () => void
   handleInputChange: (val: string) => void
@@ -108,18 +96,9 @@ interface ClassicUIProps {
 }
 
 const ClassicUI: React.FC<ClassicUIProps> = ({
-  messages,
   input,
   setInput,
   initializing,
-  isProcessing,
-  agentInfo,
-  mode,
-  setMode,
-  pendingImages,
-  setPendingImages,
-  taskQueue,
-  setTaskQueue,
   handleSend,
   handlePathClick,
   handleInputChange,
@@ -184,6 +163,8 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
   updateInfo,
   onUpdateDismiss,
 }) => {
+  const { messages, isProcessing, agentInfo, mode, setMode, pendingImages, setPendingImages, taskQueue, setTaskQueue } =
+    useActiveWorkspaceData()
   const showLeft =
     (showBrowser && kodaSettings.browserPosition === 'left') ||
     (showTerminal && kodaSettings.terminalPosition === 'left')

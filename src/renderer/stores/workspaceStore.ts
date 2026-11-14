@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Workspace } from '../types/index.js'
+import type { AgentInfo, AttachedFile, Mode, Workspace } from '../types/index.js'
 
 interface WorkspaceState {
   workspaces: Workspace[]
@@ -114,3 +114,65 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
 
   toggleSplit: () => set((state) => ({ isSplitEnabled: !state.isSplitEnabled })),
 }))
+
+// ─── Seletores derivados ───────────────────────────────────────────────────────
+
+/** Workspace ativo (null quando nenhum). */
+export function useActiveWorkspace(): Workspace | null {
+  const workspaces = useWorkspaceStore((s) => s.workspaces)
+  const activeId = useWorkspaceStore((s) => s.activeId)
+  return workspaces.find((w) => w.id === activeId) || null
+}
+
+export type TaskQueueItem = { text: string; images: AttachedFile[] }
+
+const EMPTY_AGENT_INFO: AgentInfo = {
+  provider: '',
+  model: '',
+  advisorModel: '',
+  project: '',
+  cwd: '',
+}
+
+/**
+ * Dados do workspace ativo + ações de escrita, para componentes consumirem
+ * diretamente da store (sem prop-drilling via App).
+ */
+export function useActiveWorkspaceData() {
+  const ws = useActiveWorkspace()
+  const activeId = useWorkspaceStore((s) => s.activeId)
+  const updateWorkspace = useWorkspaceStore((s) => s.updateWorkspace)
+
+  const setMode = (mode: Mode) => {
+    if (activeId) updateWorkspace(activeId, { mode })
+  }
+
+  const setPendingImages: React.Dispatch<React.SetStateAction<AttachedFile[]>> = (imgs) => {
+    if (!activeId) return
+    updateWorkspace(activeId, (prev) => ({
+      ...prev,
+      pendingImages: typeof imgs === 'function' ? imgs(prev.pendingImages) : imgs,
+    }))
+  }
+
+  const setTaskQueue = (queue: TaskQueueItem[] | ((prev: TaskQueueItem[]) => TaskQueueItem[])) => {
+    if (!activeId) return
+    updateWorkspace(activeId, (prev) => ({
+      ...prev,
+      taskQueue: typeof queue === 'function' ? queue(prev.taskQueue) : queue,
+    }))
+  }
+
+  return {
+    messages: ws?.messages ?? [],
+    isProcessing: ws?.isProcessing ?? false,
+    agentInfo: ws?.agentInfo ?? EMPTY_AGENT_INFO,
+    mode: ws?.mode ?? ('fast' as Mode),
+    setMode,
+    pendingImages: ws?.pendingImages ?? [],
+    setPendingImages,
+    taskQueue: ws?.taskQueue ?? [],
+    setTaskQueue,
+    pinnedFiles: ws?.pinnedFiles ?? [],
+  }
+}
