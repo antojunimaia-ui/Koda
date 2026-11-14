@@ -99,7 +99,7 @@ export function useAgentStream({
         const key = debugToolKey(update)
         const ev = (debugToolStartCounts.current.get(key) || 0) + 1
         debugToolStartCounts.current.set(key, ev)
-        console.log(`[DEBUG][UI:tool_start] ${key} — evento #${ev}`)
+        console.log(`[DEBUG][UI:tool_start] ${key} id=${update.id} — evento #${ev}`)
 
         const chunk = chunkBuffersRef.current.get(workspaceId) || ''
         chunkBuffersRef.current.set(workspaceId, '')
@@ -110,6 +110,7 @@ export function useAgentStream({
         }
 
         onUpdate(workspaceId, (prev) => {
+          console.log(`[DEBUG][UI:tool_start] ${key} — prev.length=${prev.length}`)
           const updated = [...prev]
           const last = updated[updated.length - 1]
           let finalized = updated
@@ -131,7 +132,13 @@ export function useAgentStream({
             {
               id: nextId(),
               type: 'tool' as const,
-              tool: { name: update.name, args: update.args, status: 'running' as const, success: false },
+              tool: {
+                name: update.name,
+                args: update.args,
+                status: 'running' as const,
+                success: false,
+                toolCallId: update.id,
+              },
             },
           ]
           const entries = next.filter(
@@ -149,7 +156,7 @@ export function useAgentStream({
           prev.map((m) =>
             m.type === 'tool' &&
             m.tool &&
-            m.tool.name === update.toolName &&
+            (update.id ? m.tool.toolCallId === update.id : m.tool.name === update.toolName) &&
             (m.tool.status === 'running' || m.tool.status === 'writing')
               ? {
                   ...m,
@@ -174,7 +181,7 @@ export function useAgentStream({
             const next = prev.map((m) =>
               m.type === 'tool' &&
               m.tool &&
-              m.tool.name === update.name &&
+              (update.id ? m.tool.toolCallId === update.id : m.tool.name === update.name) &&
               (m.tool.status === 'running' || m.tool.status === 'writing' || m.tool.status === 'awaiting_approval')
                 ? {
                     ...m,
@@ -189,13 +196,16 @@ export function useAgentStream({
                 : m,
             )
             const key = debugToolKey({ name: update.name, args: update.args })
+            const matchedById = next.filter((m) => m.type === 'tool' && m.tool?.toolCallId === update.id).length
             const entries = next.filter(
               (m) =>
                 m.type === 'tool' &&
                 m.tool?.name === update.name &&
                 debugToolKey({ name: update.name, args: m.tool?.args }) === key,
             ).length
-            console.log(`[DEBUG][UI:after_tool_end] ${key} — entries=${entries}`)
+            console.log(
+              `[DEBUG][UI:after_tool_end] ${key} id=${update.id} matchedById=${matchedById} entries=${entries}`,
+            )
             return next
           })
         requestAnimationFrame(() =>
@@ -303,6 +313,22 @@ export function useAgentStream({
         if (elapsed > 3000 && !document.hasFocus() && Notification.permission === 'granted') {
           new Notification('Koda', { body: 'Task completed ✔', icon: '/icon.png', silent: true })
         }
+        onUpdate(workspaceId, (prev) => {
+          const idCounts = new Map<string, number>()
+          const pathCounts = new Map<string, number>()
+          for (const m of prev) {
+            if (m.type === 'tool' && m.tool?.name === 'file_read') {
+              const id = m.tool.toolCallId || '(none)'
+              idCounts.set(id, (idCounts.get(id) || 0) + 1)
+              const p = String((m.tool.args as any)?.path ?? '')
+              pathCounts.set(p, (pathCounts.get(p) || 0) + 1)
+            }
+          }
+          console.log(
+            `[DEBUG][UI:done_summary] total=${prev.length} file_read_ids=${JSON.stringify([...idCounts.entries()])} file_read_paths=${JSON.stringify([...pathCounts.entries()])}`,
+          )
+          return prev
+        })
       } else if (update.type === 'remote_task') {
         onUpdate(workspaceId, (prev) => [
           ...prev,

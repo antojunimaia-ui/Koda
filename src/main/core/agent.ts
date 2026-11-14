@@ -155,9 +155,9 @@ export class Agent {
   async processMessage(
     userMessage: string,
     onText: (text: string) => void,
-    onToolStart: (name: string, args: any) => void,
-    onToolProgress: (name: string, chunk: string) => void,
-    onToolEnd: (name: string, result: string, success: boolean, args: any) => void,
+    onToolStart: (id: string, name: string, args: any) => void,
+    onToolProgress: (id: string, name: string, chunk: string) => void,
+    onToolEnd: (id: string, name: string, result: string, success: boolean, args: any) => void,
     onError: (error: string) => void,
     images?: import('../providers/base.js').ContentPart[],
     snapshotPromise?: Promise<void>,
@@ -325,6 +325,7 @@ export class Agent {
       }
 
       let iterations = 0
+      let executionCounter = 0
       // ── Doom Loop detection (OpenCode-inspired) ────────────────────────
       // Threshold 3 = 3 chamadas idênticas consecutivas travam o loop.
       // Usa stable stringify + strip de campos voláteis (_rawPart, thought_signature)
@@ -373,15 +374,15 @@ export class Agent {
         const pendingToolCalls: ToolCall[] = []
         let hasToolCalls = false
         let currentStreamingToolName = ''
+        // Um id por tool call, na ordem de aparição. Os tool_call_end chegam no fim
+        // do stream na MESMA ordem dos starts — usamos shift() para casar.
+        const executionIds: string[] = []
+        // Tool results coletados durante o stream (executados no tool_call_end)
+        const toolResults: { id: string; name: string; output: string; success: boolean }[] = []
         const currentIterationSignatures: string[] = []
 
-        // INCREMENTAL: assim que uma tool é executada, entregamos o resultado ao
-        // modelo numa rodada imediata (quebrando o stream), em vez de acumular
-        // todas as tool calls da resposta e devolver tudo junto no final.
-        let deliveredToolImmediately = false
-
         // Stream response from LLM
-        streamLoop: for await (const chunk of this.provider.chat(messages, this.tools)) {
+        for await (const chunk of this.provider.chat(messages, this.tools)) {
           if (signal.aborted) break
 
           switch (chunk.type) {
@@ -402,13 +403,15 @@ export class Agent {
               hasToolCalls = true
               if (chunk.toolCall?.name) {
                 currentStreamingToolName = chunk.toolCall.name
-                onToolStart(chunk.toolCall.name, chunk.toolCall.arguments)
+                const eid = `t${++executionCounter}`
+                executionIds.push(eid)
+                onToolStart(eid, chunk.toolCall.name, chunk.toolCall.arguments)
               }
               break
 
             case 'tool_call_args':
               if (currentStreamingToolName && chunk.content) {
-                onToolProgress(currentStreamingToolName, chunk.content)
+                onToolProgress(executionIds[executionIds.length - 1] || '', currentStreamingToolName, chunk.content)
               }
               break
 
@@ -448,23 +451,10 @@ export class Agent {
                 recentSignatures.push(signature)
                 currentIterationSignatures.push(signature)
 
-                onToolEnd(toolCall.name, resultOutput, resultSuccess, toolCall.arguments)
-
-                // INCREMENTAL: registra a resposta parcial do assistente + o
-                // resultado da tool e interrompe o stream — o modelo recebe o
-                // resultado numa rodada nova e imediata.
-                this.conversation.addAssistant(
-                  assistantText,
-                  hasToolCalls ? pendingToolCalls : undefined,
-                  assistantThoughts.length > 0 ? assistantThoughts : undefined,
-                )
-                this.conversation.addToolResult(
-                  toolCall.id,
-                  resultSuccess ? resultOutput : `Error: ${resultOutput}`,
-                  toolCall.name,
-                )
-                deliveredToolImmediately = true
-                break streamLoop
+                const eid = executionIds.shift() || ''
+                onToolEnd(eid, toolCall.name, resultOutput, resultSuccess, toolCall.arguments)
+                // Execução normal — imediata, sem cache
+                toolResults.push({ id: toolCall.id, name: toolCall.name, output: resultOutput, success: resultSuccess })
               }
               break
             }
@@ -480,15 +470,23 @@ export class Agent {
 
         if (signal.aborted) break
 
-        // INCREMENTAL: volta ao topo do loop com o resultado já na conversa
-        if (deliveredToolImmediately) continue
-
-        // Resposta final sem tools — encerra
+        // Registra a mensagem do assistente
         this.conversation.addAssistant(
           assistantText,
           hasToolCalls ? pendingToolCalls : undefined,
           assistantThoughts.length > 0 ? assistantThoughts : undefined,
         )
+
+        // Adiciona todos os resultados das tools à conversa (coletados no stream)
+        if (toolResults.length > 0) {
+          for (const tr of toolResults) {
+            this.conversation.addToolResult(tr.id, tr.success ? tr.output : `Error: ${tr.output}`, tr.name)
+          }
+          // Continua o loop para o LLM responder aos resultados das tools
+          continue
+        }
+
+        // Sem tool calls — resposta final
         break
       }
     } catch (err) {

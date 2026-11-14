@@ -219,9 +219,9 @@ export function startWebhookServer(
           .processMessage(
             message,
             (text) => emit({ type: 'text', content: text }),
-            (name, args) => emit({ type: 'tool_start', name, args }),
-            (name, chunk) => emit({ type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),
-            (name, result, success, args) => emit({ type: 'tool_end', name, result, success, args }),
+            (id, name, args) => emit({ type: 'tool_start', id, name, args }),
+            (id, name, chunk) => emit({ type: 'tool_progress', event: 'writing', id, toolName: name, content: chunk }),
+            (id, name, result, success, args) => emit({ type: 'tool_end', id, name, result, success, args }),
             (error) => emit({ type: 'error', message: error }),
           )
           .then(() => emit({ type: 'done' }))

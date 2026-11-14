@@ -25,6 +25,7 @@ export interface MessageEntry {
     pid?: number
     command?: string
     baseCommand?: string
+    toolCallId?: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     args?: any
   }

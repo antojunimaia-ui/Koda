@@ -63,17 +63,18 @@ export function registerAgentHandlers(agents: Map<string, Agent>, broadcastAgent
         await agent.processMessage(
           message,
           (text) => broadcastAgentUpdate({ workspaceId, type: 'text', content: text }),
-          (name, args) => broadcastAgentUpdate({ workspaceId, type: 'tool_start', name, args }),
-          (name, chunk) =>
+          (id, name, args) => broadcastAgentUpdate({ workspaceId, type: 'tool_start', id, name, args }),
+          (id, name, chunk) =>
             broadcastAgentUpdate({
               workspaceId,
               type: 'tool_progress',
               event: 'writing',
+              id,
               toolName: name,
               content: chunk,
             }),
-          (name, result, success, args) =>
-            broadcastAgentUpdate({ workspaceId, type: 'tool_end', name, result, success, args }),
+          (id, name, result, success, args) =>
+            broadcastAgentUpdate({ workspaceId, type: 'tool_end', id, name, result, success, args }),
           (error) => broadcastAgentUpdate({ workspaceId, type: 'error', message: error }),
           images as any,
           snapshotPromise,

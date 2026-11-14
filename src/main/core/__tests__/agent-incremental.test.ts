@@ -67,4 +67,62 @@ describe('Agent — execução incremental de tools', () => {
 
     expect(texts.join(' ')).toContain('Li o arquivo e tenho o conteúdo.')
   })
+
+  it('emite ids únicos pareados start/end e 1 resultado por arquivo em multi-tool', async () => {
+    fs.writeFileSync(path.join(tmp, 'b.txt'), 'conteúdo do arquivo B')
+
+    const startIds: string[] = []
+    const endIds: string[] = []
+    let providerCalls = 0
+    let secondCallSawBoth = false
+
+    const fakeProvider = {
+      providerName: 'Fake',
+      chat: async function* (messages: Message[]): AsyncGenerator<StreamChunk> {
+        providerCalls++
+        if (providerCalls === 1) {
+          // Simula uma resposta com VÁRIAS tool calls de file_read
+          yield { type: 'text', content: 'Vou ler dois arquivos.' }
+          yield { type: 'tool_call_start', toolCall: { id: 'c1', name: 'file_read' } }
+          yield { type: 'tool_call_end', toolCall: { id: 'c1', name: 'file_read', arguments: { path: 'a.txt' } } }
+          yield { type: 'tool_call_start', toolCall: { id: 'c2', name: 'file_read' } }
+          yield { type: 'tool_call_end', toolCall: { id: 'c2', name: 'file_read', arguments: { path: 'b.txt' } } }
+          return
+        }
+        const texts = messages.filter((m) => m.role === 'tool').map((m) => String(m.content))
+        secondCallSawBoth =
+          texts.some((t) => t.includes('olá conteúdo')) && texts.some((t) => t.includes('conteúdo do arquivo B'))
+        yield { type: 'text', content: 'Terminei.' }
+      },
+    } as unknown as BaseProvider
+
+    const agent = new Agent()
+    agent.setCwd(tmp)
+    ;(agent as any).provider = fakeProvider
+
+    await agent.processMessage(
+      'leia a.txt e b.txt',
+      () => {},
+      (id) => startIds.push(id),
+      () => {},
+      (id) => endIds.push(id),
+      () => {},
+    )
+
+    expect(providerCalls).toBe(2)
+    expect(secondCallSawBoth).toBe(true)
+
+    // Cada tool call tem um id único e o end casa com o start (ordem de shift)
+    expect(startIds).toHaveLength(2)
+    expect(endIds).toHaveLength(2)
+    expect(new Set(startIds).size).toBe(2)
+    expect(endIds).toEqual(startIds)
+
+    // Exatamente 1 resultado por arquivo, sem duplicação
+    const history = agent.getHistory()
+    const toolMsgs = history.filter((m) => m.role === 'tool')
+    expect(toolMsgs).toHaveLength(2)
+    expect(String(toolMsgs[0].content)).toContain('olá conteúdo')
+    expect(String(toolMsgs[1].content)).toContain('conteúdo do arquivo B')
+  })
 })
