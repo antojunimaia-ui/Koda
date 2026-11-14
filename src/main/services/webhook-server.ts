@@ -8,10 +8,12 @@ export interface WebhookConfig {
   token: string
   enabled: boolean
   allowRemoteAccess?: boolean // Allow connections from network (0.0.0.0) instead of localhost only
+  streaming?: boolean // Enable GET /stream (SSE) with progress events (default true)
 }
 
 let server: http.Server | null = null
 let currentConfig: WebhookConfig | null = null
+const sseClients = new Set<http.ServerResponse>()
 
 function json(res: http.ServerResponse, status: number, data: unknown) {
   const body = JSON.stringify(data)
@@ -19,6 +21,11 @@ function json(res: http.ServerResponse, status: number, data: unknown) {
     'Content-Type': 'application/json',
   })
   res.end(body)
+}
+
+function sendSse(res: http.ServerResponse, data: unknown) {
+  if (res.writableEnded) return
+  res.write(`data: ${JSON.stringify(data)}\n\n`)
 }
 
 function readBody(req: http.IncomingMessage): Promise<string> {
@@ -123,6 +130,26 @@ export function startWebhookServer(
         return
       }
 
+      // ── GET /stream (SSE) ─────────────────────────────────────────────────
+      // Streams agent progress events (text, tool calls, done/error) in real time.
+      // Only registered when `streaming` is enabled; same Bearer auth as the rest.
+      if (method === 'GET' && pathname === '/stream') {
+        if (!config.streaming) {
+          json(res, 404, { error: 'Not found' })
+          return
+        }
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+        })
+        res.write(': connected\n\n')
+        sseClients.add(res)
+        req.on('close', () => sseClients.delete(res))
+        return
+      }
+
       // ── GET /messages ─────────────────────────────────────────────────────
       // Returns the full conversation history of the active workspace.
       if (method === 'GET' && pathname === '/messages') {
@@ -184,6 +211,7 @@ export function startWebhookServer(
 
         const emit = (data: object) => {
           getWindows().forEach((w) => w.webContents.send('agent:update', { workspaceId, ...data }))
+          for (const client of sseClients) sendSse(client, { workspaceId, ...data })
         }
 
         // Fire and forget — caller uses GET /messages to read the result
@@ -228,6 +256,8 @@ export function stopWebhookServer(): Promise<void> {
       resolve()
       return
     }
+    for (const client of sseClients) client.end()
+    sseClients.clear()
     server.close(() => {
       server = null
       currentConfig = null

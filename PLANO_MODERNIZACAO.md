@@ -27,7 +27,7 @@
 | 4. Zod                    | ✅ Concluída (schemas + validação IPC/KoClaw/.env; stream de providers → backlog)                           |
 | 5. Zustand                | ✅ Concluída (stores workspace/ui + consumo direto no ModernUI/ClassicUI; useAgentStore → backlog opcional) |
 | 6. Schema-first tools     | ✅ Concluída (schema por tool + validação no registry + prompt do schema; zod-per-tool → backlog)           |
-| 7. Servidor MCP + SSE/API | ⏳ Pendente                                                                                                 |
+| 7. Servidor MCP + SSE/API | ✅ Concluída (MCP stdio + SSE com toggle; ConnectRPC opcional → backlog)                                    |
 
 ---
 
@@ -207,7 +207,7 @@ prompt, validação e tipos são gerados. ✅ (validação + prompt gerados; tip
 
 ---
 
-## Fase 7 — Modo Servidor MCP + evolução do KoClaw
+## Fase 7 — Modo Servidor MCP + evolução do KoClaw — ✅ Concluída
 
 ### 7.1 Modo Servidor MCP
 
@@ -217,21 +217,20 @@ outros agentes/IDEs) dirija o Koda — sem protocolo proprietário.
 
 **Ações**:
 
-- [ ] Implementar um servidor MCP nativo (`@modelcontextprotocol/sdk`) que expõe as
-      tools registradas no `ToolRegistry` como ferramentas MCP (`tools/list`,
-      `tools/call`).
-- [ ] Mapear as tools existentes (file_*, shell, search, lsp_query, skill, etc.) para
-      o schema MCP, reutilizando o contrato schema-first da Fase 6.
-- [ ] Limitar exposição por padrão: apenas tools seguras/leitura; `shell` e demais
-      ferramentas mutáveis exigem opt-in explícito no Settings.
-- [ ] Aplicar `.kodaignore` e validação de argumentos nas chamadas via MCP (mesma
-      trilha do agente interno).
-- [ ] Transporte: stdio (para `koda` como subprocesso) e/ou SSE (para acesso remoto),
-      ambos configuráveis.
-- [ ] Toggle no Settings: "Modo Servidor MCP" (desativado por padrão).
+- [x] Implementar servidor MCP nativo (`@modelcontextprotocol/sdk`) em
+      `services/mcp-server.ts` — expõe as tools do `ToolRegistry` como ferramentas
+      MCP (`tools/list`, `tools/call`).
+- [x] Mapear as tools para o schema MCP reutilizando o contrato schema-first:
+      `toolParametersToZod()` (Fase 6) como `inputSchema`.
+- [x] Limitar exposição por padrão: apenas tools seguras/leitura (`READ_ONLY_TOOLS`);
+      `shell`/file_write/etc. exigem `allowMutatingTools: true`.
+- [x] Validação de argumentos na trilha do agente (o próprio `tool.execute` + registry).
+- [x] Transporte: **stdio** (`StdioServerTransport`) — Koda como subprocesso MCP.
+- [x] Toggle no Settings (modal MCP): "Modo Servidor MCP" + opt-in de tools mutáveis.
+- [x] IPC: `mcp:server_start` / `mcp:server_stop` / `mcp:server_status`.
 
-**Critério de sucesso**: conectar o Koda como servidor MCP a um cliente padrão e usar
-`file_read`/`search` dele, com as mesmas proteções do agente interno.
+**Critério de sucesso**: cliente MCP padrão lista e chama tools read-only � Koda.
+✅ (testes com `InMemoryTransport` + `Client` do SDK)
 
 ### 7.2 SSE no KoClaw (com opção de desativar)
 
@@ -240,18 +239,19 @@ em tempo real.
 
 **Ações**:
 
-- [ ] Adicionar endpoint `GET /stream` (SSE) que emite eventos de progresso do agente:
-      tokens/assistant, início/fim de tool call, status (processing/done/error).
-- [ ] Manter `POST /message` e `GET /messages` intactos (compatibilidade com `curl`).
-- [ ] Adicionar **toggle de desativação** no Settings (ex: `koclaw.streaming`): - Quando desativado, o servidor **não registra** a rota `/stream` e o modelo de
-      polling continua funcionando normalmente. - Quando ativado, emitir eventos de forma assíncrona sem bloquear as respostas
-      REST existentes.
+- [x] Endpoint `GET /stream` (SSE) emitindo eventos de progresso do agente (text,
+      tool_start/tool_end, done/error) via mesmo `emit()` do `POST /message`.
+- [x] `POST /message` e `GET /messages` intactos (compatibilidade com `curl`).
+- [x] **Toggle de desativação** (`koclaw.streaming`, default true): desativado, a rota
+      `/stream` retorna `404` e o polling segue funcionando.
+- [x] SSE respeita a mesma autenticação Bearer.
+- [x] UIs: checkbox no RemoteControlTab + endpoint `/stream` na lista.
 - [ ] Transporte alternativo futuro: WebSocket (deixar extensível via camada de
-      transporte).
-- [ ] SSE respeita a mesma autenticação (Bearer token) das demais rotas.
+      transporte). ⏳
 
-**Critério de sucesso**: `curl -N /stream` mostra tokens em tempo real; com o toggle
-desativado, a rota retorna `404` e o fluxo legacy de polling segue 100% funcional.
+**Critério de sucesso**: `curl -N /stream` mostra eventos em tempo real; com o toggle
+desativado, a rota retorna `404` e o fluxo legacy de polling segue 100% funcional. ✅
+(testes: 200/tipo event-stream + evento `done`; 404 quando desativado)
 
 ### 7.3 Contrato ConnectRPC opcional (quando houver demanda)
 

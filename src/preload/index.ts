@@ -60,6 +60,9 @@ const api: KodaApi = {
   createFolder: (folderPath: string) => ipcRenderer.invoke(IPC_CHANNELS.project.createFolder, folderPath),
   getMcpConfigs: () => ipcRenderer.invoke(IPC_CHANNELS.mcp.getConfigs),
   saveMcpConfigs: (configs: unknown[]) => ipcRenderer.invoke(IPC_CHANNELS.mcp.saveConfigs, configs),
+  mcpServerStart: (opts?: { allowMutatingTools?: boolean }) => ipcRenderer.invoke(IPC_CHANNELS.mcp.serverStart, opts),
+  mcpServerStop: () => ipcRenderer.invoke(IPC_CHANNELS.mcp.serverStop),
+  mcpServerStatus: () => ipcRenderer.invoke(IPC_CHANNELS.mcp.serverStatus),
   getProjectSession: (projectPath: string) => ipcRenderer.invoke(IPC_CHANNELS.agent.getSession, projectPath),
   saveProjectSession: (workspaceId: string, projectPath: string, data: unknown) =>
     ipcRenderer.invoke(IPC_CHANNELS.agent.saveSession, workspaceId, projectPath, data),

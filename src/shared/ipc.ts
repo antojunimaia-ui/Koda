@@ -173,6 +173,9 @@ export const IPC_CHANNELS = {
   mcp: {
     getConfigs: 'mcp:get_configs',
     saveConfigs: 'mcp:save_configs',
+    serverStart: 'mcp:server_start',
+    serverStop: 'mcp:server_stop',
+    serverStatus: 'mcp:server_status',
   },
   discord: {
     enable: 'discord:enable',
@@ -261,6 +264,9 @@ export interface KodaApi {
   // ── MCP ────────────────────────────────────────────────
   getMcpConfigs: () => Promise<unknown[]>
   saveMcpConfigs: (configs: unknown[]) => Promise<{ success: boolean; error?: string }>
+  mcpServerStart: (opts?: { allowMutatingTools?: boolean }) => Promise<{ success: boolean; error?: string }>
+  mcpServerStop: () => Promise<{ success: boolean }>
+  mcpServerStatus: () => Promise<{ running: boolean }>
 
   // ── Skills / Marketplace ───────────────────────────────
   listSkills: () => Promise<{ success: boolean; skills?: SkillInfo[]; error?: string }>

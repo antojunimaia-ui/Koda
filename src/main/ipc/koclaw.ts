@@ -24,6 +24,7 @@ export function registerKoclawHandlers(agents: Map<string, Agent>, getWindows: (
           token: validConfig.token,
           enabled: true,
           allowRemoteAccess: validConfig.allowRemoteAccess,
+          streaming: validConfig.streaming,
         },
         getAgentWithId,
         () => getWindows().filter((w): w is BrowserWindow => !!w),

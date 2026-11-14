@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 export interface ToolParameter {
   name: string
   type: 'string' | 'number' | 'boolean' | 'array'
@@ -38,6 +40,23 @@ export function toolParametersToJsonSchema(parameters: ToolParameter[]): ToolJso
     ),
     required: parameters.filter((p) => p.required).map((p) => p.name),
   }
+}
+
+/** Gera um schema Zod a partir dos `ToolParameter` (usado por clientes MCP). */
+export function toolParametersToZod(parameters: ToolParameter[]): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const shape: Record<string, z.ZodTypeAny> = {}
+  for (const p of parameters) {
+    const base: z.ZodTypeAny =
+      p.type === 'number'
+        ? z.number()
+        : p.type === 'boolean'
+          ? z.boolean()
+          : p.type === 'array'
+            ? z.array(z.unknown())
+            : z.string()
+    shape[p.name] = p.required ? base : base.optional()
+  }
+  return z.object(shape)
 }
 
 /** Valida argumentos contra um JSON Schema de tool. Retorna erro legível ou null. */

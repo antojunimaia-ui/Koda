@@ -32,6 +32,7 @@ export const KoClawStartConfigSchema = z.object({
   port: z.number().int().positive(),
   token: z.string().min(1),
   allowRemoteAccess: z.boolean().optional(),
+  streaming: z.boolean().optional(),
 })
 export type KoClawStartConfig = z.infer<typeof KoClawStartConfigSchema>
 

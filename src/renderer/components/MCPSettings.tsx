@@ -20,10 +20,27 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({ onClose, onSave }) => {
   const [configs, setConfigs] = useState<MCPServerConfig[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [currentEdit, setCurrentEdit] = useState<Partial<MCPServerConfig>>({})
+  const [mcpServerRunning, setMcpServerRunning] = useState(false)
+  const [allowMutating, setAllowMutating] = useState(false)
 
   useEffect(() => {
     window.koda.getMcpConfigs().then((configs) => setConfigs(configs as MCPServerConfig[]))
   }, [])
+
+  useEffect(() => {
+    window.koda.mcpServerStatus().then((s) => setMcpServerRunning(s.running))
+  }, [])
+
+  const handleMcpServerToggle = async () => {
+    if (!mcpServerRunning) {
+      const res = await window.koda.mcpServerStart({ allowMutatingTools: allowMutating })
+      if (!res.success) return
+    } else {
+      await window.koda.mcpServerStop()
+    }
+    const s = await window.koda.mcpServerStatus()
+    setMcpServerRunning(s.running)
+  }
 
   const handleAddLocal = () => {
     setEditingId('new_local')
@@ -147,6 +164,49 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({ onClose, onSave }) => {
         {/* Editor Area */}
         <div className="flex-1 flex flex-col">
           <div className="p-8 flex-1 overflow-y-auto custom-scrollbar">
+            {/* Modo Servidor MCP */}
+            <div className="mb-6 p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`w-2 h-2 rounded-full ${mcpServerRunning ? 'bg-indigo-400 animate-pulse' : 'bg-slate-600'}`}
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-200">Modo Servidor MCP</span>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      {mcpServerRunning
+                        ? 'Koda expõe suas tools via protocolo MCP (stdio)'
+                        : 'Permite que clientes MCP (Claude Desktop, agentes) usem as tools do Koda'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleMcpServerToggle}
+                  className={`w-10 h-5 rounded-full relative transition-all ${mcpServerRunning ? 'bg-indigo-500' : 'bg-slate-700'}`}
+                >
+                  <div
+                    className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${mcpServerRunning ? 'left-6' : 'left-1'}`}
+                  />
+                </button>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer mt-3">
+                <input
+                  type="checkbox"
+                  checked={allowMutating}
+                  onChange={(e) => setAllowMutating(e.target.checked)}
+                  disabled={mcpServerRunning}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                />
+                <span className="text-xs font-medium text-slate-300">
+                  Expor também tools mutáveis (file_write, shell…)
+                </span>
+              </label>
+              <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                Padrão: apenas tools de leitura.{' '}
+                <span className="text-amber-400">⚠ Habilitar mutáveis expõe acesso de escrita a clientes MCP.</span>
+              </p>
+            </div>
+
             {editingId ? (
               <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center justify-between">

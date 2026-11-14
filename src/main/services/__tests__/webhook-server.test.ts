@@ -19,9 +19,13 @@ function getAgent() {
 
 const TOKEN = 'test-token'
 
-async function startServer() {
+async function startServer(overrides: Record<string, unknown> = {}) {
   const port = 34000 + Math.floor(Math.random() * 500)
-  await startWebhookServer({ port, token: TOKEN, enabled: true }, getAgent, () => [])
+  await startWebhookServer(
+    { port, token: TOKEN, enabled: true, streaming: true, ...overrides } as any,
+    getAgent,
+    () => [],
+  )
   return port
 }
 
@@ -99,6 +103,38 @@ describe('webhook-server (KoClaw)', () => {
   it('returns 404 for unknown routes (with auth)', async () => {
     const port = await startServer()
     const res = await fetch(`${base(port)}/does-not-exist`, { headers: authHeaders() })
+    expect(res.status).toBe(404)
+  })
+
+  it('serves GET /stream with SSE when enabled', async () => {
+    const port = await startServer()
+    const res = await fetch(`${base(port)}/stream`, { headers: authHeaders() })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+
+    // Dispara uma mensagem — o fim do processamento gera o evento "done"
+    await fetch(`${base(port)}/message`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ message: 'hello' }),
+    })
+
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    const deadline = Date.now() + 5000
+    while (Date.now() < deadline && !buffer.includes('"type":"done"')) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+    }
+    expect(buffer).toContain('"type":"done"')
+    await reader.cancel().catch(() => {})
+  })
+
+  it('rejects GET /stream when streaming is disabled', async () => {
+    const port = await startServer({ streaming: false })
+    const res = await fetch(`${base(port)}/stream`, { headers: authHeaders() })
     expect(res.status).toBe(404)
   })
 

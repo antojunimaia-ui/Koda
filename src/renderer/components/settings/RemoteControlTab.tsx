@@ -12,6 +12,7 @@ const RemoteControlTab = memo(() => {
   const [allowRemoteAccess, setAllowRemoteAccess] = useState(
     () => localStorage.getItem('koda_koclaw_remote') === 'true',
   )
+  const [streaming, setStreaming] = useState(() => localStorage.getItem('koda_koclaw_streaming') !== 'false')
   const [token] = useState(() => {
     let t = localStorage.getItem('koda_koclaw_token')
     if (!t) {
@@ -37,7 +38,8 @@ const RemoteControlTab = memo(() => {
     setError('')
     if (!status.running) {
       localStorage.setItem('koda_koclaw_remote', String(allowRemoteAccess))
-      const res = await window.koda.koClawStart({ port, token, allowRemoteAccess } as any)
+      localStorage.setItem('koda_koclaw_streaming', String(streaming))
+      const res = await window.koda.koClawStart({ port, token, allowRemoteAccess, streaming })
       if (!(res as any).success) {
         setError((res as any).error || 'Failed to start')
         return
@@ -132,6 +134,24 @@ const RemoteControlTab = memo(() => {
           </p>
         </div>
 
+        {/* SSE streaming checkbox */}
+        <div className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={streaming}
+              onChange={(e) => setStreaming(e.target.checked)}
+              disabled={status.running}
+              className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:cursor-not-allowed"
+            />
+            <span className="text-xs font-medium text-slate-300">Streaming de eventos (SSE)</span>
+          </label>
+          <p className="text-[10px] text-slate-500 leading-relaxed">
+            Exposes <code className="bg-slate-900 px-1 rounded">GET /stream</code> with real-time progress events.
+            Disable to keep only polling via <code className="bg-slate-900 px-1 rounded">/messages</code>.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Bearer Token</label>
           <div className="flex items-center gap-2">
@@ -163,6 +183,7 @@ const RemoteControlTab = memo(() => {
             { method: 'GET', path: '/help', auth: false, desc: 'API documentation for agents — no auth required' },
             { method: 'POST', path: '/message', auth: true, desc: 'Send a task to Koda (returns 202 immediately)' },
             { method: 'GET', path: '/messages', auth: true, desc: 'Read full conversation history' },
+            { method: 'GET', path: '/stream', auth: true, desc: 'SSE stream of agent progress (togglable)' },
             { method: 'POST', path: '/reset', auth: true, desc: 'Clear conversation and reset the session' },
           ].map((e) => (
             <div
