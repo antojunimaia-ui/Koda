@@ -19,15 +19,15 @@
 
 ## Status das fases
 
-| Fase | Status |
-|---|---|
-| 1. IPC tipado | ✅ Concluída (2026-11-14) |
-| 2. Testes | 🟡 Em andamento (unit core/tools ✅; providers ✅; serviços ✅; só e2e Playwright pendente) |
-| 3. Qualidade/lint/strict | ⏳ Pendente |
-| 4. Zod | ⏳ Pendente |
-| 5. Zustand | ⏳ Pendente |
-| 6. Schema-first tools | ⏳ Pendente |
-| 7. Servidor MCP + SSE/API | ⏳ Pendente |
+| Fase                      | Status                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| 1. IPC tipado             | ✅ Concluída (2026-11-14)                                                                    |
+| 2. Testes                 | 🟡 Em andamento (unit core/tools ✅; providers ✅; serviços ✅; só e2e Playwright pendente)  |
+| 3. Qualidade/lint/strict  | 🟡 Em andamento (ESLint+Prettier+husky+CI ✅; strict flags/`any`/format repo-wide pendentes) |
+| 4. Zod                    | ⏳ Pendente                                                                                  |
+| 5. Zustand                | ⏳ Pendente                                                                                  |
+| 6. Schema-first tools     | ⏳ Pendente                                                                                  |
+| 7. Servidor MCP + SSE/API | ⏳ Pendente                                                                                  |
 
 ---
 
@@ -38,6 +38,7 @@ no main são registrados separadamente. Qualquer divergência entre os dois lado
 aparece em runtime.
 
 **Ações**:
+
 - [x] Criar `src/shared/ipc.ts` com as assinaturas de todos os canais IPC:
       `IPC_CHANNELS` (constantes de ~70 canais) + tipos de domínio + interface `KodaApi`.
 - [x] Nomear explicitamente cada canal e tipar payload/resposta (tipos de domínio
@@ -50,6 +51,7 @@ aparece em runtime.
 - [x] Typecheck + build limpos (`npm run typecheck`, `npm run build`).
 
 **Bugs encontrados e corrigidos com a tipagem estrita**:
+
 - 🐛 `openFile` — renderer chamava `(workspaceId, filePath, line?)`, mas o preload
   enviava `(filePath, line?)` ao handler (workspaceId era aberto como arquivo).
 - 🐛 Métodos ausentes no `global.d.ts`: `discordIsEnabled`, `discordUpdateActivity`,
@@ -72,39 +74,20 @@ Fase 4 (Zod).
 testes**. Todo refactor é uma aposta.
 
 **Ações**:
+
 - [x] Adicionar **Vitest** v5 como runner de testes (`vitest.config.ts`, `node`).
 - [x] `npm run test` + `npm run test:watch` no `package.json`.
-- [x] **Unit tests do core** (`src/main/core/__tests__`):
-      - `conversation.ts` — histórico, `microCompact`, `trimIfNeeded`, rollback. ✅
-      - `prompt-builder.ts` — montagem do prompt com env/projeto/tools. ✅
-      - `context.ts` — detecção de linguagem/framework/package manager. ✅
-      - `slash-commands.ts` — estrutura e unicidade dos comandos. ✅
-- [x] **Unit tests das tools** (`src/main/tools/__tests__`):
-      - `file-edit.ts` / `file-read.ts` / `file-write.ts` — fixtures temporárias em disco,
-        `.kodaignore` aplicado. ✅
-      - `kodaignore` (utils) — regras de bloqueio por padrão. ✅
-      - `search.ts` — `manualSearch` (regex, case-insensitive, include glob, maxResults,
-        diretórios ignorados) + `execute` com fallback. ✅
-      - `file-find.ts` — glob com `globby`, `.kodaignore` aplicado, sem resultados. ✅
-      - `shell.ts` — validação de parâmetros, `isReadOnly`, bloqueio de comandos
-        destrutivos, fluxo de aprovação (resolveApproval) com `node-pty`/electron
-        mockados, e tools kill/list/shell_input com registro vazio. ✅
-- [x] **Testes de providers** com **mock de HTTP** (`src/main/providers/__tests__`):
-      - `openai.ts` — stream de texto, tool calls (argumentos), erro. ✅
-      - `anthropic.ts` — text_delta/input_json_delta, tool_call_end, erro de parse. ✅
-      - `google.ts` — SSE (`net.fetch` mockado), functionCall, erro HTTP. ✅
-      - `ollama.ts` — formato OpenAI-compatível, tool calls, erro com dica. ✅
-- [x] **Testes de serviços** (`src/main/services/__tests__`):
-      - `snapshot.ts` — captura/restauração, `node_modules` ignorado, limpeza de ids. ✅
-      - `webhook-server.ts` — KoClaw real em porta aleatória: /help público, auth 401,
-        GET /messages, POST /message (202), 400 (missing/invalid), 404, stop. ✅
-      - `hyperedit.ts` — parsing e validação: tarefa obrigatória, arquivo inexistente,
-        fora do workspace, plano vazio. ✅
-- [ ] **e2e do renderer** com **Playwright**:
-      - Fluxo de envio de mensagem (mocking do IPC).
-      - Split de workspaces (criar/fechar/alternar tabs).
-      - Tema Modern vs Classic, wizard de boas-vindas.
-      - Painel de Source Control (stage/commit). ⏳
+- [x] **Unit tests do core** (`src/main/core/__tests__`): - `conversation.ts` — histórico, `microCompact`, `trimIfNeeded`, rollback. ✅ - `prompt-builder.ts` — montagem do prompt com env/projeto/tools. ✅ - `context.ts` — detecção de linguagem/framework/package manager. ✅ - `slash-commands.ts` — estrutura e unicidade dos comandos. ✅
+- [x] **Unit tests das tools** (`src/main/tools/__tests__`): - `file-edit.ts` / `file-read.ts` / `file-write.ts` — fixtures temporárias em disco,
+      `.kodaignore` aplicado. ✅ - `kodaignore` (utils) — regras de bloqueio por padrão. ✅ - `search.ts` — `manualSearch` (regex, case-insensitive, include glob, maxResults,
+      diretórios ignorados) + `execute` com fallback. ✅ - `file-find.ts` — glob com `globby`, `.kodaignore` aplicado, sem resultados. ✅ - `shell.ts` — validação de parâmetros, `isReadOnly`, bloqueio de comandos
+      destrutivos, fluxo de aprovação (resolveApproval) com `node-pty`/electron
+      mockados, e tools kill/list/shell_input com registro vazio. ✅
+- [x] **Testes de providers** com **mock de HTTP** (`src/main/providers/__tests__`): - `openai.ts` — stream de texto, tool calls (argumentos), erro. ✅ - `anthropic.ts` — text_delta/input_json_delta, tool_call_end, erro de parse. ✅ - `google.ts` — SSE (`net.fetch` mockado), functionCall, erro HTTP. ✅ - `ollama.ts` — formato OpenAI-compatível, tool calls, erro com dica. ✅
+- [x] **Testes de serviços** (`src/main/services/__tests__`): - `snapshot.ts` — captura/restauração, `node_modules` ignorado, limpeza de ids. ✅ - `webhook-server.ts` — KoClaw real em porta aleatória: /help público, auth 401,
+      GET /messages, POST /message (202), 400 (missing/invalid), 404, stop. ✅ - `hyperedit.ts` — parsing e validação: tarefa obrigatória, arquivo inexistente,
+      fora do workspace, plano vazio. ✅
+- [ ] **e2e do renderer** com **Playwright**: - Fluxo de envio de mensagem (mocking do IPC). - Split de workspaces (criar/fechar/alternar tabs). - Tema Modern vs Classic, wizard de boas-vindas. - Painel de Source Control (stage/commit). ⏳
 
 **Progresso atual**: 19 arquivos de teste, **138 testes passando** (`npm test`),
 cobertura de utils + core + todas as ferramentas de filesystem/busca/shell + providers
@@ -117,22 +100,26 @@ build continuam limpos.
 
 ---
 
-## Fase 3 — Qualidade e consistência de código
+## Fase 3 — Qualidade e consistência de código — 🟡 Em andamento
 
 **Ações**:
-- [ ] **ESLint flat config** (`eslint.config.js`) + **Prettier**.
-- [ ] **lint-staged** + **husky**: rodar lint + format + typecheck no pre-commit.
-- [ ] Subir **strict mode** do TS (`tsconfig.json`): habilitar
-      `noImplicitAny`, `strictNullChecks` (se ainda não), `noUncheckedIndexedAccess`,
-      `exactOptionalPropertyTypes` (se viável).
-- [ ] Eliminar usos de `any` — inventário atual (ex: `setPendingImages: (imgs: any)`,
-      `handleSendForWs`, `sharedUIProps`, `onQuestionsSubmit: (answers: any)`).
-- [ ] Tipar `window.koda` e remover `@ts-ignore` (ex: import de CSS no `App.tsx`).
-- [ ] CI: adicionar jobs de `typecheck` + `lint` + `test` no workflow existente
-      (`.github/workflows/dist.yml` ou novo `ci.yml`).
 
-**Critério de sucesso**: zero `any` restantes no `src/`; PRs bloqueados se lint/type
-falhar.
+- [x] **ESLint flat config** (`eslint.config.js`) + **Prettier** (`.prettierrc.json`,
+      `.prettierignore`).
+- [x] **lint-staged** + **husky** (`.husky/pre-commit`): roda `eslint --fix` +
+      `prettier --write` nos arquivos staged e `typecheck` a cada commit.
+- [x] Scripts: `lint`, `lint:fix`, `format:check`, `format:fix`.
+- [x] CI: novo `.github/workflows/ci.yml` com `typecheck` + `lint` + `test` (Node 22)
+      em push/PR.
+- [x] `npm run lint` → **0 erros** (357 avisos de regras de estilo legadas: `any`,
+      não-usados etc.) — o portão falha apenas em erros reais.
+- [x] Regras corretivas aplicadas: `@ts-ignore` → `@ts-expect-error` (4 locais),
+      `prefer-const`, `no-useless-assignment`, `no-unused-expressions` (warn),
+      `no-require-imports`/`require-yield`/`preserve-caught-error` (warn).
+- [ ] Subir strict mode do TS (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) —
+      avaliar impacto em fases futuras.
+- [ ] Eliminar `any` restantes (357 avisos) — esforço contínuo; regra já sinaliza.
+- [ ] Aplicar Prettier repo-wide (`format:fix`) — opt-in, geraria diff grande.
 
 ---
 
@@ -142,11 +129,9 @@ falhar.
 providers, IPC do renderer) são validadas na mão ou não são.
 
 **Ações**:
+
 - [ ] Adicionar **zod** como dependência.
-- [ ] Criar `src/shared/schemas.ts` com schemas reutilizáveis:
-      - `KodaSettingsSchema`, `ProviderConfigSchema`, `WorkspaceSchema`.
-      - `KoClawMessageSchema` (payload de `POST /message`).
-      - `ToolCallSchema` / `StreamChunkSchema` (contrato do agente).
+- [ ] Criar `src/shared/schemas.ts` com schemas reutilizáveis: - `KodaSettingsSchema`, `ProviderConfigSchema`, `WorkspaceSchema`. - `KoClawMessageSchema` (payload de `POST /message`). - `ToolCallSchema` / `StreamChunkSchema` (contrato do agente).
 - [ ] Validar payloads de entrada nos handlers IPC antes de passar ao agente.
 - [ ] Validar respostas de providers no `BaseProvider` (parsing seguro de stream).
 - [ ] Validar configuração carregada do `.env` (via `config/settings.ts`).
@@ -162,11 +147,9 @@ sem crash.
 (`sharedUIProps` com ~35 props). Adicionar features novas é ruidoso.
 
 **Ações**:
+
 - [ ] Adicionar **Zustand** (leve, sem boilerplate).
-- [ ] Extrair stores por domínio:
-      - `useWorkspaceStore` (workspaces, activeId, split) — já existe como hook; migrar.
-      - `useSettingsStore` (kodaSettings, theme, show* flags).
-      - `useAgentStore` (chunk buffers, streaming, task queue).
+- [ ] Extrair stores por domínio: - `useWorkspaceStore` (workspaces, activeId, split) — já existe como hook; migrar. - `useSettingsStore` (kodaSettings, theme, show* flags). - `useAgentStore` (chunk buffers, streaming, task queue).
 - [ ] Reduzir `sharedUIProps` — componentes passam a ler da store diretamente.
 - [ ] Manter hooks existentes como fina camada sobre as stores (migração gradual).
 
@@ -181,6 +164,7 @@ adiciona-se com <5 linhas no `App.tsx`.
 e lock. Não há um schema único que descreva "o que uma tool é".
 
 **Ações**:
+
 - [ ] Definir `ToolDefinition` com **JSON Schema** (ou Zod) por tool: nome, descrição,
       parâmetros, saída, modos permitidos.
 - [ ] Gerar o **system prompt** a partir do schema (em vez de texto hardcoded no
@@ -198,11 +182,12 @@ prompt, validação e tipos são gerados.
 
 ### 7.1 Modo Servidor MCP
 
-**Problema**: o Koda hoje é apenas *cliente* MCP. Expor as tools do agente como um
+**Problema**: o Koda hoje é apenas _cliente_ MCP. Expor as tools do agente como um
 **servidor MCP** (JSON-RPC padrão) permite que qualquer cliente MCP (Claude Desktop,
 outros agentes/IDEs) dirija o Koda — sem protocolo proprietário.
 
 **Ações**:
+
 - [ ] Implementar um servidor MCP nativo (`@modelcontextprotocol/sdk`) que expõe as
       tools registradas no `ToolRegistry` como ferramentas MCP (`tools/list`,
       `tools/call`).
@@ -225,14 +210,13 @@ outros agentes/IDEs) dirija o Koda — sem protocolo proprietário.
 em tempo real.
 
 **Ações**:
+
 - [ ] Adicionar endpoint `GET /stream` (SSE) que emite eventos de progresso do agente:
       tokens/assistant, início/fim de tool call, status (processing/done/error).
 - [ ] Manter `POST /message` e `GET /messages` intactos (compatibilidade com `curl`).
-- [ ] Adicionar **toggle de desativação** no Settings (ex: `koclaw.streaming`):
-      - Quando desativado, o servidor **não registra** a rota `/stream` e o modelo de
-        polling continua funcionando normalmente.
-      - Quando ativado, emitir eventos de forma assíncrona sem bloquear as respostas
-        REST existentes.
+- [ ] Adicionar **toggle de desativação** no Settings (ex: `koclaw.streaming`): - Quando desativado, o servidor **não registra** a rota `/stream` e o modelo de
+      polling continua funcionando normalmente. - Quando ativado, emitir eventos de forma assíncrona sem bloquear as respostas
+      REST existentes.
 - [ ] Transporte alternativo futuro: WebSocket (deixar extensível via camada de
       transporte).
 - [ ] SSE respeita a mesma autenticação (Bearer token) das demais rotas.
@@ -243,6 +227,7 @@ desativado, a rota retorna `404` e o fluxo legacy de polling segue 100% funciona
 ### 7.3 Contrato ConnectRPC opcional (quando houver demanda)
 
 **Ações**:
+
 - [ ] Manter REST/JSON como default (compatibilidade com `curl`).
 - [ ] Adicionar **contrato ConnectRPC opcional** (`.proto` + código gerado) ao lado do
       REST, para agentes externos sérios ganharem cliente tipado e streaming.
@@ -263,20 +248,21 @@ gerado via Connect funciona contra o mesmo servidor.
 
 ## Ordem sugerida e checkpoint
 
-| Fase | Esforço | Valor | Ordem |
-|---|---|---|---|
-| 1. IPC tipado | Baixo | Alto | ✅ Concluída |
-| 2. Testes | Alto | Altíssimo | 2º (em paralelo com 3) |
-| 3. Qualidade/lint/strict | Baixo | Alto | 3º |
-| 4. Zod | Baixo | Médio | 4º |
-| 5. Zustand | Médio | Médio | 5º |
-| 6. Schema-first tools | Alto | Alto | 6º |
-| 7. Servidor MCP + SSE/API | Alto | Alto | Sob demanda/7º |
+| Fase                      | Esforço | Valor     | Ordem                  |
+| ------------------------- | ------- | --------- | ---------------------- |
+| 1. IPC tipado             | Baixo   | Alto      | ✅ Concluída           |
+| 2. Testes                 | Alto    | Altíssimo | 2º (em paralelo com 3) |
+| 3. Qualidade/lint/strict  | Baixo   | Alto      | 3º                     |
+| 4. Zod                    | Baixo   | Médio     | 4º                     |
+| 5. Zustand                | Médio   | Médio     | 5º                     |
+| 6. Schema-first tools     | Alto    | Alto      | 6º                     |
+| 7. Servidor MCP + SSE/API | Alto    | Alto      | Sob demanda/7º         |
 
 **Checkpoint após Fase 1+2+3**:
+
 - [x] `npm run typecheck` limpo e sincronizado com IPC (Fase 1 concluída).
-- [ ] `npm test` cobrindo core + tools (Fase 2).
-- [ ] CI verde com lint + testes em todo PR (Fase 3).
+- [x] `npm test` cobrindo core + tools (Fase 2 — 138 testes).
+- [x] CI verde com lint + testes em todo PR (Fase 3: workflow `ci.yml`).
 
 ---
 
