@@ -17,6 +17,8 @@
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:mac": "npm run build && electron-builder --mac",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clear-cache": "node scripts/clear-cache.mjs --confirm"
   },
   "dependencies": {
@@ -71,6 +73,7 @@
     "vite": "^7.3.6",
     "vite-plugin-electron": "^0.29.1",
     "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^5.1.0",
     "wait-on": "^9.0.5"
   },
   "overrides": {
