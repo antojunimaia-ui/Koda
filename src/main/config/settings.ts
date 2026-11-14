@@ -46,6 +46,7 @@ export type LLMProvider =
   | 'koda-cloud'
   | 'fireworks'
   | 'opencode-zen'
+  | 'inception'
 
 export interface AppSettings {
   provider: LLMProvider
@@ -59,6 +60,7 @@ export interface AppSettings {
   webhookPort: number
   webhookToken: string
   kodaCloudBaseUrl: string
+  inceptionBaseUrl: string
 }
 
 const DEFAULT_MODELS: Record<LLMProvider, string> = {
@@ -78,6 +80,7 @@ const DEFAULT_MODELS: Record<LLMProvider, string> = {
   'koda-cloud': 'gemini-2.0-flash-exp',
   fireworks: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
   'opencode-zen': '',
+  inception: 'mercury-3',
 }
 
 export function getSettings(): AppSettings {
@@ -102,6 +105,7 @@ export function getSettings(): AppSettings {
     'koda-cloud': process.env.KODA_CLOUD_API_KEY || '',
     fireworks: process.env.FIREWORKS_API_KEY || '',
     'opencode-zen': process.env.OPENCODE_ZEN_API_KEY || process.env.OPENCODE_API_KEY || '',
+    inception: process.env.INCEPTION_API_KEY || '',
   }
 
   const modelOverride: Record<LLMProvider, string | undefined> = {
@@ -121,6 +125,7 @@ export function getSettings(): AppSettings {
     'koda-cloud': process.env.KODA_CLOUD_MODEL,
     fireworks: process.env.FIREWORKS_MODEL,
     'opencode-zen': process.env.OPENCODE_ZEN_MODEL,
+    inception: process.env.INCEPTION_MODEL,
   }
 
   return {
@@ -135,6 +140,7 @@ export function getSettings(): AppSettings {
     webhookPort: parseInt(process.env.WEBHOOK_PORT || '3141', 10),
     webhookToken: process.env.WEBHOOK_TOKEN || '',
     kodaCloudBaseUrl: process.env.KODA_CLOUD_BASE_URL || '',
+    inceptionBaseUrl: process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1',
   }
 }
 

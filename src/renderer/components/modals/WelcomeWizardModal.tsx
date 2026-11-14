@@ -40,6 +40,16 @@ const PROVIDERS = [
     popularModels: [],
   },
   {
+    id: 'inception',
+    name: 'Inception Labs',
+    description: 'Mercury — diffusion LLMs from Inception.',
+    requiresKey: true,
+    placeholder: 'inception_...',
+    defaultModel: 'mercury-3',
+    defaultAdvisorModel: 'mercury-3',
+    popularModels: ['mercury-3'],
+  },
+  {
     id: 'google',
     name: 'Google Gemini',
     description: 'Gemini Flash and Pro models from Google.',

@@ -33,6 +33,7 @@ const PROVIDER_LIST = [
   { id: 'zhipu', name: 'Zhipu AI', requiresKey: true, placeholder: '...' },
   { id: 'maritaca', name: 'Maritaca AI', requiresKey: true, placeholder: '...' },
   { id: 'opencode-zen', name: 'OpenCode Zen', requiresKey: true, placeholder: 'opencode_...' },
+  { id: 'inception', name: 'Inception Labs', requiresKey: true, placeholder: 'inception_...' },
   { id: 'ollama', name: 'Ollama (Local)', requiresKey: false, placeholder: 'Optional API key...' },
   { id: 'llamacpp', name: 'Llama.cpp (Local)', requiresKey: false, placeholder: 'Optional API key...' },
   { id: 'koda-cloud', name: 'Koda Cloud', requiresKey: false, placeholder: 'Cloud handles keys' },
@@ -57,6 +58,7 @@ const PROVIDER_DEFAULTS: Record<string, { model: string; advisorModel: string }>
   zhipu: { model: 'glm-4-flash', advisorModel: 'glm-4-flash' },
   maritaca: { model: 'sabia-3', advisorModel: 'sabia-3' },
   'opencode-zen': { model: '', advisorModel: '' },
+  inception: { model: 'mercury-3', advisorModel: 'mercury-3' },
   'koda-cloud': { model: 'gemini-1.5-flash', advisorModel: 'gemini-1.5-flash' },
 }
 

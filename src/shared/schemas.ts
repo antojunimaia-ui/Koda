@@ -54,6 +54,7 @@ export const LLM_PROVIDERS = [
   'koda-cloud',
   'fireworks',
   'opencode-zen',
+  'inception',
 ] as const
 
 export const EnvironmentSettingsSchema = z.object({

@@ -48,7 +48,7 @@ Koda is an Open-Source Agent Development Environment (ADE) for AI-assisted softw
 - **KoClaw — Agent API** — built-in HTTP server (default port `3141`) that lets external agents send tasks to Koda, read conversation history, and reset the session. Self-documenting via `GET /help`.
 - **MCP support** — connect any Model Context Protocol server. Tools are discovered at runtime and injected into the agent's arsenal dynamically.
 - **LSP integration** — semantic queries via `typescript-language-server`: hover types, go-to-definition, and symbol resolution.
-- **17 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
+- **18 LLM providers** — dynamic model listing via API. Switch providers and models from the UI without restarting.
 - **File tracker** — every file the agent reads or modifies is tracked in-session and surfaced in the context panel.
 - **At-mentions (`@`)** — type `@` to open a file selector. Koda reads the file and injects it directly into the prompt (capped at 50KB).
 - **Drag & drop** — drop image files to attach them; drop code files to inject an `@[path]` mention.
@@ -187,6 +187,7 @@ All tools extend `BaseTool` and are registered in `ToolRegistry`. The registry e
 | **Ollama**           | Local models via `/v1/models` or legacy `/api/tags`                                                  |
 | **Llama.cpp**        | Local inference via HTTP server on port 8080                                                         |
 | **DeepSeek (local)** | Compatible with any OpenAI-compatible local server                                                   |
+| **Inception Labs**   | Mercury — diffusion LLMs (OpenAI-compatible; base URL configurável via `INCEPTION_BASE_URL`)         |
 
 ---
 
@@ -329,6 +330,7 @@ src/
 │   │   ├── base.ts                # BaseProvider, Message, StreamChunk, ToolCall interfaces
 │   │   ├── koda-cloud.ts
 │   │   ├── opencode-zen.ts
+│   │   ├── inception.ts
 │   │   ├── openrouter.ts
 │   │   ├── openai.ts
 │   │   ├── anthropic.ts

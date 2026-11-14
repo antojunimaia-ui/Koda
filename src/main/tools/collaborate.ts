@@ -5,6 +5,7 @@ import { GoogleProvider } from '../providers/google.js'
 import { OpenRouterProvider } from '../providers/openrouter.js'
 import { OllamaProvider } from '../providers/ollama.js'
 import { OpenCodeZenProvider } from '../providers/opencode-zen.js'
+import { InceptionProvider } from '../providers/inception.js'
 import { AppSettings } from '../config/settings.js'
 
 // Global state for the active collaboration session
@@ -71,6 +72,15 @@ export class StartColabTool extends BaseTool {
         break
       case 'opencode-zen':
         advisorProviderCache = new OpenCodeZenProvider(advisorModel, apiKey, maxTokens, temperature)
+        break
+      case 'inception':
+        advisorProviderCache = new InceptionProvider(
+          advisorModel,
+          apiKey,
+          maxTokens,
+          temperature,
+          this.settings.inceptionBaseUrl,
+        )
         break
       default:
         return this.failure(`Provider ${providerType} not supported for colab.`)

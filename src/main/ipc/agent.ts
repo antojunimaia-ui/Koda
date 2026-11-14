@@ -479,6 +479,18 @@ export function registerAgentHandlers(agents: Map<string, Agent>, broadcastAgent
         return { success: true, models: data.data.map((m: any) => m.id) }
       }
 
+      if (provider === 'inception') {
+        const { getSettings } = await import('../config/settings.js')
+        const baseUrl = getSettings().inceptionBaseUrl.replace(/\/+$/, '')
+        const res = await efetch(`${baseUrl}/models`, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        })
+        if (!res.ok) throw new Error('Inception Labs: Invalid API key or API error')
+        const data = await res.json()
+        const models = (Array.isArray(data?.data) ? data.data : []).map((m: any) => m.id)
+        return { success: true, models }
+      }
+
       return { success: false, error: 'Unknown provider' }
     } catch (err: any) {
       console.error(`[Main] Error in getModels for provider ${provider}:`, err)

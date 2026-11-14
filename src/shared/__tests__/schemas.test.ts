@@ -4,6 +4,7 @@ import {
   EnvironmentSettingsSchema,
   KoClawMessageSchema,
   KoClawStartConfigSchema,
+  LLM_PROVIDERS,
   SetupConfigSchema,
   sanitizeEnvironment,
 } from '../schemas.js'
@@ -104,5 +105,9 @@ describe('EnvironmentSettingsSchema / sanitizeEnvironment', () => {
   it('sanitizeEnvironment returns {} when invalid and strips unknown keys', () => {
     expect(sanitizeEnvironment({ LLM_PROVIDER: 'bogus' })).toEqual({})
     expect(sanitizeEnvironment({ SOME_UNKNOWN: 'x' })).toEqual({})
+  })
+
+  it('includes the inception provider in the known list', () => {
+    expect(LLM_PROVIDERS).toContain('inception')
   })
 })

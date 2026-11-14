@@ -20,6 +20,7 @@ import { ZhipuProvider } from '../providers/zhipu.js'
 import { MaritacaProvider } from '../providers/maritaca.js'
 import { KodaCloudProvider } from '../providers/koda-cloud.js'
 import { OpenCodeZenProvider } from '../providers/opencode-zen.js'
+import { InceptionProvider } from '../providers/inception.js'
 import { mcpManager } from '../services/mcp-manager.js'
 import { MCPTool } from '../tools/mcp-tool.js'
 import { skillManager } from '../services/skill-manager.js'
@@ -104,6 +105,8 @@ export class Agent {
         return new KodaCloudProvider(model, this.settings.kodaCloudBaseUrl ?? '')
       case 'opencode-zen':
         return new OpenCodeZenProvider(model, apiKey, maxTokens, temperature)
+      case 'inception':
+        return new InceptionProvider(model, apiKey, maxTokens, temperature, this.settings.inceptionBaseUrl)
       default:
         throw new Error(`Unknown provider: ${provider}`)
     }

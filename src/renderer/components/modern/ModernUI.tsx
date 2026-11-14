@@ -391,6 +391,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
     zhipu: 'Zhipu AI',
     maritaca: 'Maritaca AI',
     'koda-cloud': 'Koda Cloud',
+    inception: 'Inception Labs',
   }
 
   const modelDropdownOptions = useMemo(() => {
