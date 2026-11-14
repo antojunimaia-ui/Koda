@@ -22,7 +22,7 @@
 | Fase | Status |
 |---|---|
 | 1. IPC tipado | ✅ Concluída (2026-11-14) |
-| 2. Testes | ⏳ Pendente |
+| 2. Testes | 🟡 Em andamento (unit core/tools ✅; providers ✅; serviços ✅; só e2e Playwright pendente) |
 | 3. Qualidade/lint/strict | ⏳ Pendente |
 | 4. Zod | ⏳ Pendente |
 | 5. Zustand | ⏳ Pendente |
@@ -66,34 +66,52 @@ Fase 4 (Zod).
 
 ---
 
-## Fase 2 — Testes automatizados (lacuna crítica)
+## Fase 2 — Testes automatizados (lacuna crítica) — 🟡 Em andamento
 
 **Problema**: ~22k linhas de lógica (agente, tools, providers, serviços) e **zero
 testes**. Todo refactor é uma aposta.
 
 **Ações**:
-- [ ] Adicionar **Vitest** (já alinhado com Vite) como runner de testes.
-- [ ] `npm run test` + `npm run test:watch` no `package.json`.
-- [ ] **Unit tests do core** (`src/main/core`):
-      - `conversation.ts` — histórico, `trimIfNeeded`, `microCompact`, rollback.
-      - `prompt-builder.ts` — montagem do prompt com env/projeto/tools.
-      - `context.ts` — detecção de linguagem/framework/package manager.
-      - `slash-commands.ts` — parsing e resolução de comandos.
-- [ ] **Unit tests das tools** (`src/main/tools`):
-      - `file-edit.ts` — substituição exata + diff (usar fixture temporário).
-      - `kodaignore` (utils) — regras de bloqueio por tool.
-      - `search.ts` / `file-find.ts` — filtragem de `.gitignore`/`.kodaignore`.
-      - `shell.ts` — com PTY mockado/`node-pty` real em CI Linux.
-- [ ] **Testes de providers** com **mock de HTTP** (ex: `vi.fn()` sobre `fetch`):
-      - `anthropic.ts`, `openai.ts`, `google.ts`, `ollama.ts` — stream de chunks,
-        parse de tool calls, errors.
-- [ ] **Testes de serviços**: `snapshot.ts`, `hyperedit.ts`, `webhook-server.ts`
-      (subir servidor em porta aleatória e testar endpoints do KoClaw).
+- [x] Adicionar **Vitest** v5 como runner de testes (`vitest.config.ts`, `node`).
+- [x] `npm run test` + `npm run test:watch` no `package.json`.
+- [x] **Unit tests do core** (`src/main/core/__tests__`):
+      - `conversation.ts` — histórico, `microCompact`, `trimIfNeeded`, rollback. ✅
+      - `prompt-builder.ts` — montagem do prompt com env/projeto/tools. ✅
+      - `context.ts` — detecção de linguagem/framework/package manager. ✅
+      - `slash-commands.ts` — estrutura e unicidade dos comandos. ✅
+- [x] **Unit tests das tools** (`src/main/tools/__tests__`):
+      - `file-edit.ts` / `file-read.ts` / `file-write.ts` — fixtures temporárias em disco,
+        `.kodaignore` aplicado. ✅
+      - `kodaignore` (utils) — regras de bloqueio por padrão. ✅
+      - `search.ts` — `manualSearch` (regex, case-insensitive, include glob, maxResults,
+        diretórios ignorados) + `execute` com fallback. ✅
+      - `file-find.ts` — glob com `globby`, `.kodaignore` aplicado, sem resultados. ✅
+      - `shell.ts` — validação de parâmetros, `isReadOnly`, bloqueio de comandos
+        destrutivos, fluxo de aprovação (resolveApproval) com `node-pty`/electron
+        mockados, e tools kill/list/shell_input com registro vazio. ✅
+- [x] **Testes de providers** com **mock de HTTP** (`src/main/providers/__tests__`):
+      - `openai.ts` — stream de texto, tool calls (argumentos), erro. ✅
+      - `anthropic.ts` — text_delta/input_json_delta, tool_call_end, erro de parse. ✅
+      - `google.ts` — SSE (`net.fetch` mockado), functionCall, erro HTTP. ✅
+      - `ollama.ts` — formato OpenAI-compatível, tool calls, erro com dica. ✅
+- [x] **Testes de serviços** (`src/main/services/__tests__`):
+      - `snapshot.ts` — captura/restauração, `node_modules` ignorado, limpeza de ids. ✅
+      - `webhook-server.ts` — KoClaw real em porta aleatória: /help público, auth 401,
+        GET /messages, POST /message (202), 400 (missing/invalid), 404, stop. ✅
+      - `hyperedit.ts` — parsing e validação: tarefa obrigatória, arquivo inexistente,
+        fora do workspace, plano vazio. ✅
 - [ ] **e2e do renderer** com **Playwright**:
       - Fluxo de envio de mensagem (mocking do IPC).
       - Split de workspaces (criar/fechar/alternar tabs).
       - Tema Modern vs Classic, wizard de boas-vindas.
-      - Painel de Source Control (stage/commit).
+      - Painel de Source Control (stage/commit). ⏳
+
+**Progresso atual**: 19 arquivos de teste, **138 testes passando** (`npm test`),
+cobertura de utils + core + todas as ferramentas de filesystem/busca/shell + providers
+(OpenAI/Anthropic/Google/Ollama) + serviços (snapshot/KoClaw/hyperedit). Typecheck e
+build continuam limpos.
+
+**Próximo incremento**: e2e Playwright (renderer com mocking do IPC).
 
 **Critério de sucesso**: `npm test` roda em <30s e cobre ≥60% do `src/main/core` + tools.
 
