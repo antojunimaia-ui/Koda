@@ -17,6 +17,7 @@ import { useTheme } from './hooks/useTheme.js'
 import { useAgentInit } from './hooks/useAgentInit.js'
 import { useInputHandlers } from './hooks/useInputHandlers.js'
 import { useMessageActions } from './hooks/useMessageActions.js'
+import { useUIStore } from './stores/uiStore.js'
 
 // ─── Components ──────────────────────────────────────────────────────────────
 import MCPSettings from './components/MCPSettings.js'
@@ -115,16 +116,25 @@ const App: React.FC = () => {
     isIDEWindow ? window.koda?.openADE?.() : window.koda?.openIDE?.()
   }, [isIDEWindow])
 
-  // ── UI visibility ─────────────────────────────────────────────────────────
-  const [showSettings, setShowSettings] = useState(false)
-  const [showMcpSettings, setShowMcpSettings] = useState(false)
-  const [showBrowser, setShowBrowser] = useState(false)
-  const [showTerminal, setShowTerminal] = useState(false)
-  const [showPanel, setShowPanel] = useState(false)
-  const [showExplorer, setShowExplorer] = useState(false)
-  const [showSourceControl, setShowSourceControl] = useState(false)
-  const [contextPanelTab, setContextPanelTab] = useState<'context' | 'explorer'>('context')
-  const [showWelcomeWizard, setShowWelcomeWizard] = useState(() => !localStorage.getItem('koda_welcome_wizard_done'))
+  // ── UI visibility (Zustand) ───────────────────────────────────────────────
+  const showSettings = useUIStore((s) => s.showSettings)
+  const setShowSettings = useUIStore((s) => s.setShowSettings)
+  const showMcpSettings = useUIStore((s) => s.showMcpSettings)
+  const setShowMcpSettings = useUIStore((s) => s.setShowMcpSettings)
+  const showBrowser = useUIStore((s) => s.showBrowser)
+  const toggleBrowser = useUIStore((s) => s.toggleBrowser)
+  const showTerminal = useUIStore((s) => s.showTerminal)
+  const toggleTerminal = useUIStore((s) => s.toggleTerminal)
+  const showPanel = useUIStore((s) => s.showPanel)
+  const togglePanel = useUIStore((s) => s.togglePanel)
+  const showExplorer = useUIStore((s) => s.showExplorer)
+  const setShowExplorer = useUIStore((s) => s.setShowExplorer)
+  const showSourceControl = useUIStore((s) => s.showSourceControl)
+  const toggleSourceControl = useUIStore((s) => s.toggleSourceControl)
+  const contextPanelTab = useUIStore((s) => s.contextPanelTab)
+  const setContextPanelTab = useUIStore((s) => s.setContextPanelTab)
+  const showWelcomeWizard = useUIStore((s) => s.showWelcomeWizard)
+  const setShowWelcomeWizard = useUIStore((s) => s.setShowWelcomeWizard)
 
   // ── Refs ──────────────────────────────────────────────────────────────────
   const virtuosoRef = useRef<VirtuosoHandle | null>(null)
@@ -459,12 +469,12 @@ const App: React.FC = () => {
     kodaSettings,
     onSettingsClick: () => setShowSettings(true),
     onMcpClick: () => setShowMcpSettings(true),
-    onBrowserClick: () => setShowBrowser((p) => !p),
+    onBrowserClick: toggleBrowser,
     showBrowser,
-    onTerminalClick: () => setShowTerminal((p) => !p),
+    onTerminalClick: toggleTerminal,
     showTerminal,
     showPanel,
-    onTogglePanel: () => setShowPanel((p) => !p),
+    onTogglePanel: togglePanel,
     showExplorer,
     setShowExplorer,
     explorerWidth,
@@ -607,13 +617,13 @@ const App: React.FC = () => {
           isIDEWindow={isIDEWindow}
           onToggleIDEMode={handleToggleIDEMode}
           showSourceControl={showSourceControl}
-          onToggleSourceControl={() => setShowSourceControl((p) => !p)}
+          onToggleSourceControl={toggleSourceControl}
           onStartResizeSourceControl={startResizingExplorer}
           contextPanelWidth={contextPanelWidth}
           contextPanelTab={contextPanelTab}
           onContextPanelTabChange={(t) => {
             setContextPanelTab(t)
-            if (!showPanel) setShowPanel(true)
+            if (!showPanel) togglePanel()
           }}
           loadedModels={loadedModels}
           fetchModelsForProvider={fetchModelsForProvider}

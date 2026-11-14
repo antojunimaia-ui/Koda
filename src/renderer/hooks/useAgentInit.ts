@@ -4,7 +4,7 @@ import { KoDB } from '../db/kodb.js'
 
 interface UseAgentInitOptions {
   workspaces: Workspace[]
-  setWorkspaces: React.Dispatch<React.SetStateAction<Workspace[]>>
+  setWorkspaces: (workspaces: Workspace[] | ((prev: Workspace[]) => Workspace[])) => void
   setActiveId: (id: string) => void
   updateWorkspace: (id: string, updates: Partial<Workspace> | ((prev: Workspace) => Workspace)) => void
   lastLoadedCwdPerWs: React.MutableRefObject<Map<string, string>>

@@ -19,15 +19,15 @@
 
 ## Status das fases
 
-| Fase                      | Status                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------- |
-| 1. IPC tipado             | ✅ Concluída (2026-11-14)                                                                   |
-| 2. Testes                 | 🟡 Em andamento (unit core/tools ✅; providers ✅; serviços ✅; só e2e Playwright pendente) |
-| 3. Qualidade/lint/strict  | ✅ Concluída (gates: ESLint+Prettier+husky+CI; hardening TS/`any` registrado como backlog)  |
-| 4. Zod                    | ✅ Concluída (schemas + validação IPC/KoClaw/.env; stream de providers → backlog)           |
-| 5. Zustand                | ⏳ Pendente                                                                                 |
-| 6. Schema-first tools     | ⏳ Pendente                                                                                 |
-| 7. Servidor MCP + SSE/API | ⏳ Pendente                                                                                 |
+| Fase                      | Status                                                                                             |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1. IPC tipado             | ✅ Concluída (2026-11-14)                                                                          |
+| 2. Testes                 | 🟡 Em andamento (unit core/tools ✅; providers ✅; serviços ✅; só e2e Playwright pendente)        |
+| 3. Qualidade/lint/strict  | ✅ Concluída (gates: ESLint+Prettier+husky+CI; hardening TS/`any` registrado como backlog)         |
+| 4. Zod                    | ✅ Concluída (schemas + validação IPC/KoClaw/.env; stream de providers → backlog)                  |
+| 5. Zustand                | 🟡 Em andamento (stores workspace/ui ✅; consumo direto nos componentes + useAgentStore pendentes) |
+| 6. Schema-first tools     | ⏳ Pendente                                                                                        |
+| 7. Servidor MCP + SSE/API | ⏳ Pendente                                                                                        |
 
 ---
 
@@ -151,20 +151,27 @@ sem crash. ✅
 
 ---
 
-## Fase 5 — Estado do renderer mais limpo (opcional)
+## Fase 5 — Estado do renderer mais limpo — 🟡 Em andamento
 
 **Problema**: `App.tsx` faz composição de hooks com muito prop-drilling
 (`sharedUIProps` com ~35 props). Adicionar features novas é ruidoso.
 
 **Ações**:
 
-- [ ] Adicionar **Zustand** (leve, sem boilerplate).
-- [ ] Extrair stores por domínio: - `useWorkspaceStore` (workspaces, activeId, split) — já existe como hook; migrar. - `useSettingsStore` (kodaSettings, theme, show* flags). - `useAgentStore` (chunk buffers, streaming, task queue).
-- [ ] Reduzir `sharedUIProps` — componentes passam a ler da store diretamente.
-- [ ] Manter hooks existentes como fina camada sobre as stores (migração gradual).
+- [x] Adicionar **Zustand** e criar `src/renderer/stores/`: - `workspaceStore.ts` — workspaces, activeId, split + ações (update, create,
+      close, splitWith, switch, toggle). Lógica migrada do hook. - `uiStore.ts` — flags de visibilidade (settings, browser, terminal, panel,
+      explorer, source control) + `contextPanelTab` + wizard.
+- [x] `useWorkspaces` virou **fachada fina** sobre a store (mesma API, zero quebra).
+- [x] `App.tsx` passou a ler os flags de UI da `uiStore` (removeu 9 `useState` de
+      visibilidade do componente).
+- [x] Testes das stores (9 testes novos — `workspaceStore`/`uiStore`).
+- [ ] Reduzir `sharedUIProps` — componentes (ModernUI/ClassicUI) passam a ler da
+      store diretamente. ⏳
+- [ ] `useAgentStore` (chunk buffers, streaming, task queue) a partir de
+      `useAgentStream`/`useMessageActions`. ⏳
 
 **Critério de sucesso**: `App.tsx` perde ~40% das props transmitidas; novo painel
-adiciona-se com <5 linhas no `App.tsx`.
+adiciona-se com <5 linhas no `App.tsx`. (parcial — migração componente a componente)
 
 ---
 
