@@ -1,8 +1,9 @@
 import { ipcMain } from 'electron'
 import { DiscordRPCManager } from '../services/discord-rpc.js'
+import { IPC_CHANNELS } from '../../shared/ipc.js'
 
 export function registerDiscordHandlers(discordRPC: DiscordRPCManager) {
-  ipcMain.handle('discord:enable', async () => {
+  ipcMain.handle(IPC_CHANNELS.discord.enable, async () => {
     try {
       await discordRPC.enable()
       return { success: true }
@@ -11,16 +12,16 @@ export function registerDiscordHandlers(discordRPC: DiscordRPCManager) {
     }
   })
 
-  ipcMain.handle('discord:disable', () => {
+  ipcMain.handle(IPC_CHANNELS.discord.disable, () => {
     discordRPC.disable()
     return { success: true }
   })
 
-  ipcMain.handle('discord:is_enabled', () => {
+  ipcMain.handle(IPC_CHANNELS.discord.isEnabled, () => {
     return { enabled: discordRPC.isEnabled() }
   })
 
-  ipcMain.handle('discord:update_activity', async (_event, activity) => {
+  ipcMain.handle(IPC_CHANNELS.discord.updateActivity, async (_event, activity) => {
     try {
       await discordRPC.updateActivity(activity)
       return { success: true }
@@ -29,7 +30,7 @@ export function registerDiscordHandlers(discordRPC: DiscordRPCManager) {
     }
   })
 
-  ipcMain.handle('discord:clear_activity', async () => {
+  ipcMain.handle(IPC_CHANNELS.discord.clearActivity, async () => {
     try {
       await discordRPC.clearActivity()
       return { success: true }

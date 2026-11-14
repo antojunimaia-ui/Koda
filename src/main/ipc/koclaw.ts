@@ -1,11 +1,12 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { Agent } from '../core/agent.js'
+import { IPC_CHANNELS } from '../../shared/ipc.js'
 
 export function registerKoclawHandlers(
   agents: Map<string, Agent>,
   getWindows: () => (BrowserWindow | null)[]
 ) {
-  ipcMain.handle('koclaw:start', async (_event, config: { port: number; token: string; allowRemoteAccess?: boolean }) => {
+  ipcMain.handle(IPC_CHANNELS.koclaw.start, async (_event, config: { port: number; token: string; allowRemoteAccess?: boolean }) => {
     try {
       const { startWebhookServer } = await import('../services/webhook-server.js')
       const getAgentWithId = () => {
@@ -24,13 +25,13 @@ export function registerKoclawHandlers(
     }
   })
 
-  ipcMain.handle('koclaw:stop', async () => {
+  ipcMain.handle(IPC_CHANNELS.koclaw.stop, async () => {
     const { stopWebhookServer } = await import('../services/webhook-server.js')
     await stopWebhookServer()
     return { success: true }
   })
 
-  ipcMain.handle('koclaw:status', async () => {
+  ipcMain.handle(IPC_CHANNELS.koclaw.status, async () => {
     const { getWebhookStatus } = await import('../services/webhook-server.js')
     return getWebhookStatus()
   })

@@ -3,9 +3,10 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { checkKodaIgnore } from '../utils/kodaignore.js'
+import { IPC_CHANNELS } from '../../shared/ipc.js'
 
 export function registerProjectHandlers() {
-  ipcMain.handle('project:get_files', async () => {
+  ipcMain.handle(IPC_CHANNELS.project.getFiles, async () => {
     try {
       const { globby } = await import('globby')
       const files = await globby(['**/*'], {
@@ -19,7 +20,7 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('project:list_dir_lazy', async (_event, dirPath?: string) => {
+  ipcMain.handle(IPC_CHANNELS.project.listDirLazy, async (_event, dirPath?: string) => {
     try {
       const cwd = process.cwd()
       const targetDir = dirPath ? path.resolve(dirPath) : cwd
@@ -56,7 +57,7 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('project:read_file', async (_event, filePath: string) => {
+  ipcMain.handle(IPC_CHANNELS.project.readFile, async (_event, filePath: string) => {
     try {
       const resolvedPath = path.resolve(filePath)
       if (!resolvedPath.startsWith(process.cwd())) throw new Error('Access denied: file outside project directory')
@@ -67,7 +68,7 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('project:read_file_base64', async (_event, filePath: string) => {
+  ipcMain.handle(IPC_CHANNELS.project.readFileBase64, async (_event, filePath: string) => {
     try {
       const resolvedPath = path.resolve(filePath)
       const buffer = await fs.readFile(resolvedPath)
@@ -85,7 +86,7 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('project:write_file', async (_event, filePath: string, content: string) => {
+  ipcMain.handle(IPC_CHANNELS.project.writeFile, async (_event, filePath: string, content: string) => {
     try {
       const resolvedPath = path.resolve(filePath)
       if (!resolvedPath.startsWith(process.cwd())) throw new Error('Access denied: file outside project directory')
@@ -97,7 +98,7 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('project:delete_file', async (_event, filePath: string) => {
+  ipcMain.handle(IPC_CHANNELS.project.deleteFile, async (_event, filePath: string) => {
     try {
       const resolvedPath = path.resolve(filePath)
       if (!resolvedPath.startsWith(process.cwd())) throw new Error('Access denied: file outside project directory')
@@ -113,7 +114,7 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('project:rename_file', async (_event, oldPath: string, newPath: string) => {
+  ipcMain.handle(IPC_CHANNELS.project.renameFile, async (_event, oldPath: string, newPath: string) => {
     try {
       const cwd = process.cwd()
       const resolvedOld = path.resolve(oldPath)
@@ -129,7 +130,7 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('project:create_folder', async (_event, folderPath: string) => {
+  ipcMain.handle(IPC_CHANNELS.project.createFolder, async (_event, folderPath: string) => {
     try {
       const resolvedPath = path.resolve(folderPath)
       if (!resolvedPath.startsWith(process.cwd())) throw new Error('Access denied: folder outside project directory')

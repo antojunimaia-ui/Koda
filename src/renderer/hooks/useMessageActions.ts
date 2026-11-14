@@ -75,9 +75,10 @@ export function useMessageActions({
       const modelArg = parts[1]
       if (modelArg?.startsWith('--')) {
         const res = await window.koda.setModel(ws.id, modelArg.slice(2))
-        if (res.success) {
+        if (res.success && res.info) {
+          const { model, provider } = res.info
           updateWorkspace(ws.id, { agentInfo: res.info })
-          updateWorkspace(ws.id, prev => ({ ...prev, messages: [...prev.messages, { id: nextId(), type: 'system', text: `🤖 Model updated to: ${res.info.model} (${res.info.provider})` }] }))
+          updateWorkspace(ws.id, prev => ({ ...prev, messages: [...prev.messages, { id: nextId(), type: 'system', text: `🤖 Model updated to: ${model} (${provider})` }] }))
         } else {
           updateWorkspace(ws.id, prev => ({ ...prev, messages: [...prev.messages, { id: nextId(), type: 'error', text: res.error }] }))
         }
@@ -202,7 +203,7 @@ export function useMessageActions({
     if (!newPath) return
     setInitializing(true)
     const res = await window.koda.cd(ws.id, newPath)
-    if (res.success) {
+    if (res.success && res.info) {
       setAllFiles([])
       updateWorkspace(ws.id, { agentInfo: res.info, cwd: res.info.cwd })
       updateWorkspace(ws.id, prev => ({ ...prev, messages: [...prev.messages, { id: nextId(), type: 'system', text: `📂 Working directory changed to: ${newPath}. Context reset.` }] }))

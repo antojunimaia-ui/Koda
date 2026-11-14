@@ -107,7 +107,7 @@ export function useAgentInit({
               advisorModel: savedAdvisor || undefined,
               kodaCloudBaseUrl: savedKodaCloudUrl || undefined,
             })
-            if (setupRes.success) {
+            if (setupRes.success && setupRes.info) {
               lastLoadedCwdPerWs.current.set(initialId, setupRes.info.cwd)
               setWorkspaces([makeWs(setupRes.info)])
               setActiveId(initialId)

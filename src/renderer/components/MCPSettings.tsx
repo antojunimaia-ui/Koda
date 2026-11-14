@@ -22,7 +22,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({ onClose, onSave }) => {
   const [currentEdit, setCurrentEdit] = useState<Partial<MCPServerConfig>>({});
 
   useEffect(() => {
-    window.koda.getMcpConfigs().then(setConfigs);
+    window.koda.getMcpConfigs().then((configs) => setConfigs(configs as MCPServerConfig[]));
   }, []);
 
   const handleAddLocal = () => {

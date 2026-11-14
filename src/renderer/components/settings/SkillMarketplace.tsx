@@ -45,7 +45,7 @@ const SkillMarketplace: React.FC = () => {
     setError(null)
     try {
       const res = await window.koda.marketplaceFetch()
-      if (res.success) setMarketSkills(res.skills)
+      if (res.success) setMarketSkills(res.skills as MarketplaceSkill[])
       else setError(res.error || 'Failed to fetch marketplace')
     } catch {
       setError('Could not reach the marketplace. Check your connection.')

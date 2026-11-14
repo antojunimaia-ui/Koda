@@ -9,9 +9,10 @@ const MARKETPLACE_INDEX_URL = 'https://raw.githubusercontent.com/antojunimaia-ui
 const MARKETPLACE_RAW_BASE  = 'https://raw.githubusercontent.com/antojunimaia-ui/koda-skills/main/skills'
 
 const efetch: typeof fetch = (input: any, init?: any) => net.fetch(input, init) as any
+import { IPC_CHANNELS } from '../../shared/ipc.js'
 
 export function registerSkillsHandlers(agents: Map<string, Agent>) {
-  ipcMain.handle('skills:list', async () => {
+  ipcMain.handle(IPC_CHANNELS.skills.list, async () => {
     try {
       const { skillManager } = await import('../services/skill-manager.js')
       const skills = await skillManager.getAll()
@@ -24,7 +25,7 @@ export function registerSkillsHandlers(agents: Map<string, Agent>) {
     }
   })
 
-  ipcMain.handle('marketplace:fetch', async () => {
+  ipcMain.handle(IPC_CHANNELS.marketplace.fetch, async () => {
     try {
       const res = await efetch(MARKETPLACE_INDEX_URL)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -35,7 +36,7 @@ export function registerSkillsHandlers(agents: Map<string, Agent>) {
     }
   })
 
-  ipcMain.handle('marketplace:install', async (_event, skillName: string, version?: string) => {
+  ipcMain.handle(IPC_CHANNELS.marketplace.install, async (_event, skillName: string, version?: string) => {
     try {
       const mdRes = await efetch(`${MARKETPLACE_RAW_BASE}/${skillName}/skill.md`)
       if (!mdRes.ok) throw new Error(`skill.md not found for "${skillName}"`)
@@ -59,7 +60,7 @@ export function registerSkillsHandlers(agents: Map<string, Agent>) {
     }
   })
 
-  ipcMain.handle('marketplace:uninstall', async (_event, skillName: string) => {
+  ipcMain.handle(IPC_CHANNELS.marketplace.uninstall, async (_event, skillName: string) => {
     try {
       const globalPath = path.join(os.homedir(), '.koda', 'skills', `${skillName}.md`)
       const localPath  = path.join(process.cwd(), '.koda', 'skills', `${skillName}.md`)

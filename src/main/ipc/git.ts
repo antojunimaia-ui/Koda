@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { IPC_CHANNELS } from '../../shared/ipc.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -10,7 +11,7 @@ async function gitExec(cwd: string, args: string[]): Promise<string> {
 }
 
 export function registerGitHandlers() {
-  ipcMain.handle('git:info', async (_event, cwd: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.info, async (_event, cwd: string) => {
     try {
       await gitExec(cwd, ['rev-parse', '--is-inside-work-tree'])
       const branch = await gitExec(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'])
@@ -31,7 +32,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:checkout', async (_event, cwd: string, branch: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.checkout, async (_event, cwd: string, branch: string) => {
     try {
       try {
         await gitExec(cwd, ['checkout', branch])
@@ -44,7 +45,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:status', async (_event, cwd: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.status, async (_event, cwd: string) => {
     try {
       const stdout = await gitExec(cwd, ['status', '--porcelain', '-u'])
       const files = stdout.trim().split('\n').filter(Boolean).map(line => {
@@ -66,7 +67,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:stage', async (_event, cwd: string, filePath: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.stage, async (_event, cwd: string, filePath: string) => {
     try {
       await gitExec(cwd, ['add', filePath])
       return { success: true }
@@ -75,7 +76,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:unstage', async (_event, cwd: string, filePath: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.unstage, async (_event, cwd: string, filePath: string) => {
     try {
       await gitExec(cwd, ['restore', '--staged', filePath])
       return { success: true }
@@ -84,7 +85,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:stage_all', async (_event, cwd: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.stageAll, async (_event, cwd: string) => {
     try {
       await gitExec(cwd, ['add', '-A'])
       return { success: true }
@@ -93,7 +94,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:commit', async (_event, cwd: string, message: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.commit, async (_event, cwd: string, message: string) => {
     try {
       await gitExec(cwd, ['commit', '-m', message])
       return { success: true }
@@ -102,7 +103,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:push', async (_event, cwd: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.push, async (_event, cwd: string) => {
     try {
       await gitExec(cwd, ['push'])
       return { success: true }
@@ -111,7 +112,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:pull', async (_event, cwd: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.pull, async (_event, cwd: string) => {
     try {
       await gitExec(cwd, ['pull', '--rebase'])
       return { success: true }
@@ -120,7 +121,7 @@ export function registerGitHandlers() {
     }
   })
 
-  ipcMain.handle('git:log', async (_event, cwd: string) => {
+  ipcMain.handle(IPC_CHANNELS.git.log, async (_event, cwd: string) => {
     try {
       const branch = await gitExec(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'])
       const stdout = await gitExec(cwd, [

@@ -10,6 +10,7 @@ import { resolvePlanApproval } from '../tools/plan.js'
 import { resolveQuestions } from '../tools/questions.js'
 import { ShellTool } from '../tools/shell.js'
 import { net } from 'electron'
+import { IPC_CHANNELS } from '../../shared/ipc.js'
 
 // Map of in-flight snapshot promises keyed by messageId
 const pendingSnapshots = new Map<number, Promise<void>>()
@@ -25,7 +26,7 @@ export function registerAgentHandlers(
     return agents.get(id) ?? null
   }
 
-  ipcMain.handle('agent:init', async (_event, workspaceId: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.init, async (_event, workspaceId: string) => {
     try {
       let agent = agents.get(workspaceId)
       if (!agent) {
@@ -47,7 +48,7 @@ export function registerAgentHandlers(
     }
   })
 
-  ipcMain.handle('agent:message', async (_event, workspaceId: string, messageId: number, message: string, images?: any[]) => {
+  ipcMain.handle(IPC_CHANNELS.agent.message, async (_event, workspaceId: string, messageId: number, message: string, images?: any[]) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
 
@@ -75,7 +76,7 @@ export function registerAgentHandlers(
     }
   })
 
-  ipcMain.handle('snapshot:restore', async (_event, workspaceId: string, messageId: number) => {
+  ipcMain.handle(IPC_CHANNELS.agent.snapshotRestore, async (_event, workspaceId: string, messageId: number) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { success: false, error: 'Agent not initialized' }
     try {
@@ -88,7 +89,7 @@ export function registerAgentHandlers(
     }
   })
 
-  ipcMain.handle('agent:reset', async (_event, workspaceId: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.reset, async (_event, workspaceId: string) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     const info = agent.getInfo()
@@ -98,7 +99,7 @@ export function registerAgentHandlers(
     return { success: true }
   })
 
-  ipcMain.handle('agent:soft_reset', async (_event, workspaceId: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.softReset, async (_event, workspaceId: string) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     agent.abort()
@@ -107,19 +108,19 @@ export function registerAgentHandlers(
     return { success: true }
   })
 
-  ipcMain.handle('agent:tokens', async (_event, workspaceId: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.tokens, async (_event, workspaceId: string) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     return agent.getTokenEstimate()
   })
 
-  ipcMain.handle('agent:info', async (_event, workspaceId: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.info, async (_event, workspaceId: string) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     return agent.getInfo()
   })
 
-  ipcMain.handle('agent:cd', async (_event, workspaceId: string, targetPath: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.cd, async (_event, workspaceId: string, targetPath: string) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     try {
@@ -136,11 +137,11 @@ export function registerAgentHandlers(
     }
   })
 
-  ipcMain.handle('agent:get_session', async (_event, projectPath: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.getSession, async (_event, projectPath: string) => {
     return sessionManager.getSession(projectPath)
   })
 
-  ipcMain.handle('agent:save_session', async (_event, workspaceId: string, projectPath: string, data: any) => {
+  ipcMain.handle(IPC_CHANNELS.agent.saveSession, async (_event, workspaceId: string, projectPath: string, data: any) => {
     const agent = agents.get(workspaceId)
     const { rendererMessages, backendMessages, pinnedFiles } = data
 
@@ -160,26 +161,26 @@ export function registerAgentHandlers(
     } as any)
   })
 
-  ipcMain.handle('agent:list_sessions', async (_event, projectPath: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.listSessions, async (_event, projectPath: string) => {
     return sessionManager.listSessions(projectPath)
   })
 
-  ipcMain.handle('agent:get_session_by_id', async (_event, sessionId: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.getSessionById, async (_event, sessionId: string) => {
     return sessionManager.getSessionById(sessionId)
   })
 
-  ipcMain.handle('agent:delete_session', async (_event, sessionId: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.deleteSession, async (_event, sessionId: string) => {
     return sessionManager.deleteSession(sessionId)
   })
 
-  ipcMain.handle('agent:apikey', async (_event, workspaceId: string, key: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.apiKey, async (_event, workspaceId: string, key: string) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     await agent.setApiKey(key)
     return { success: true, info: agent.getInfo() }
   })
 
-  ipcMain.handle('agent:setup', async (_event, workspaceId: string, config: { provider?: string; model?: string; advisorModel?: string; apiKey?: string; kodaCloudBaseUrl?: string }) => {
+  ipcMain.handle(IPC_CHANNELS.agent.setup, async (_event, workspaceId: string, config: { provider?: string; model?: string; advisorModel?: string; apiKey?: string; kodaCloudBaseUrl?: string }) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     try {
@@ -190,7 +191,7 @@ export function registerAgentHandlers(
     }
   })
 
-  ipcMain.handle('agent:open_file', async (_event, filePath: string, line?: number) => {
+  ipcMain.handle(IPC_CHANNELS.agent.openFile, async (_event, filePath: string, line?: number) => {
     try {
       const fullPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath)
       const vscodeUrl = `vscode://file/${fullPath}${line ? `:${line}` : ''}`
@@ -201,42 +202,42 @@ export function registerAgentHandlers(
     }
   })
 
-  ipcMain.handle('agent:model', async (_event, workspaceId: string, model: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.model, async (_event, workspaceId: string, model: string) => {
     const agent = agents.get(workspaceId)
     if (!agent) return { error: 'Agent not initialized' }
     await agent.setModel(model)
     return { success: true, info: agent.getInfo() }
   })
 
-  ipcMain.handle('agent:plan_response', async (_event, approved: boolean) => {
+  ipcMain.handle(IPC_CHANNELS.agent.planResponse, async (_event, approved: boolean) => {
     resolvePlanApproval(approved)
     return { success: true }
   })
 
-  ipcMain.handle('agent:questions_response', async (_event, answers: any[]) => {
+  ipcMain.handle(IPC_CHANNELS.agent.questionsResponse, async (_event, answers: any[]) => {
     resolveQuestions(answers)
     return { success: true }
   })
 
-  ipcMain.handle('agent:shell_response', async (_event, approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => {
+  ipcMain.handle(IPC_CHANNELS.agent.shellResponse, async (_event, approved: boolean, alwaysAllowBase: boolean, alwaysAllowFull: boolean) => {
     ShellTool.resolveApproval(approved, alwaysAllowBase, alwaysAllowFull)
     return { success: true }
   })
 
-  ipcMain.handle('agent:get_approved_commands', async () => {
+  ipcMain.handle(IPC_CHANNELS.agent.getApprovedCommands, async () => {
     return ShellTool.getApprovedCommands()
   })
 
-  ipcMain.handle('agent:update_approved_commands', async (_event, lists) => {
+  ipcMain.handle(IPC_CHANNELS.agent.updateApprovedCommands, async (_event, lists) => {
     ShellTool.updateApprovedCommands(lists)
     return { success: true }
   })
 
-  ipcMain.handle('agent:get_slash_commands', async () => {
+  ipcMain.handle(IPC_CHANNELS.agent.getSlashCommands, async () => {
     return { success: true, commands: NATIVE_SLASH_COMMANDS }
   })
 
-  ipcMain.handle('agent:getModels', async (_event, provider: string, apiKey: string) => {
+  ipcMain.handle(IPC_CHANNELS.agent.getModels, async (_event, provider: string, apiKey: string) => {
     console.log(`[Main] getModels called with provider: ${provider}, apiKey length: ${apiKey?.length || 0}`)
     try {
       if (provider === 'opencode-zen') {
