@@ -39,6 +39,11 @@ export function useAgentStream({
   const chunkBuffersRef = useRef<Map<string, string>>(new Map())
   const rafRefs = useRef<Map<string, number | null>>(new Map())
   const taskStartsRef = useRef<Map<string, number | null>>(new Map())
+
+  // ─── Instrumentação de debug (temporária) ────────────────────────────────────
+  // Compara eventos recebidos vs entradas no array de mensagens por tool+path.
+  const debugToolStartCounts = useRef<Map<string, number>>(new Map())
+  const debugToolKey = (update: any) => `${update.name}:${String((update.args as any)?.path ?? '')}`
   // Keep a ref so the IPC listener always sees the latest activeId without re-subscribing
   const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId)
   useEffect(() => {
@@ -91,6 +96,11 @@ export function useAgentStream({
         chunkBuffersRef.current.set(workspaceId, current + update.content)
         scheduleFlush(workspaceId)
       } else if (update.type === 'tool_start') {
+        const key = debugToolKey(update)
+        const ev = (debugToolStartCounts.current.get(key) || 0) + 1
+        debugToolStartCounts.current.set(key, ev)
+        console.log(`[DEBUG][UI:tool_start] ${key} — evento #${ev}`)
+
         const chunk = chunkBuffersRef.current.get(workspaceId) || ''
         chunkBuffersRef.current.set(workspaceId, '')
         const raf = rafRefs.current.get(workspaceId)
@@ -115,14 +125,23 @@ export function useAgentStream({
               updated[updated.length - 1] = { ...last, done: true }
             }
           }
-          return [
+
+          const next = [
             ...finalized,
             {
               id: nextId(),
-              type: 'tool',
+              type: 'tool' as const,
               tool: { name: update.name, args: update.args, status: 'running' as const, success: false },
             },
           ]
+          const entries = next.filter(
+            (m) =>
+              m.type === 'tool' &&
+              m.tool?.name === update.name &&
+              debugToolKey({ name: update.name, args: m.tool?.args }) === key,
+          ).length
+          console.log(`[DEBUG][UI:after_tool_start] ${key} — entries=${entries}`)
+          return next
         })
         scheduleScroll(workspaceId)
       } else if (update.type === 'tool_progress') {
@@ -151,8 +170,8 @@ export function useAgentStream({
           onPendingShell(workspaceId, null)
         }
         const applyEnd = () =>
-          onUpdate(workspaceId, (prev) =>
-            prev.map((m) =>
+          onUpdate(workspaceId, (prev) => {
+            const next = prev.map((m) =>
               m.type === 'tool' &&
               m.tool &&
               m.tool.name === update.name &&
@@ -168,8 +187,17 @@ export function useAgentStream({
                     },
                   }
                 : m,
-            ),
-          )
+            )
+            const key = debugToolKey({ name: update.name, args: update.args })
+            const entries = next.filter(
+              (m) =>
+                m.type === 'tool' &&
+                m.tool?.name === update.name &&
+                debugToolKey({ name: update.name, args: m.tool?.args }) === key,
+            ).length
+            console.log(`[DEBUG][UI:after_tool_end] ${key} — entries=${entries}`)
+            return next
+          })
         requestAnimationFrame(() =>
           requestAnimationFrame(() => {
             applyEnd()
