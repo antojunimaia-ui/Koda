@@ -2,6 +2,7 @@ import { config } from 'dotenv'
 import { resolve, dirname } from 'path'
 import { existsSync } from 'fs'
 import { fileURLToPath } from 'url'
+import { EnvironmentSettingsSchema } from '../../shared/schemas.js'
 
 // Load .env from current working directory
 const envPath = resolve(process.cwd(), '.env')
@@ -80,7 +81,9 @@ const DEFAULT_MODELS: Record<LLMProvider, string> = {
 }
 
 export function getSettings(): AppSettings {
-  const provider = (process.env.LLM_PROVIDER || 'openai') as LLMProvider
+  // Valida as variáveis de ambiente conhecidas (provider inválido cai para 'openai')
+  const envParsed = EnvironmentSettingsSchema.safeParse(process.env)
+  const provider: LLMProvider = (envParsed.success && envParsed.data.LLM_PROVIDER) || 'openai'
 
   const apiKeyMap: Record<LLMProvider, string> = {
     openai: process.env.OPENAI_API_KEY || '',

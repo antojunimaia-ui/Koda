@@ -24,7 +24,7 @@
 | 1. IPC tipado             | ✅ Concluída (2026-11-14)                                                                   |
 | 2. Testes                 | 🟡 Em andamento (unit core/tools ✅; providers ✅; serviços ✅; só e2e Playwright pendente) |
 | 3. Qualidade/lint/strict  | ✅ Concluída (gates: ESLint+Prettier+husky+CI; hardening TS/`any` registrado como backlog)  |
-| 4. Zod                    | ⏳ Pendente                                                                                 |
+| 4. Zod                    | ✅ Concluída (schemas + validação IPC/KoClaw/.env; stream de providers → backlog)           |
 | 5. Zustand                | ⏳ Pendente                                                                                 |
 | 6. Schema-first tools     | ⏳ Pendente                                                                                 |
 | 7. Servidor MCP + SSE/API | ⏳ Pendente                                                                                 |
@@ -128,21 +128,26 @@ build continuam limpos.
 
 ---
 
-## Fase 4 — Validação de dados com Zod
+## Fase 4 — Validação de dados com Zod — ✅ Concluída
 
 **Problema**: entradas não confiáveis (configs, payloads do KoClaw, respostas de
 providers, IPC do renderer) são validadas na mão ou não são.
 
 **Ações**:
 
-- [ ] Adicionar **zod** como dependência.
-- [ ] Criar `src/shared/schemas.ts` com schemas reutilizáveis: - `KodaSettingsSchema`, `ProviderConfigSchema`, `WorkspaceSchema`. - `KoClawMessageSchema` (payload de `POST /message`). - `ToolCallSchema` / `StreamChunkSchema` (contrato do agente).
-- [ ] Validar payloads de entrada nos handlers IPC antes de passar ao agente.
-- [ ] Validar respostas de providers no `BaseProvider` (parsing seguro de stream).
-- [ ] Validar configuração carregada do `.env` (via `config/settings.ts`).
+- [x] Adicionar **zod** como dependência.
+- [x] Criar `src/shared/schemas.ts` com schemas reutilizáveis: - `SetupConfigSchema` (IPC `agent:setup`) — tipo derivado com `z.infer`,
+      reaproveitado no contrato `ipc.ts` (eliminou duplicação). - `ApprovedCommandsSchema` (IPC `agent:update_approved_commands`). - `KoClawMessageSchema` (payload de `POST /message`). - `KoClawStartConfigSchema` (IPC `koclaw:start`). - `EnvironmentSettingsSchema` + `sanitizeEnvironment` (validação de `.env`).
+- [x] Validar payloads de entrada nos handlers IPC antes de passar ao agente:
+      `agent:setup`, `agent:update_approved_commands`, `koclaw:start`.
+- [x] Validar payload do KoClaw (`webhook-server.ts`) — `safeParse` → `400` claro.
+- [x] Validar configuração carregada do `.env` (`config/settings.ts`) — provider
+      inválido cai para `openai` em vez de quebrar depois.
+- [ ] Validar respostas de providers no `BaseProvider` (parsing seguro de stream) —
+      registrado como evolução futura.
 
 **Critério de sucesso**: payload inválido de KoClaw retorna `400` com mensagem clara,
-sem crash.
+sem crash. ✅
 
 ---
 

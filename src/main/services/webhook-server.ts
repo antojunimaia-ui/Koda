@@ -1,6 +1,7 @@
 import http from 'http'
 import type { BrowserWindow } from 'electron'
 import type { Agent } from '../core/agent.js'
+import { KoClawMessageSchema } from '../../shared/schemas.js'
 
 export interface WebhookConfig {
   port: number
@@ -166,18 +167,20 @@ export function startWebhookServer(
           return
         }
 
-        let body: { message?: string }
+        let rawBody: unknown
         try {
-          body = JSON.parse(await readBody(req))
+          rawBody = JSON.parse(await readBody(req))
         } catch {
           json(res, 400, { error: 'Invalid JSON body' })
           return
         }
 
-        if (!body.message?.trim()) {
+        const parsedBody = KoClawMessageSchema.safeParse(rawBody)
+        if (!parsedBody.success) {
           json(res, 400, { error: '"message" field is required' })
           return
         }
+        const message = parsedBody.data.message
 
         const emit = (data: object) => {
           getWindows().forEach((w) => w.webContents.send('agent:update', { workspaceId, ...data }))
@@ -186,7 +189,7 @@ export function startWebhookServer(
         // Fire and forget — caller uses GET /messages to read the result
         agent
           .processMessage(
-            body.message,
+            message,
             (text) => emit({ type: 'text', content: text }),
             (name, args) => emit({ type: 'tool_start', name, args }),
             (name, chunk) => emit({ type: 'tool_progress', event: 'writing', toolName: name, content: chunk }),

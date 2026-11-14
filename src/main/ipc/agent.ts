@@ -11,6 +11,8 @@ import { resolveQuestions } from '../tools/questions.js'
 import { ShellTool } from '../tools/shell.js'
 import { net } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc.js'
+import { ApprovedCommandsSchema, SetupConfigSchema } from '../../shared/schemas.js'
+import type { SetupConfig } from '../../shared/schemas.js'
 
 // Map of in-flight snapshot promises keyed by messageId
 const pendingSnapshots = new Map<number, Promise<void>>()
@@ -191,23 +193,22 @@ export function registerAgentHandlers(agents: Map<string, Agent>, broadcastAgent
     return { success: true, info: agent.getInfo() }
   })
 
-  ipcMain.handle(
-    IPC_CHANNELS.agent.setup,
-    async (
-      _event,
-      workspaceId: string,
-      config: { provider?: string; model?: string; advisorModel?: string; apiKey?: string; kodaCloudBaseUrl?: string },
-    ) => {
-      const agent = agents.get(workspaceId)
-      if (!agent) return { error: 'Agent not initialized' }
-      try {
-        await agent.updateSettings(config)
-        return { success: true, info: agent.getInfo() }
-      } catch (err: any) {
-        return { success: false, error: err.message }
-      }
-    },
-  )
+  ipcMain.handle(IPC_CHANNELS.agent.setup, async (_event, workspaceId: string, config: SetupConfig) => {
+    const agent = agents.get(workspaceId)
+    if (!agent) return { error: 'Agent not initialized' }
+
+    const parsedConfig = SetupConfigSchema.safeParse(config)
+    if (!parsedConfig.success) {
+      return { success: false, error: 'Invalid setup config' }
+    }
+
+    try {
+      await agent.updateSettings(parsedConfig.data)
+      return { success: true, info: agent.getInfo() }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
 
   ipcMain.handle(IPC_CHANNELS.agent.openFile, async (_event, filePath: string, line?: number) => {
     try {
@@ -250,7 +251,11 @@ export function registerAgentHandlers(agents: Map<string, Agent>, broadcastAgent
   })
 
   ipcMain.handle(IPC_CHANNELS.agent.updateApprovedCommands, async (_event, lists) => {
-    ShellTool.updateApprovedCommands(lists)
+    const parsed = ApprovedCommandsSchema.safeParse(lists)
+    if (!parsed.success) {
+      return { success: false, error: 'Invalid approved commands payload' }
+    }
+    ShellTool.updateApprovedCommands(parsed.data)
     return { success: true }
   })
 

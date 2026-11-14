@@ -9,6 +9,8 @@
 //   src/preload/index.ts      (implementa KodaApi)
 //   src/renderer/global.d.ts  (declara window.koda: KodaApi)
 
+import type { KoClawStartConfig, SetupConfig } from './schemas.js'
+
 // ─── Tipos de domínio ─────────────────────────────────────────────────────────
 
 export interface AgentInfo {
@@ -18,14 +20,6 @@ export interface AgentInfo {
   advisorModel: string
   project: string
   cwd: string
-}
-
-export interface SetupConfig {
-  provider?: string
-  model?: string
-  advisorModel?: string
-  apiKey?: string
-  kodaCloudBaseUrl?: string
 }
 
 export interface SlashCommand {
@@ -50,12 +44,6 @@ export interface SkillInfo {
 export interface ApprovedCommands {
   base: string[]
   full: string[]
-}
-
-export interface KoClawStartConfig {
-  port: number
-  token: string
-  allowRemoteAccess?: boolean
 }
 
 export interface KoClawStatus {
