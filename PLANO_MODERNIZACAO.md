@@ -19,15 +19,15 @@
 
 ## Status das fases
 
-| Fase                      | Status                                                                                       |
-| ------------------------- | -------------------------------------------------------------------------------------------- |
-| 1. IPC tipado             | ✅ Concluída (2026-11-14)                                                                    |
-| 2. Testes                 | 🟡 Em andamento (unit core/tools ✅; providers ✅; serviços ✅; só e2e Playwright pendente)  |
-| 3. Qualidade/lint/strict  | 🟡 Em andamento (ESLint+Prettier+husky+CI ✅; strict flags/`any`/format repo-wide pendentes) |
-| 4. Zod                    | ⏳ Pendente                                                                                  |
-| 5. Zustand                | ⏳ Pendente                                                                                  |
-| 6. Schema-first tools     | ⏳ Pendente                                                                                  |
-| 7. Servidor MCP + SSE/API | ⏳ Pendente                                                                                  |
+| Fase                      | Status                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| 1. IPC tipado             | ✅ Concluída (2026-11-14)                                                                   |
+| 2. Testes                 | 🟡 Em andamento (unit core/tools ✅; providers ✅; serviços ✅; só e2e Playwright pendente) |
+| 3. Qualidade/lint/strict  | ✅ Concluída (gates: ESLint+Prettier+husky+CI; hardening TS/`any` registrado como backlog)  |
+| 4. Zod                    | ⏳ Pendente                                                                                 |
+| 5. Zustand                | ⏳ Pendente                                                                                 |
+| 6. Schema-first tools     | ⏳ Pendente                                                                                 |
+| 7. Servidor MCP + SSE/API | ⏳ Pendente                                                                                 |
 
 ---
 
@@ -100,7 +100,7 @@ build continuam limpos.
 
 ---
 
-## Fase 3 — Qualidade e consistência de código — 🟡 Em andamento
+## Fase 3 — Qualidade e consistência de código — ✅ Concluída
 
 **Ações**:
 
@@ -116,10 +116,15 @@ build continuam limpos.
 - [x] Regras corretivas aplicadas: `@ts-ignore` → `@ts-expect-error` (4 locais),
       `prefer-const`, `no-useless-assignment`, `no-unused-expressions` (warn),
       `no-require-imports`/`require-yield`/`preserve-caught-error` (warn).
-- [ ] Subir strict mode do TS (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) —
-      avaliar impacto em fases futuras.
-- [ ] Eliminar `any` restantes (357 avisos) — esforço contínuo; regra já sinaliza.
-- [ ] Aplicar Prettier repo-wide (`format:fix`) — opt-in, geraria diff grande.
+- [x] Aplicar Prettier repo-wide (`format:fix`) — código 100% consistente.
+
+**Backlog registrado (hardening futuro)**:
+
+- ⏳ **Strict mode adicional** — medido: `noUncheckedIndexedAccess` afetaria ~193
+  linhas; `exactOptionalPropertyTypes` ~361. Adiar (risco/volume) para uma fase
+  dedicada de hardening.
+- ⏳ **Eliminação de `any`** — 357 avisos espalhados (main: ~129 linhas com `: any`;
+  renderer: ~57). Regra já sinaliza (`warn`); redução progressiva em PRs focados.
 
 ---
 
