@@ -4,6 +4,7 @@ import { existsSync } from 'fs'
 import { BaseTool, ToolParameter, ToolResult } from './base.js'
 import { detectLanguage, highlightCode } from '../utils/syntax.js'
 import { checkKodaIgnore } from '../utils/kodaignore.js'
+import { isFreshCacheableRead } from '../services/file-tracker.js'
 
 export class FileReadTool extends BaseTool {
   name = 'file_read'
@@ -40,6 +41,14 @@ export class FileReadTool extends BaseTool {
 
     if (!existsSync(filePath)) {
       return this.failure(`File not found: ${filePath}`)
+    }
+
+    // Guard anti-releitura: se o arquivo já foi lido nesta sessão e não mudou
+    // no disco, não relê — indica o histórico como fonte.
+    if (isFreshCacheableRead(filePath)) {
+      return this.success(
+        `📄 ${filePath} já foi lido nesta sessão e não mudou desde então — o conteúdo completo está no histórico da conversa. Evite reler a menos que precise do conteúdo atualizado.`,
+      )
     }
 
     try {

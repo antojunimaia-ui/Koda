@@ -30,6 +30,7 @@ import fs from 'fs/promises'
 import { HyperEditPlan, runHyperEdit } from '../services/hyperedit.js'
 import { NATIVE_SLASH_COMMANDS } from './slash-commands.js'
 import { COMPACTION_KEEP_RECENT, COMPACTION_RATIO, summarizeConversation } from '../services/context-compactor.js'
+import { getTrackedFiles } from '../services/file-tracker.js'
 
 export class Agent {
   private provider: BaseProvider | null = null
@@ -42,6 +43,7 @@ export class Agent {
   private abortController: AbortController | null = null
   /** CWD isolado por instância — nunca usa process.chdir() */
   private cwd: string = process.cwd()
+  private cachedProjectRules?: string
 
   constructor(settings?: AppSettings) {
     this.settings = settings ?? getSettings()
@@ -362,19 +364,24 @@ export class Agent {
           await this.compactConversation(onText)
         }
 
+        // Mantém o ledger de sessão (arquivos lidos/modificados) fresco no prompt
+        this.refreshSystemPrompt()
+
         const messages = this.conversation.getMessages()
         let assistantText = ''
         const assistantThoughts: any[] = []
         const pendingToolCalls: ToolCall[] = []
         let hasToolCalls = false
         let currentStreamingToolName = ''
-
-        // Tool results collected during streaming (executed eagerly on tool_call_end)
-        const toolResults: { id: string; name: string; output: string; success: boolean }[] = []
         const currentIterationSignatures: string[] = []
 
+        // INCREMENTAL: assim que uma tool é executada, entregamos o resultado ao
+        // modelo numa rodada imediata (quebrando o stream), em vez de acumular
+        // todas as tool calls da resposta e devolver tudo junto no final.
+        let deliveredToolImmediately = false
+
         // Stream response from LLM
-        for await (const chunk of this.provider.chat(messages, this.tools)) {
+        streamLoop: for await (const chunk of this.provider.chat(messages, this.tools)) {
           if (signal.aborted) break
 
           switch (chunk.type) {
@@ -405,7 +412,7 @@ export class Agent {
               }
               break
 
-            case 'tool_call_end':
+            case 'tool_call_end': {
               if (chunk.toolCall?.name && chunk.toolCall?.id) {
                 currentStreamingToolName = ''
                 const toolCall = chunk.toolCall as ToolCall
@@ -419,38 +426,48 @@ export class Agent {
                 let resultSuccess = true
 
                 // ── Doom Loop check (OpenCode: processor.ts:353-379) ──────
-                // Considera histórico linear + iteração atual. Se as últimas
-                // (THRESHOLD-1) assinaturas forem iguais à atual, bloqueia.
                 const isIntraIterationDuplicate = currentIterationSignatures.includes(signature)
                 const tail = recentSignatures.slice(-(DOOM_LOOP_THRESHOLD - 1))
                 const isConsecutiveLoop = tail.length === DOOM_LOOP_THRESHOLD - 1 && tail.every((s) => s === signature)
 
                 if (isIntraIterationDuplicate) {
-                  // Duplicata dentro da mesma resposta (parallel tool calls idênticos)
                   resultSuccess = false
                   resultOutput = `[Doom Loop Detected] You called '${toolCall.name}' with identical parameters twice in the same step. The second call was blocked. Please use the result from the first call and move on.`
                   console.warn(`[Agent][DoomLoop] Intra-iteration duplicate blocked: ${signature}`)
                 } else if (isConsecutiveLoop) {
-                  // 3ª chamada consecutiva idêntica — espelha OpenCode doom_loop: "ask" mas sem UI modal:
-                  // bloqueia e instrui o modelo a mudar de estratégia em vez de cachear output obsoleto.
                   resultSuccess = false
                   resultOutput = `[Doom Loop Detected] You have called '${toolCall.name}' with identical parameters ${DOOM_LOOP_THRESHOLD} times consecutively. This indicates you are stuck in a loop. The call was NOT executed. Analyze the previous output, try a different approach, or ask the user for clarification. Args: ${stableStringify(stripVolatile((toolCall.arguments || {}) as Record<string, unknown>))}`
                   console.warn(`[Agent][DoomLoop] Consecutive loop blocked (${DOOM_LOOP_THRESHOLD}x): ${signature}`)
                 } else {
-                  // Execução normal — immediately, sem cache
+                  // Execução normal — imediata, sem cache
                   const result = await this.tools.execute(toolCall.name, toolCall.arguments)
                   resultSuccess = result.success
                   resultOutput = result.error || result.output
                 }
 
-                // Registra assinatura para próximas verificações (mesmo quando bloqueado)
                 recentSignatures.push(signature)
                 currentIterationSignatures.push(signature)
 
                 onToolEnd(toolCall.name, resultOutput, resultSuccess, toolCall.arguments)
-                toolResults.push({ id: toolCall.id, name: toolCall.name, output: resultOutput, success: resultSuccess })
+
+                // INCREMENTAL: registra a resposta parcial do assistente + o
+                // resultado da tool e interrompe o stream — o modelo recebe o
+                // resultado numa rodada nova e imediata.
+                this.conversation.addAssistant(
+                  assistantText,
+                  hasToolCalls ? pendingToolCalls : undefined,
+                  assistantThoughts.length > 0 ? assistantThoughts : undefined,
+                )
+                this.conversation.addToolResult(
+                  toolCall.id,
+                  resultSuccess ? resultOutput : `Error: ${resultOutput}`,
+                  toolCall.name,
+                )
+                deliveredToolImmediately = true
+                break streamLoop
               }
               break
+            }
 
             case 'error':
               onError(chunk.error || 'Unknown error')
@@ -463,24 +480,15 @@ export class Agent {
 
         if (signal.aborted) break
 
-        // Save assistant message
+        // INCREMENTAL: volta ao topo do loop com o resultado já na conversa
+        if (deliveredToolImmediately) continue
+
+        // Resposta final sem tools — encerra
         this.conversation.addAssistant(
           assistantText,
           hasToolCalls ? pendingToolCalls : undefined,
           assistantThoughts.length > 0 ? assistantThoughts : undefined,
         )
-
-        // Add all tool results to conversation (collected during streaming)
-        if (toolResults.length > 0) {
-          for (const tr of toolResults) {
-            this.conversation.addToolResult(tr.id, tr.success ? tr.output : `Error: ${tr.output}`, tr.name)
-          }
-
-          // Continue the loop so the LLM can respond to tool results
-          continue
-        }
-
-        // No tool calls - we're done
         break
       }
     } catch (err) {
@@ -696,17 +704,43 @@ Regras: use entre 1 e ${maxAgents} agentes; selecione apenas arquivos candidatos
       .join('\n')
   }
 
+  private getSessionLedger(): string {
+    const files = getTrackedFiles()
+    if (files.length === 0) return ''
+    return (
+      'Arquivos acessados nesta sessão (use esta lista para EVITAR releituras):\n' +
+      files
+        .map((f) => {
+          const rel = path.relative(this.cwd, f.path) || f.path
+          const action = f.access === 'modified' ? 'modificado' : 'lido'
+          return `- ${rel} (${action})`
+        })
+        .join('\n')
+    )
+  }
+
+  private buildSystemPrompt(): string {
+    return PromptBuilder.build(this.settings.systemPrompt, {
+      workspaceName: this.projectContext?.name,
+      projectSummary: this.projectContext?.summary,
+      projectRules: this.cachedProjectRules,
+      toolsMetadata: this.getToolsMetadata(),
+      sessionLedger: this.getSessionLedger(),
+    })
+  }
+
+  /** Atualiza o system prompt (ledger de sessão) sem recarregar I/O. */
+  private refreshSystemPrompt(): void {
+    if (!this.conversation) return
+    this.conversation.updateSystemPrompt(this.buildSystemPrompt())
+  }
+
   private async rebuildPrompt(): Promise<void> {
     // Load project rules from .agents/rules.md if trigger: always_on
     const { rulesManager } = await import('../services/rules-manager.js')
-    const projectRules = await rulesManager.getContent(this.cwd)
+    this.cachedProjectRules = (await rulesManager.getContent(this.cwd)) || undefined
 
-    this.dynamicSystemPrompt = PromptBuilder.build(this.settings.systemPrompt, {
-      workspaceName: this.projectContext?.name,
-      projectSummary: this.projectContext?.summary,
-      projectRules: projectRules || undefined,
-      toolsMetadata: this.getToolsMetadata(),
-    })
+    this.dynamicSystemPrompt = this.buildSystemPrompt()
 
     if (this.conversation) {
       this.conversation.updateSystemPrompt(this.dynamicSystemPrompt)

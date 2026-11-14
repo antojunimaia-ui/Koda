@@ -6,12 +6,14 @@ import { FileEditTool } from '../file-edit.js'
 import { FileReadTool } from '../file-read.js'
 import { FileWriteTool } from '../file-write.js'
 import { invalidateKodaIgnoreCache } from '../../utils/kodaignore.js'
+import { clearTrackedFiles, trackFile } from '../../services/file-tracker.js'
 
 let tmp: string
 let originalCwd: string
 
 beforeEach(() => {
   invalidateKodaIgnoreCache()
+  clearTrackedFiles()
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'koda-tools-'))
   originalCwd = process.cwd()
   process.chdir(tmp)
@@ -21,6 +23,7 @@ afterEach(() => {
   process.chdir(originalCwd)
   fs.rmSync(tmp, { recursive: true, force: true })
   invalidateKodaIgnoreCache()
+  clearTrackedFiles()
 })
 
 function writeFile(rel: string, content: string) {
@@ -129,5 +132,33 @@ describe('FileEditTool', () => {
     expect(result.success).toBe(false)
     expect(result.error).toContain('Access denied')
     expect(fs.readFileSync(path.join(tmp, 'data.secret'), 'utf-8')).toBe('top secret')
+  })
+})
+
+describe('FileReadTool — guard anti-releitura', () => {
+  it('avoids re-reading an unchanged file already read in this session', async () => {
+    writeFile('re.txt', 'alpha')
+    const abs = path.join(tmp, 're.txt')
+
+    const first = await new FileReadTool().execute({ path: 're.txt' })
+    expect(first.success).toBe(true)
+    expect(first.output).toContain('alpha')
+
+    // Simula o registro do ToolRegistry após a primeira leitura
+    trackFile(abs, 'read')
+
+    // Segunda leitura sem mudança → aviso, não relê
+    const second = await new FileReadTool().execute({ path: 're.txt' })
+    expect(second.success).toBe(true)
+    expect(second.output).toContain('não mudou')
+    expect(second.output).not.toContain('alpha')
+
+    // Após modificar, a releitura volta a ser permitida
+    writeFile('re.txt', 'omega')
+    trackFile(abs, 'modified')
+
+    const third = await new FileReadTool().execute({ path: 're.txt' })
+    expect(third.success).toBe(true)
+    expect(third.output).toContain('omega')
   })
 })

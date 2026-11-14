@@ -10,6 +10,7 @@ export interface SystemPromptContext {
   projectRules?: string // Project-specific rules from .agents/rules.md
   additionalDirectives?: string
   toolsMetadata?: string // List of available tool names/descriptions
+  sessionLedger?: string // Objective record of session reads/writes
 }
 
 /**
@@ -77,9 +78,19 @@ ${ctx.workspaceName ? `- **Active Project**: ${ctx.workspaceName}` : ''}
 
     const projectBlock = context.projectSummary ? `# PROJECT ARCHITECTURE\n${context.projectSummary}` : ''
     const rulesBlock = context.projectRules ? `# PROJECT RULES\n${context.projectRules}` : ''
+    const ledgerBlock = context.sessionLedger ? `# SESSÃO ATUAL\n${context.sessionLedger}` : ''
 
     // Assemble modular blocks
-    return [basePrompt, envBlock, projectBlock, rulesBlock, coreBlock, toolsBlock, context.additionalDirectives || '']
+    return [
+      basePrompt,
+      envBlock,
+      projectBlock,
+      rulesBlock,
+      coreBlock,
+      ledgerBlock,
+      toolsBlock,
+      context.additionalDirectives || '',
+    ]
       .filter((block) => block.trim().length > 0)
       .join('\n\n---\n\n')
   }

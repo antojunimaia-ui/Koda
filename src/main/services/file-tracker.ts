@@ -5,14 +5,19 @@
  */
 
 import { BrowserWindow } from 'electron'
+import { statSync } from 'node:fs'
 
 export type FileAccessType = 'read' | 'modified'
 
-interface TrackedFile {
+export interface TrackedFile {
   path: string
   access: FileAccessType
   /** Most recent access timestamp */
   timestamp: number
+  /** File size at tracking time (bytes) */
+  size?: number
+  /** File modified-time at tracking time (ms) */
+  mtimeMs?: number
 }
 
 const trackedFiles = new Map<string, TrackedFile>()
@@ -26,6 +31,15 @@ function emit() {
   })
 }
 
+function fileStats(absPath: string): { size: number; mtimeMs: number } | null {
+  try {
+    const s = statSync(absPath)
+    return { size: s.size, mtimeMs: s.mtimeMs }
+  } catch {
+    return null
+  }
+}
+
 export function trackFile(absPath: string, access: FileAccessType): void {
   const existing = trackedFiles.get(absPath)
   // Upgrade "read" to "modified" but never downgrade
@@ -35,6 +49,7 @@ export function trackFile(absPath: string, access: FileAccessType): void {
     path: absPath,
     access: finalAccess,
     timestamp: Date.now(),
+    ...(fileStats(absPath) ?? {}),
   })
 
   emit()
@@ -42,6 +57,18 @@ export function trackFile(absPath: string, access: FileAccessType): void {
 
 export function getTrackedFiles(): TrackedFile[] {
   return Array.from(trackedFiles.values()).sort((a, b) => b.timestamp - a.timestamp)
+}
+
+/**
+ * True quando o arquivo já foi lido nesta sessão e NÃO mudou no disco desde a
+ * última leitura. Usado para evitar releituras redundantes (guard anti-duplicação).
+ */
+export function isFreshCacheableRead(absPath: string): boolean {
+  const tracked = trackedFiles.get(absPath)
+  if (!tracked || tracked.access !== 'read') return false
+  const stats = fileStats(absPath)
+  if (!stats) return false
+  return tracked.mtimeMs === stats.mtimeMs && tracked.size === stats.size
 }
 
 export function clearTrackedFiles(): void {
