@@ -28,5 +28,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Security audit (critical)
+        run: npm audit --audit-level=critical
+
       - name: Test
         run: npm test
