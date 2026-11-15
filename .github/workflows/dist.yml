@@ -6,6 +6,7 @@ on:
       - 'v*'
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   typecheck:
@@ -29,6 +30,8 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     needs: typecheck
+    permissions:
+      contents: write
 
     strategy:
       matrix:
