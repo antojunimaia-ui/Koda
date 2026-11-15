@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { Paperclip, ArrowUpIcon } from 'lucide-react'
-import { getIconForFile } from 'vscode-icons-js'
 import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings } from '../../types/index.js'
 
 import TitleBar from '../TitleBar.js'
@@ -11,9 +10,11 @@ import { useActiveWorkspaceData } from '../../stores/workspaceStore.js'
 import BrowserPreview from '../BrowserPreview.js'
 import TerminalPanel from '../TerminalPanel.js'
 import WorkspaceTabs from '../WorkspaceTabs.js'
+import { getAppArgs } from '../../utils/appArgs.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { formatModelName } from '../../utils/formatModelName.js'
-import SplitView from '../SplitView.js'
+import WcvSplit from './WcvSplit.js'
+import ChatArea from './ChatArea.js'
 import CompactTurnView from '../messages/CompactTurnView.js'
 import { groupTurns } from '../../utils/groupTurns.js'
 import QuestionsModal from '../modals/QuestionsModal.js'
@@ -677,48 +678,53 @@ const ModernUI: React.FC<ModernUIProps> = ({
   // IDE Mode Logic
   const isIDEMode = kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel
 
+  // Argumentos da instância (URL) — permitem esconder chrome por painel.
+  const appArgs = useMemo(() => getAppArgs(), [])
+
   return (
     <div className="mui-app">
-      <TitleBar
-        mode={mode}
-        onModeChange={setMode}
-        onSettingsClick={onSettingsClick}
-        onMcpClick={onMcpClick}
-        onBrowserClick={onBrowserClick}
-        showBrowser={showBrowser}
-        onTerminalClick={onTerminalClick}
-        showTerminal={showTerminal}
-        showPanel={showPanel}
-        onTogglePanel={onTogglePanel}
-        uiMode="modern"
-        showIconBar={kodaSettings.showIconBar}
-        onToggleIconBar={() => setKodaSettings((prev) => ({ ...prev, showIconBar: !prev.showIconBar }))}
-        isSplitEnabled={isSplitEnabled}
-        onToggleSplit={onToggleSplit || (() => {})}
-        showExplorer={showExplorer}
-        onToggleExplorer={() => setShowExplorer(!showExplorer)}
-        isIDEWindow={isIDEWindow}
-        onToggleIDEMode={onToggleIDEMode}
-        showSourceControl={showSourceControl}
-        onToggleSourceControl={onToggleSourceControl}
-        extraButton={
-          <>
-            {kodaSettings.explorerButtonPosition === 'titlebar' && (
-              <ExplorerButton
-                showPanel={showPanel}
-                onTogglePanel={onTogglePanel}
-                position="titlebar"
-                onMoveToIconbar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
-                onMoveToTitlebar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
-              />
-            )}
-          </>
-        }
-      />
+      {!appArgs.hideTitlebar && (
+        <TitleBar
+          mode={mode}
+          onModeChange={setMode}
+          onSettingsClick={onSettingsClick}
+          onMcpClick={onMcpClick}
+          onBrowserClick={onBrowserClick}
+          showBrowser={showBrowser}
+          onTerminalClick={onTerminalClick}
+          showTerminal={showTerminal}
+          showPanel={showPanel}
+          onTogglePanel={onTogglePanel}
+          uiMode="modern"
+          showIconBar={kodaSettings.showIconBar}
+          onToggleIconBar={() => setKodaSettings((prev) => ({ ...prev, showIconBar: !prev.showIconBar }))}
+          isSplitEnabled={isSplitEnabled}
+          onToggleSplit={onToggleSplit || (() => {})}
+          showExplorer={showExplorer}
+          onToggleExplorer={() => setShowExplorer(!showExplorer)}
+          isIDEWindow={isIDEWindow}
+          onToggleIDEMode={onToggleIDEMode}
+          showSourceControl={showSourceControl}
+          onToggleSourceControl={onToggleSourceControl}
+          extraButton={
+            <>
+              {kodaSettings.explorerButtonPosition === 'titlebar' && (
+                <ExplorerButton
+                  showPanel={showPanel}
+                  onTogglePanel={onTogglePanel}
+                  position="titlebar"
+                  onMoveToIconbar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'iconbar' }))}
+                  onMoveToTitlebar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
+                />
+              )}
+            </>
+          }
+        />
+      )}
 
       <div className="flex flex-1 min-h-0 relative flex-row">
         {/* ── Left Sidebar (Modern Only) ── */}
-        {kodaSettings.showIconBar && (
+        {kodaSettings.showIconBar && !(appArgs.hideIconbar || appArgs.hideHistory) && (
           <div id="tour-iconbar" className="mui-sidebar">
             {/* Sessions — inline, sempre visível */}
             <ChatHistory
@@ -813,7 +819,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Workspace tabs — inside the chat column, naturally right of the Iconbar */}
-          {isSplitEnabled && setActiveId && onAddWorkspace && onCloseWorkspace && (
+          {isSplitEnabled && setActiveId && onAddWorkspace && onCloseWorkspace && !appArgs.hideTabs && (
             <WorkspaceTabs
               variant="modern"
               workspaces={workspaces}
@@ -1093,196 +1099,59 @@ const ModernUI: React.FC<ModernUIProps> = ({
               {/* ── Chat Central Area (Normal or Split) ── */}
               {splitViewIds && handleSendForWs && handleRollbackForWs ? (
                 <div className="flex-1 flex flex-col relative min-h-0">
-                  <SplitView
+                  <WcvSplit
                     workspaces={workspaces}
                     splitIds={splitViewIds}
                     focusedId={activeId || splitViewIds[1]}
                     onFocus={(id: string) => setActiveId && setActiveId(id)}
                     onCloseSplit={() => onSplitWith && onSplitWith(splitViewIds[0])}
-                    onSend={handleSendForWs}
-                    onRollback={handleRollbackForWs}
-                    kodaSettings={kodaSettings}
-                    theme={theme}
-                    handleStop={handleStop}
-                    uiMode="modern"
                   />
                 </div>
               ) : (
-                <div className="flex flex-col flex-1 relative min-h-0">
-                  {/* Message List — full width so scrollbar sits at window edge */}
-                  <div className={`min-h-0 ${messages.length === 0 && !isProcessing ? 'hidden' : 'flex-1'} pt-4`}>
-                    <Virtuoso
-                      ref={virtuosoRef}
-                      data={renderableMessages}
-                      alignToBottom
-                      increaseViewportBy={{ top: 200, bottom: 200 }}
-                      className="custom-scrollbar h-full"
-                      style={{ scrollbarGutter: 'stable' }}
-                      itemContent={(index, item: any) => (
-                        <div className="mb-6 px-4 max-w-5xl mx-auto">
-                          {item.type === 'turn' ? (
-                            <CompactTurnView
-                              entries={item.entries}
-                              settings={kodaSettings}
-                              agentInfo={agentInfo}
-                              uiMode="modern"
-                              isLastAndActive={isProcessing && index === renderableMessages.length - 1}
-                            />
-                          ) : (
-                            <MessageRow
-                              msg={item}
-                              agentInfo={agentInfo}
-                              kodaSettings={kodaSettings}
-                              uiMode="modern"
-                              onRollback={
-                                item.type === 'user' ? () => handleRollback && handleRollback(item.id) : undefined
-                              }
-                            />
-                          )}
-                        </div>
-                      )}
-                      components={{
-                        Footer: VirtuosoFooter,
-                      }}
-                    />
-                  </div>
-
-                  {/* Loading avatar — outside Virtuoso so it's always visible */}
-                  {showAvatar && (
-                    <div className="flex items-center gap-2 max-w-5xl mx-auto w-full px-6 pb-1 animate-in fade-in duration-300">
-                      <video
-                        src="/Loading.webm"
-                        autoPlay
-                        loop
-                        muted
-                        className="w-7 h-7 object-contain"
-                        style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                      />
-                      <span className="font-bold text-slate-300 text-sm">Koda</span>
-                    </div>
-                  )}
-
-                  {/* Input Area */}
-                  <div
-                    className={`max-w-5xl mx-auto w-full px-6 pb-6 ${messages.length === 0 && !isProcessing ? 'flex-1 flex flex-col justify-center pt-0' : 'pt-2'}`}
-                  >
-                    {messages.length === 0 && !isProcessing && (
-                      <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
-                        What are we building today?
-                      </p>
-                    )}
-                    {updateInfo && onUpdateDismiss && (
-                      <div className="mb-0">
-                        <UpdateBanner
-                          version={updateInfo.version}
-                          downloaded={updateInfo.downloaded}
-                          onInstall={() => window.koda.updaterInstall()}
-                          onDismiss={onUpdateDismiss}
-                          variant="modern"
-                        />
-                      </div>
-                    )}
-                    {pendingShell && (
-                      <div className="mx-4">
-                        <ShellApprovalPanel
-                          command={pendingShell.command}
-                          baseCommand={pendingShell.baseCommand}
-                          variant="modern"
-                        />
-                      </div>
-                    )}
-                    {pendingQuestions && pendingQuestions.length > 0 && onQuestionsSubmit && (
-                      <div className="mx-4">
-                        <QuestionsModal questions={pendingQuestions} onSubmit={onQuestionsSubmit} />
-                      </div>
-                    )}
-
-                    {/* Slash Menu — estilo UpdateBanner */}
-                    {showSlashMenu && slashItems.length > 0 && (
-                      <div className="mui-popover -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
-                        <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
-                          {slashItems.map((item, idx) => (
-                            <button
-                              key={item.name}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === slashIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
-                              onClick={() => selectSlashItem(item)}
-                            >
-                              <span className="text-sm shrink-0">{item.icon}</span>
-                              <div className="flex flex-col min-w-0">
-                                <span
-                                  className={`text-[11px] font-bold tracking-wide ${idx === slashIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}
-                                >
-                                  {item.name}
-                                </span>
-                                {item.description && (
-                                  <span className="text-[10px] text-slate-600 group-hover:text-slate-500 transition-colors truncate">
-                                    {item.description}
-                                  </span>
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {showSuggestions && suggestions.length > 0 && (
-                      <div className="mui-popover -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
-                        <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
-                          {suggestions.map((file, idx) => (
-                            <button
-                              key={file}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left group ${idx === suggestionIndex ? 'bg-white/5' : 'hover:bg-white/5'}`}
-                              onClick={() => selectSuggestion(file)}
-                            >
-                              <img
-                                src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${getIconForFile(file.split(/[/\\]/).pop() || '')}`}
-                                width="16"
-                                height="16"
-                                className="shrink-0 object-contain"
-                                alt="file icon"
-                              />
-                              <span
-                                className={`text-[11px] font-bold tracking-wide truncate ${idx === suggestionIndex ? 'text-white' : 'text-slate-300 group-hover:text-white'} transition-colors`}
-                              >
-                                {file}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <PromptBox
-                      isDraggingOver={isDraggingOver}
-                      onDragOver={handlePromptBoxDragOver}
-                      onDragLeave={handlePromptBoxDragLeave}
-                      onDrop={handlePromptBoxDrop}
-                      pendingImages={pendingImages}
-                      setPendingImages={setPendingImages}
-                      inputFiles={inputFiles}
-                      onRemoveInputFile={onRemoveInputFile}
-                      textareaRef={textareaRef}
-                      input={input}
-                      onChange={(e) => {
-                        handleInputChange(e.target.value)
-                        adjustHeight()
-                      }}
-                      onKeyDown={handleKeyDown}
-                      onPaste={handlePaste}
-                      onFileAttach={onFileAttach}
-                      handlePathClick={handlePathClick}
-                      agentInfo={agentInfo}
-                      isProcessing={isProcessing}
-                      handleStop={handleStop}
-                      handleSend={handleSend}
-                      renderModelDropdown={renderModelDropdown}
-                      mode={mode}
-                      onModeChange={setMode}
-                      variant="normal"
-                    />
-                  </div>
-                </div>
+                <ChatArea
+                  messages={messages}
+                  isProcessing={isProcessing}
+                  agentInfo={agentInfo}
+                  kodaSettings={kodaSettings}
+                  renderableMessages={renderableMessages}
+                  virtuosoRef={virtuosoRef}
+                  showAvatar={showAvatar}
+                  updateInfo={updateInfo}
+                  onUpdateDismiss={onUpdateDismiss}
+                  pendingShell={pendingShell}
+                  pendingQuestions={pendingQuestions}
+                  onQuestionsSubmit={onQuestionsSubmit}
+                  showSlashMenu={showSlashMenu}
+                  slashItems={slashItems}
+                  slashIndex={slashIndex}
+                  selectSlashItem={selectSlashItem}
+                  showSuggestions={showSuggestions}
+                  suggestions={suggestions}
+                  suggestionIndex={suggestionIndex}
+                  selectSuggestion={selectSuggestion}
+                  input={input}
+                  handleInputChange={handleInputChange}
+                  adjustHeight={adjustHeight}
+                  handleKeyDown={handleKeyDown}
+                  handlePaste={handlePaste}
+                  textareaRef={textareaRef}
+                  isDraggingOver={isDraggingOver}
+                  onDragOver={handlePromptBoxDragOver}
+                  onDragLeave={handlePromptBoxDragLeave}
+                  onDrop={handlePromptBoxDrop}
+                  pendingImages={pendingImages}
+                  setPendingImages={setPendingImages}
+                  inputFiles={inputFiles}
+                  onRemoveInputFile={onRemoveInputFile}
+                  onFileAttach={onFileAttach}
+                  handlePathClick={handlePathClick}
+                  handleStop={handleStop}
+                  handleSend={handleSend}
+                  renderModelDropdown={renderModelDropdown}
+                  mode={mode}
+                  setMode={setMode}
+                  handleRollback={handleRollback}
+                />
               )}
 
               {/* ── Right Panel Area ── */}

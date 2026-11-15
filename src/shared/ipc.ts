@@ -130,6 +130,13 @@ export const IPC_CHANNELS = {
   workspace: {
     newId: 'workspace:new_id',
   },
+  panel: {
+    mount: 'panel:mount',
+    unmount: 'panel:unmount',
+    bounds: 'panel:bounds',
+    focus: 'panel:focus',
+    setHidden: 'panel:set_hidden',
+  },
   deeplink: {
     workspace: 'deeplink:workspace',
   },
@@ -319,6 +326,21 @@ export interface KodaApi {
   // ── Workspaces ───────────────────────────────────────
   /** Pede um novo ID de workspace ao main (fonte da verdade). */
   generateWorkspaceId: () => Promise<string>
+
+  // ── Painéis (WebContentsView — Fase 2) ──────────────────
+  /** Monta o painel isolado do workspace (partition própria). */
+  panelMount: (workspaceId: string) => Promise<void>
+  /** Desmonta e destrói o painel do workspace. */
+  panelUnmount: (workspaceId: string) => Promise<void>
+  /** Reposiciona o painel dentro da janela (DIP). */
+  panelSetBounds: (
+    workspaceId: string,
+    bounds: { x: number; y: number; width: number; height: number },
+  ) => Promise<void>
+  /** Dá foco ao painel do workspace. */
+  panelFocus: (workspaceId: string) => Promise<void>
+  /** Mostra/oculta todos os painéis (para overlays globais do host). */
+  panelSetHidden: (hidden: boolean) => Promise<void>
 
   // ── Deep links ───────────────────────────────────────
   /** Assina eventos koda://workspace/<id> vindos do main. */

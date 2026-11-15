@@ -12,6 +12,7 @@ import { registerMcpHandlers } from './mcp.js'
 import { registerDiscordHandlers } from './discord.js'
 import { registerGitHandlers } from './git.js'
 import { registerWorkspaceHandlers } from './workspace.js'
+import { registerPanelHandlers } from './panels.js'
 
 export function registerAllHandlers(
   agents: Map<string, Agent>,
@@ -30,4 +31,5 @@ export function registerAllHandlers(
   registerDiscordHandlers(discordRPC)
   registerGitHandlers()
   registerWorkspaceHandlers()
+  registerPanelHandlers()
 }

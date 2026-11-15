@@ -9,6 +9,8 @@ interface UseAgentInitOptions {
   setActiveId: (id: string) => void
   updateWorkspace: (id: string, updates: Partial<Workspace> | ((prev: Workspace) => Workspace)) => void
   lastLoadedCwdPerWs: React.MutableRefObject<Map<string, string>>
+  /** Quando presente (modo painel), ignora o registro salvos e carrega só este workspace. */
+  forceWorkspaceId?: string | null
 }
 
 export function useAgentInit({
@@ -17,6 +19,7 @@ export function useAgentInit({
   setActiveId,
   updateWorkspace,
   lastLoadedCwdPerWs,
+  forceWorkspaceId,
 }: UseAgentInitOptions) {
   const [initializing, setInitializing] = useState(true)
   const [availableSkills, setAvailableSkills] = useState<Array<{ name: string; description: string }>>([])
@@ -84,6 +87,29 @@ export function useAgentInit({
       terminalOutput: '',
       currentSessionId: null,
     })
+
+    // ── Modo painel: carrega só o workspace forçado (URL do deep link) ───────
+    if (forceWorkspaceId) {
+      ;(async () => {
+        const base = JSON.parse(localStorage.getItem('koda_approved_base') || '[]')
+        const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
+        window.koda.updateApprovedCommands({ base, full })
+
+        try {
+          const res: any = await window.koda.init(forceWorkspaceId)
+          if (res.success) {
+            const info = res.info
+            lastLoadedCwdPerWs.current.set(forceWorkspaceId, info.cwd)
+            setWorkspaces([makeWs(forceWorkspaceId, info)])
+            setActiveId(forceWorkspaceId)
+          }
+        } catch {
+          /* mantém vazio — o shell renderiza o estado de carregamento */
+        }
+        setInitializing(false)
+      })()
+      return
+    }
 
     // ── Restaura workspaces persistidos (Fase 1) ────────────────────────────
     const saved = loadWorkspaces()

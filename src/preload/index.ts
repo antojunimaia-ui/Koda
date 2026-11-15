@@ -7,6 +7,11 @@ const api: KodaApi = {
   openAgent: () => ipcRenderer.invoke(IPC_CHANNELS.window.openAgent),
   openADE: () => ipcRenderer.invoke(IPC_CHANNELS.window.openADE),
   generateWorkspaceId: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.newId),
+  panelMount: (workspaceId) => ipcRenderer.invoke(IPC_CHANNELS.panel.mount, workspaceId),
+  panelUnmount: (workspaceId) => ipcRenderer.invoke(IPC_CHANNELS.panel.unmount, workspaceId),
+  panelSetBounds: (workspaceId, bounds) => ipcRenderer.invoke(IPC_CHANNELS.panel.bounds, workspaceId, bounds),
+  panelFocus: (workspaceId) => ipcRenderer.invoke(IPC_CHANNELS.panel.focus, workspaceId),
+  panelSetHidden: (hidden) => ipcRenderer.invoke(IPC_CHANNELS.panel.setHidden, hidden),
   onOpenWorkspace: (callback) => {
     const listener = (_event: unknown, id: string) => callback(id)
     ipcRenderer.on(IPC_CHANNELS.deeplink.workspace, listener)

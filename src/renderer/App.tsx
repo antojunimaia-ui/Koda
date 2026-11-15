@@ -19,7 +19,6 @@ import { useInputHandlers } from './hooks/useInputHandlers.js'
 import { useMessageActions } from './hooks/useMessageActions.js'
 import { useUIStore } from './stores/uiStore.js'
 import { useWorkspaceStore } from './stores/workspaceStore.js'
-import PanelApp from './components/panel/PanelApp.js'
 import { loadWorkspaces, saveActiveWorkspaceId, saveWorkspaces } from './utils/workspace-persistence.js'
 
 // ─── Components ──────────────────────────────────────────────────────────────
@@ -42,7 +41,7 @@ const SYMBOLS = {
   arrow: '❯',
 }
 
-const HostApp: React.FC = () => {
+const HostApp: React.FC<{ panelWorkspaceId?: string | null }> = ({ panelWorkspaceId }) => {
   // ── Core workspace state ─────────────────────────────────────────────────
   const {
     workspaces,
@@ -218,7 +217,14 @@ const HostApp: React.FC = () => {
     loadedModels,
     loadingState,
     fetchModelsForProvider,
-  } = useAgentInit({ workspaces, setWorkspaces, setActiveId, updateWorkspace, lastLoadedCwdPerWs })
+  } = useAgentInit({
+    workspaces,
+    setWorkspaces,
+    setActiveId,
+    updateWorkspace,
+    lastLoadedCwdPerWs,
+    forceWorkspaceId: panelWorkspaceId,
+  })
 
   // ── Scroll helper (Virtuoso alignToBottom handles it; kept as no-op) ──────
   const scheduleScroll = useCallback((_wsId: string) => {}, [])
@@ -704,13 +710,13 @@ const HostApp: React.FC = () => {
 }
 
 // ─── Dispatcher de modo ────────────────────────────────────────────────────────
-// Atalho para o "modo painel" (Fase 1/2): `?mode=panel&ws=<id>` carrega um
-// documento autônomo com um único workspace, o que será a URL de cada painel
-// (WebContentsView) no SplitView isolado.
+// Atalho para o "modo painel" (Fase 2): `?mode=panel&ws=<id>` carrega o MESMO
+// app do host, semeado com o workspace da URL — assim o painel é idêntico ao
+// shell (sem UI refeita), apenas isolado num renderer próprio (WebContentsView).
 const App: React.FC = () => {
   const params = new URLSearchParams(window.location.search)
   if (params.get('mode') === 'panel') {
-    return <PanelApp workspaceId={params.get('ws')} />
+    return <HostApp panelWorkspaceId={params.get('ws')} />
   }
   return <HostApp />
 }

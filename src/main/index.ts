@@ -7,6 +7,7 @@ import { selfInstallOnLinux } from './services/linux-installer.js'
 import { registerSchemesAsPrivileged, registerKodaAssetProtocol } from './protocols/koda-asset.js'
 import { createWindow, createIDEWindow, getMainWindow, getAllWindows } from './windows.js'
 import { handleDeepLink, flushPendingDeepLink } from './deeplink.js'
+import { attachPanelsToWindow, getPanelWebContents } from './panels.js'
 import { registerAllHandlers } from './ipc/index.js'
 import electronUpdater from 'electron-updater'
 import dotenv from 'dotenv'
@@ -90,6 +91,10 @@ function broadcastAgentUpdate(data: object) {
   for (const win of getAllWindows()) {
     win?.webContents.send('agent:update', data)
   }
+  // Painéis (WebContentsView) também precisam receber updates do agente.
+  for (const wc of getPanelWebContents()) {
+    wc.send('agent:update', data)
+  }
 }
 
 // ── IPC handlers ─────────────────────────────────────────────────────────────
@@ -103,6 +108,7 @@ app.whenReady().then(() => {
   registerKodaAssetProtocol()
 
   createWindow((win) => fileWatcher.setMainWindow(win))
+  attachPanelsToWindow(getMainWindow()!)
   flushPendingDeepLink()
 
   app.on('activate', () => {
