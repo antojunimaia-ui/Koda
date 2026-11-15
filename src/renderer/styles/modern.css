@@ -1,0 +1,357 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   modern.css — design tokens + primitives for the ModernUI skin.
+
+   Why a global sheet: ModernUI repeats the same decisions inline
+   (`bg-[#141414]`, `border-white/5`, `text-slate-500`, `w-9 h-9 rounded-lg`).
+   Those are now tokens + short classes, so markup reads as intent and a theme
+   change is a single edit here.
+
+   Rules
+   - Tokens live under [data-ui-mode='modern'] so ClassicUI is untouched.
+   - Structural surfaces/hairlines stay neutral (white-alpha) on purpose:
+     the ModernUI skin is neutral-on-neutral with a themed accent.
+   - Colours that must follow the active theme read `--koda-*` (set by useTheme).
+   - Everything is in @layer components, so any Tailwind utility still wins
+     (e.g. `className="mui-icon-btn bg-amber-500/10 text-amber-400"` works).
+
+   Usage
+     <div className="mui-app">                     app shell
+     <aside className="mui-sidebar">               left sidebar (canvas + hairline)
+     <div className="mui-panel mui-hairline-l">    panel surface
+     <div className="mui-menu"> / .mui-menu-item   dropdown
+     <button className="mui-btn mui-btn--primary"> button
+     <button className="mui-icon-btn">             icon-only button
+     <input className="mui-field">                 text field
+     <select className="mui-select">               select
+     <div className="mui-popover">                 composer suggestion panel
+     <span className="mui-chip"> / .mui-kbd        badge / shortcut hint
+     <span className="mui-eyebrow">                uppercase section label
+   ────────────────────────────────────────────────────────────────────────── */
+
+[data-ui-mode='modern'] {
+  /* Surfaces */
+  --mui-canvas: #141414;
+  --mui-surface-1: #181818;
+  --mui-surface-2: #1d1d1d;
+  --mui-surface-3: #242424;
+  --mui-surface-hover: rgba(255, 255, 255, 0.05);
+  --mui-surface-active: rgba(255, 255, 255, 0.08);
+  --mui-composer: rgba(23, 23, 23, 0.9);
+  --mui-composer-border: rgba(64, 64, 64, 0.6);
+
+  /* Foreground */
+  --mui-fg-strong: #f8fafc;
+  --mui-fg: var(--koda-text, #e2e8f0);
+  --mui-fg-muted: var(--koda-text-dim, #94a3b8);
+  --mui-fg-subtle: #64748b;
+  --mui-fg-faint: #475569;
+
+  /* Structure */
+  --mui-hairline: rgba(255, 255, 255, 0.05);
+  --mui-hairline-strong: rgba(255, 255, 255, 0.1);
+  --mui-border-input: rgba(255, 255, 255, 0.12);
+
+  /* Accent (follows the active theme) */
+  --mui-accent: var(--koda-accent, #22d3ee);
+  --mui-accent-alt: var(--koda-accent-alt, #d946ef);
+  --mui-accent-soft: color-mix(in oklab, var(--mui-accent) 12%, transparent);
+  --mui-accent-fg: #0a0a0b;
+
+  /* Shape */
+  --mui-radius-sm: 8px;
+  --mui-radius: 10px;
+  --mui-radius-lg: 12px;
+  --mui-radius-xl: 16px;
+  --mui-radius-card: 18px;
+
+  /* Elevation */
+  --mui-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --mui-shadow-2: 0 8px 24px -8px rgba(0, 0, 0, 0.55);
+  --mui-shadow-3: 0 24px 64px -24px rgba(0, 0, 0, 0.8);
+
+  /* Type */
+  --mui-text-2xs: 9px;
+  --mui-text-xs: 10px;
+  --mui-text-sm: 11px;
+  --mui-text-base: 12px;
+  --mui-text-md: 13px;
+}
+
+@layer components {
+  /* ── Shell ──────────────────────────────────────────────────────────────── */
+  .mui-app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--mui-canvas);
+    color: var(--mui-fg);
+    font-family: var(--font-ui);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mui-app ::selection {
+    background-color: var(--mui-accent-soft);
+    color: var(--mui-fg-strong);
+  }
+
+  .mui-panel {
+    background-color: var(--mui-canvas);
+  }
+
+  .mui-sidebar {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: 16rem;
+    background-color: var(--mui-canvas);
+    border-right: 1px solid var(--mui-hairline);
+    overflow: hidden;
+    z-index: var(--koda-z-chrome);
+  }
+
+  /* ── Hairlines (1px, low contrast) ──────────────────────────────────────── */
+  .mui-hairline-l {
+    border-left: 1px solid var(--mui-hairline);
+  }
+  .mui-hairline-r {
+    border-right: 1px solid var(--mui-hairline);
+  }
+  .mui-hairline-t {
+    border-top: 1px solid var(--mui-hairline);
+  }
+  .mui-hairline-b {
+    border-bottom: 1px solid var(--mui-hairline);
+  }
+  .mui-divider {
+    height: 1px;
+    width: 100%;
+    background-color: var(--mui-hairline);
+  }
+
+  /* ── Text ───────────────────────────────────────────────────────────────── */
+  .mui-muted {
+    color: var(--mui-fg-muted);
+  }
+  .mui-subtle {
+    color: var(--mui-fg-subtle);
+  }
+  .mui-faint {
+    color: var(--mui-fg-faint);
+  }
+  .mui-eyebrow {
+    font-size: var(--mui-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mui-fg-faint);
+  }
+
+  /* ── Buttons ────────────────────────────────────────────────────────────── */
+  .mui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2rem;
+    padding-inline: 0.75rem;
+    border-radius: var(--mui-radius);
+    font-size: var(--mui-text-base);
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease,
+      border-color 120ms ease,
+      transform 120ms ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--mui-fg-muted);
+  }
+  .mui-btn:active {
+    transform: scale(0.97);
+  }
+  .mui-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .mui-btn--primary {
+    background-color: var(--mui-fg-strong);
+    color: var(--mui-canvas);
+  }
+  .mui-btn--primary:hover {
+    background-color: #ffffff;
+  }
+  .mui-btn--accent {
+    background-color: var(--mui-accent);
+    color: var(--mui-accent-fg);
+  }
+  .mui-btn--accent:hover {
+    filter: brightness(1.08);
+  }
+  .mui-btn--ghost {
+    color: var(--mui-fg-muted);
+  }
+  .mui-btn--ghost:hover {
+    color: var(--mui-fg-strong);
+    background-color: var(--mui-surface-hover);
+  }
+  .mui-btn--outline {
+    border-color: var(--mui-hairline-strong);
+    color: var(--mui-fg-muted);
+  }
+  .mui-btn--outline:hover {
+    border-color: var(--mui-border-input);
+    color: var(--mui-fg);
+  }
+  .mui-btn--danger {
+    color: #f87171;
+  }
+  .mui-btn--danger:hover {
+    background-color: rgba(248, 113, 113, 0.1);
+  }
+
+  .mui-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    border-radius: var(--mui-radius-sm);
+    color: var(--mui-fg-subtle);
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+    cursor: pointer;
+  }
+  .mui-icon-btn:hover {
+    color: var(--mui-fg);
+    background-color: var(--mui-surface-hover);
+  }
+  .mui-icon-btn:active {
+    background-color: var(--mui-surface-active);
+  }
+
+  /* ── Fields ─────────────────────────────────────────────────────────────── */
+  .mui-field,
+  .mui-select {
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--mui-hairline-strong);
+    border-radius: var(--mui-radius-sm);
+    padding: 0.25rem 0.5rem;
+    font-size: var(--mui-text-sm);
+    color: var(--mui-fg);
+    outline: none;
+    transition:
+      border-color 120ms ease,
+      background-color 120ms ease;
+  }
+  .mui-field::placeholder {
+    color: var(--mui-fg-faint);
+  }
+  .mui-field:focus,
+  .mui-select:focus {
+    border-color: var(--mui-accent);
+    background-color: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 0 3px var(--mui-accent-soft);
+  }
+  .mui-field:disabled,
+  .mui-select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .mui-field--mono {
+    font-family: var(--font-mono);
+  }
+
+  /* ── Menus / popovers ───────────────────────────────────────────────────── */
+  .mui-menu {
+    position: absolute;
+    z-index: var(--koda-z-dropdown);
+    min-width: 12rem;
+    padding-block: 0.25rem;
+    background-color: var(--mui-canvas);
+    border: 1px solid var(--mui-hairline-strong);
+    border-radius: var(--mui-radius-lg);
+    box-shadow: var(--mui-shadow-3);
+  }
+  .mui-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: var(--mui-text-base);
+    color: var(--mui-fg-muted);
+    text-align: left;
+    transition:
+      background-color 100ms ease,
+      color 100ms ease;
+    cursor: pointer;
+  }
+  .mui-menu-item:hover {
+    background-color: var(--mui-surface-hover);
+    color: var(--mui-fg-strong);
+  }
+  .mui-menu-item[data-active='true'] {
+    background-color: var(--mui-surface-hover);
+    color: var(--mui-fg-strong);
+  }
+
+  .mui-popover {
+    width: 100%;
+    overflow: hidden;
+    background-color: var(--mui-composer);
+    border: 1px solid var(--mui-composer-border);
+    border-bottom: 0;
+    border-radius: var(--mui-radius-xl);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    backdrop-filter: blur(24px);
+  }
+
+  /* ── Composer ───────────────────────────────────────────────────────────── */
+  .mui-composer {
+    width: 100%;
+    background-color: var(--mui-composer);
+    border: 1px solid var(--mui-composer-border);
+    border-radius: var(--mui-radius-xl);
+    backdrop-filter: blur(24px);
+  }
+
+  /* ── Bits ───────────────────────────────────────────────────────────────── */
+  .mui-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 6px;
+    border: 1px solid var(--mui-hairline-strong);
+    background-color: rgba(255, 255, 255, 0.05);
+    font-size: var(--mui-text-xs);
+    font-weight: 700;
+    color: var(--mui-fg-muted);
+  }
+  .mui-kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.375rem;
+    border-radius: 5px;
+    border: 1px solid var(--mui-hairline-strong);
+    background-color: rgba(255, 255, 255, 0.04);
+    font-family: var(--font-mono);
+    font-size: var(--mui-text-2xs);
+    color: var(--mui-fg-subtle);
+  }
+
+  /* ── Focus ──────────────────────────────────────────────────────────────── */
+  .mui-focus:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--mui-accent-soft);
+  }
+}

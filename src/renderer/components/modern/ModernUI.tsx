@@ -73,7 +73,7 @@ const ExplorerButton: React.FC<{
         <button
           onClick={onTogglePanel}
           onContextMenu={onContextMenu}
-          className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showPanel ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+          className={`mui-icon-btn ${showPanel ? 'bg-cyan-500/10 text-cyan-400' : ''}`}
           title="Toggle Context Panel (right-click to move)"
         >
           {icon}
@@ -90,18 +90,14 @@ const ExplorerButton: React.FC<{
       )}
 
       {menu && (
-        <div
-          ref={menuRef}
-          className="fixed z-dropdown bg-[#141414] border border-white/10 rounded-xl shadow-2xl py-1 w-52"
-          style={{ top: menu.y, left: menu.x }}
-        >
-          <div className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-600">Move to</div>
+        <div ref={menuRef} className="mui-menu fixed w-52" style={{ top: menu.y, left: menu.x }}>
+          <div className="mui-eyebrow px-3 py-1.5">Move to</div>
           <button
             onClick={() => {
               onMoveToIconbar()
               setMenu(null)
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${position === 'iconbar' ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`mui-menu-item ${position === 'iconbar' ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-300'}`}
           >
             <svg
               width="13"
@@ -124,7 +120,7 @@ const ExplorerButton: React.FC<{
               onMoveToTitlebar()
               setMenu(null)
             }}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${position === 'titlebar' ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-300 hover:bg-white/5'}`}
+            className={`mui-menu-item ${position === 'titlebar' ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-300'}`}
           >
             <svg
               width="13"
@@ -682,7 +678,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
   const isIDEMode = kodaSettings.showExplorerPanel || kodaSettings.showEditorPanel
 
   return (
-    <div className="flex flex-col h-screen bg-[#141414] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
+    <div className="mui-app">
       <TitleBar
         mode={mode}
         onModeChange={setMode}
@@ -723,10 +719,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
       <div className="flex flex-1 min-h-0 relative flex-row">
         {/* ── Left Sidebar (Modern Only) ── */}
         {kodaSettings.showIconBar && (
-          <div
-            id="tour-iconbar"
-            className="w-64 bg-[#141414] border-r border-white/5 flex flex-col shrink-0 z-chrome overflow-hidden"
-          >
+          <div id="tour-iconbar" className="mui-sidebar">
             {/* Sessions — inline, sempre visível */}
             <ChatHistory
               projectPath={agentInfo?.cwd || ''}
@@ -737,11 +730,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
             {/* Todos os botões na parte inferior */}
             <div className="py-2 px-1 flex flex-row gap-0 justify-start mt-auto">
-              <button
-                onClick={onSettingsClick}
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-zinc-200 hover:bg-white/5 transition-all"
-                title="Settings"
-              >
+              <button onClick={onSettingsClick} className="mui-icon-btn" title="Settings">
                 <svg
                   width="14"
                   height="14"
@@ -758,7 +747,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
               </button>
               <button
                 onClick={() => onTerminalClick()}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showTerminal ? 'bg-amber-500/10 text-amber-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+                className={`mui-icon-btn ${showTerminal ? 'bg-amber-500/10 text-amber-400' : ''}`}
                 title="Toggle Terminal"
               >
                 <svg
@@ -777,7 +766,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
               </button>
               <button
                 onClick={() => onBrowserClick()}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${showBrowser ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}`}
+                className={`mui-icon-btn ${showBrowser ? 'bg-emerald-500/10 text-emerald-400' : ''}`}
                 title="Toggle Browser"
               >
                 <svg
@@ -804,11 +793,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                   onMoveToTitlebar={() => setKodaSettings((prev) => ({ ...prev, explorerButtonPosition: 'titlebar' }))}
                 />
               )}
-              <button
-                onClick={onMcpClick}
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-400 hover:bg-white/5 transition-all"
-                title="MCP Systems"
-              >
+              <button onClick={onMcpClick} className="mui-icon-btn hover:text-indigo-400" title="MCP Systems">
                 <svg
                   width="14"
                   height="14"
@@ -1012,7 +997,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
                       {/* Slash Menu */}
                       {showSlashMenu && slashItems.length > 0 && (
-                        <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                        <div className="mui-popover -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
                           <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
                             {slashItems.map((item, idx) => (
                               <button
@@ -1040,7 +1025,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       )}
 
                       {showSuggestions && suggestions.length > 0 && (
-                        <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                        <div className="mui-popover -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
                           <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
                             {suggestions.map((file, idx) => (
                               <button
@@ -1214,7 +1199,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
 
                     {/* Slash Menu — estilo UpdateBanner */}
                     {showSlashMenu && slashItems.length > 0 && (
-                      <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                      <div className="mui-popover -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
                         <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
                           {slashItems.map((item, idx) => (
                             <button
@@ -1242,7 +1227,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
                     )}
 
                     {showSuggestions && suggestions.length > 0 && (
-                      <div className="w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-2xl rounded-b-none border-b-0 overflow-hidden -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
+                      <div className="mui-popover -mb-4 animate-in fade-in slide-in-from-bottom-1 duration-150">
                         <div className="px-2 pt-2 pb-6 max-h-52 overflow-y-auto custom-scrollbar">
                           {suggestions.map((file, idx) => (
                             <button
@@ -1313,13 +1298,11 @@ const ModernUI: React.FC<ModernUIProps> = ({
               {showPanel && <div className="shrink-0" style={{ width: contextPanelWidth }} />}
 
               {/* Space for Standalone Explorer overlay */}
-              {showExplorer && (
-                <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />
-              )}
+              {showExplorer && <div className="mui-panel mui-hairline-l shrink-0" style={{ width: explorerWidth }} />}
 
               {/* Space for Source Control overlay */}
               {showSourceControl && (
-                <div className="shrink-0 border-l border-white/5 bg-[#141414]" style={{ width: explorerWidth }} />
+                <div className="mui-panel mui-hairline-l shrink-0" style={{ width: explorerWidth }} />
               )}
             </div>
           )}

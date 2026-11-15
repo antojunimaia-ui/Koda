@@ -520,7 +520,10 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-full relative overflow-hidden bg-slate-950">
+    <div
+      className="h-screen w-full relative overflow-hidden bg-slate-950"
+      data-ui-mode={kodaSettings.uiMode ?? 'classic'}
+    >
       {/* ── Modals & Overlays ─────────────────────────────────────────────── */}
       {showSettings && (
         <SettingsUI
@@ -597,71 +600,73 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* ── Main UI ───────────────────────────────────────────────────────── */}
-      {kodaSettings.uiMode === 'modern' ? (
-        <ModernUI
-          {...sharedUIProps}
-          kodaSettings={activeSettings}
-          setKodaSettings={setKodaSettings}
-          isIDEWindow={isIDEWindow}
-          onToggleIDEMode={handleToggleIDEMode}
-          showSourceControl={showSourceControl}
-          onToggleSourceControl={toggleSourceControl}
-          onStartResizeSourceControl={startResizingExplorer}
-          contextPanelWidth={contextPanelWidth}
-          contextPanelTab={contextPanelTab}
-          onContextPanelTabChange={(t) => {
-            setContextPanelTab(t)
-            if (!showPanel) togglePanel()
-          }}
-          loadedModels={loadedModels}
-          fetchModelsForProvider={fetchModelsForProvider}
-          onSelectActiveModel={handleSelectActiveModel}
-          onNewSession={handleNewSession}
-          onLoadSession={handleLoadSession}
-          onAddToInput={handleAddToInput}
-          onInject={handleInjectFile}
-          onPin={handlePinFile}
-          inputFiles={activeWorkspace.inputFiles || []}
-          onRemoveInputFile={handleRemoveInputFile}
-        />
-      ) : (
-        <ClassicUI {...sharedUIProps} {...classicOnlyProps} initializing={initializing} />
-      )}
+      {/* ── Main UI (escondida enquanto a tela de Settings está aberta) ─────── */}
+      <div style={{ display: showSettings ? 'none' : 'contents' }}>
+        {kodaSettings.uiMode === 'modern' ? (
+          <ModernUI
+            {...sharedUIProps}
+            kodaSettings={activeSettings}
+            setKodaSettings={setKodaSettings}
+            isIDEWindow={isIDEWindow}
+            onToggleIDEMode={handleToggleIDEMode}
+            showSourceControl={showSourceControl}
+            onToggleSourceControl={toggleSourceControl}
+            onStartResizeSourceControl={startResizingExplorer}
+            contextPanelWidth={contextPanelWidth}
+            contextPanelTab={contextPanelTab}
+            onContextPanelTabChange={(t) => {
+              setContextPanelTab(t)
+              if (!showPanel) togglePanel()
+            }}
+            loadedModels={loadedModels}
+            fetchModelsForProvider={fetchModelsForProvider}
+            onSelectActiveModel={handleSelectActiveModel}
+            onNewSession={handleNewSession}
+            onLoadSession={handleLoadSession}
+            onAddToInput={handleAddToInput}
+            onInject={handleInjectFile}
+            onPin={handlePinFile}
+            inputFiles={activeWorkspace.inputFiles || []}
+            onRemoveInputFile={handleRemoveInputFile}
+          />
+        ) : (
+          <ClassicUI {...sharedUIProps} {...classicOnlyProps} initializing={initializing} />
+        )}
 
-      {/* ── Context Panel overlay ─────────────────────────────────────────── */}
-      {showPanel && (
-        <ContextPanelOverlay
-          files={activeWorkspace.trackedFiles}
-          pinnedFiles={activeWorkspace.pinnedFiles}
-          onPin={handlePinFile}
-          onUnpin={handleUnpinFile}
-          onInject={handleInjectFile}
-          onAddToInput={handleAddToInput}
-          cwd={activeWorkspace.agentInfo.cwd}
-          width={contextPanelWidth}
-          isResizing={isResizingContext}
-          onStartResize={startResizingContext}
-          activeTab={contextPanelTab}
-          onTabChange={setContextPanelTab}
-        />
-      )}
+        {/* ── Context Panel overlay ─────────────────────────────────────────── */}
+        {showPanel && (
+          <ContextPanelOverlay
+            files={activeWorkspace.trackedFiles}
+            pinnedFiles={activeWorkspace.pinnedFiles}
+            onPin={handlePinFile}
+            onUnpin={handleUnpinFile}
+            onInject={handleInjectFile}
+            onAddToInput={handleAddToInput}
+            cwd={activeWorkspace.agentInfo.cwd}
+            width={contextPanelWidth}
+            isResizing={isResizingContext}
+            onStartResize={startResizingContext}
+            activeTab={contextPanelTab}
+            onTabChange={setContextPanelTab}
+          />
+        )}
 
-      {/* ── Explorer Panel overlay ────────────────────────────────────────── */}
-      {showExplorer && (
-        <ExplorerPanelOverlay
-          cwd={activeWorkspace.agentInfo.cwd}
-          pinnedFiles={activeWorkspace.pinnedFiles}
-          onPin={handlePinFile}
-          onInject={handleInjectFile}
-          onAddToInput={handleAddToInput}
-          onClose={() => setShowExplorer(false)}
-          explorerTabPosition="titlebar"
-          onMoveTo={() => {}}
-          width={explorerWidth}
-          onStartResize={startResizingExplorer}
-        />
-      )}
+        {/* ── Explorer Panel overlay ────────────────────────────────────────── */}
+        {showExplorer && (
+          <ExplorerPanelOverlay
+            cwd={activeWorkspace.agentInfo.cwd}
+            pinnedFiles={activeWorkspace.pinnedFiles}
+            onPin={handlePinFile}
+            onInject={handleInjectFile}
+            onAddToInput={handleAddToInput}
+            onClose={() => setShowExplorer(false)}
+            explorerTabPosition="titlebar"
+            onMoveTo={() => {}}
+            width={explorerWidth}
+            onStartResize={startResizingExplorer}
+          />
+        )}
+      </div>
     </div>
   )
 }
