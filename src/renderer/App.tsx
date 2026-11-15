@@ -19,6 +19,8 @@ import { useInputHandlers } from './hooks/useInputHandlers.js'
 import { useMessageActions } from './hooks/useMessageActions.js'
 import { useUIStore } from './stores/uiStore.js'
 import { useWorkspaceStore } from './stores/workspaceStore.js'
+import PanelApp from './components/panel/PanelApp.js'
+import { loadWorkspaces, saveActiveWorkspaceId, saveWorkspaces } from './utils/workspace-persistence.js'
 
 // ─── Components ──────────────────────────────────────────────────────────────
 import MCPSettings from './components/MCPSettings.js'
@@ -40,7 +42,7 @@ const SYMBOLS = {
   arrow: '❯',
 }
 
-const App: React.FC = () => {
+const HostApp: React.FC = () => {
   // ── Core workspace state ─────────────────────────────────────────────────
   const {
     workspaces,
@@ -106,6 +108,26 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('koda_settings', JSON.stringify(kodaSettings))
   }, [kodaSettings])
+
+  // ── Persistência de workspaces (Fase 1) ─────────────────────────────────────
+  // Registro id -> cwd para restaurar workspaces entre execuções e manter deep
+  // links (koda://workspace/<id>) resolvendo após reiniciar o app.
+  useEffect(() => {
+    if (!workspaces.length) return
+    const prev = loadWorkspaces()
+    const byId = new Map(prev.map((p) => [p.id, p]))
+    saveWorkspaces(
+      workspaces.map((w) => ({
+        id: w.id,
+        cwd: w.cwd,
+        lastActive: byId.get(w.id)?.lastActive ?? Date.now(),
+      })),
+    )
+  }, [workspaces])
+
+  useEffect(() => {
+    saveActiveWorkspaceId(activeId)
+  }, [activeId])
 
   // ── Deep links (koda://workspace/<id>) ──────────────────────────────────────
   // Fase 0: um deep link externo foca o workspace, se ele existir na store.
@@ -679,6 +701,18 @@ const App: React.FC = () => {
       </div>
     </div>
   )
+}
+
+// ─── Dispatcher de modo ────────────────────────────────────────────────────────
+// Atalho para o "modo painel" (Fase 1/2): `?mode=panel&ws=<id>` carrega um
+// documento autônomo com um único workspace, o que será a URL de cada painel
+// (WebContentsView) no SplitView isolado.
+const App: React.FC = () => {
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('mode') === 'panel') {
+    return <PanelApp workspaceId={params.get('ws')} />
+  }
+  return <HostApp />
 }
 
 export default App

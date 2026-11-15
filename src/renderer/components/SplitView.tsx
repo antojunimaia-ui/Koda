@@ -21,7 +21,8 @@ interface SplitPanelProps {
 }
 
 // ─── Single resizable panel ────────────────────────────────────────────────────
-const SplitPanel: React.FC<SplitPanelProps> = ({
+// Exportado para reuso no modo painel (Fase 1: ?mode=panel&ws=<id>).
+export const SplitPanel: React.FC<SplitPanelProps> = ({
   workspace,
   kodaSettings,
   theme,

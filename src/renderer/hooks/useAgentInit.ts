@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Workspace, KodaSettings } from '../types/index.js'
 import { KoDB } from '../db/kodb.js'
+import { loadWorkspaces, loadActiveWorkspaceId } from '../utils/workspace-persistence.js'
 
 interface UseAgentInitOptions {
   workspaces: Workspace[]
@@ -63,41 +64,73 @@ export function useAgentInit({
     if (!window.koda) return
     if (workspaces.length > 0) return
 
-    const savedKey = KoDB.get('apiKey')
-    const savedProvider = KoDB.get('provider')
-    const savedModel = KoDB.get('model')
-    const savedAdvisor = KoDB.get('advisorModel')
-    const savedKodaCloudUrl = KoDB.get('kodaCloudBaseUrl')
+    const makeWs = (id: string, info: any): Workspace => ({
+      id,
+      name: info.project || 'Workspace',
+      cwd: info.cwd,
+      messages: [],
+      isProcessing: false,
+      agentInfo: info,
+      mode: 'fast',
+      trackedFiles: [],
+      pinnedFiles: [],
+      inputFiles: [],
+      pendingImages: [],
+      taskQueue: [],
+      pendingPlan: null,
+      pendingQuestions: null,
+      pendingShell: null,
+      inPlanMode: false,
+      terminalOutput: '',
+      currentSessionId: null,
+    })
 
-    const initialId = Math.random().toString(36).substring(7)
+    // ── Restaura workspaces persistidos (Fase 1) ────────────────────────────
+    const saved = loadWorkspaces()
+    if (saved.length > 0) {
+      ;(async () => {
+        const restored: Workspace[] = []
+        const sorted = [...saved].sort((a, b) => b.lastActive - a.lastActive)
+        for (const entry of sorted) {
+          try {
+            const res: any = await window.koda.init(entry.id)
+            if (!res?.success) continue
+            let info = res.info
+            if (entry.cwd) {
+              const cdRes: any = await window.koda.cd(entry.id, entry.cwd).catch(() => null)
+              if (cdRes?.success && cdRes.info) info = cdRes.info
+            }
+            lastLoadedCwdPerWs.current.set(entry.id, info.cwd)
+            restored.push(makeWs(entry.id, info))
+          } catch {
+            /* workspace que falhou ao restaurar — ignora */
+          }
+        }
+        if (restored.length > 0) {
+          setWorkspaces(restored)
+          const active = loadActiveWorkspaceId()
+          setActiveId(restored.some((w) => w.id === active) ? active! : restored[0].id)
+        }
+        setInitializing(false)
+      })()
+      return
+    }
 
-    window.koda.init(initialId).then(async (res: any) => {
+    // ── Sem workspaces salvos — cria o workspace principal ──────────────────
+    ;(async () => {
+      const initialId = await window.koda.generateWorkspaceId()
+      const base = JSON.parse(localStorage.getItem('koda_approved_base') || '[]')
+      const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
+      window.koda.updateApprovedCommands({ base, full })
+
+      const savedKey = KoDB.get('apiKey')
+      const savedProvider = KoDB.get('provider')
+      const savedModel = KoDB.get('model')
+      const savedAdvisor = KoDB.get('advisorModel')
+      const savedKodaCloudUrl = KoDB.get('kodaCloudBaseUrl')
+
+      const res: any = await window.koda.init(initialId)
       if (res.success) {
-        const base = JSON.parse(localStorage.getItem('koda_approved_base') || '[]')
-        const full = JSON.parse(localStorage.getItem('koda_approved_full') || '[]')
-        window.koda.updateApprovedCommands({ base, full })
-
-        const makeWs = (info: any): Workspace => ({
-          id: initialId,
-          name: 'Main Workspace',
-          cwd: info.cwd,
-          messages: [],
-          isProcessing: false,
-          agentInfo: info,
-          mode: 'fast',
-          trackedFiles: [],
-          pinnedFiles: [],
-          inputFiles: [],
-          pendingImages: [],
-          taskQueue: [],
-          pendingPlan: null,
-          pendingQuestions: null,
-          pendingShell: null,
-          inPlanMode: false,
-          terminalOutput: '',
-          currentSessionId: null,
-        })
-
         if (savedKey || savedProvider || savedModel || savedKodaCloudUrl) {
           try {
             const setupRes = await window.koda.setup(initialId, {
@@ -109,7 +142,7 @@ export function useAgentInit({
             })
             if (setupRes.success && setupRes.info) {
               lastLoadedCwdPerWs.current.set(initialId, setupRes.info.cwd)
-              setWorkspaces([makeWs(setupRes.info)])
+              setWorkspaces([makeWs(initialId, setupRes.info)])
               setActiveId(initialId)
             }
           } catch {
@@ -117,12 +150,12 @@ export function useAgentInit({
           }
         } else {
           lastLoadedCwdPerWs.current.set(initialId, res.info.cwd)
-          setWorkspaces([makeWs(res.info)])
+          setWorkspaces([makeWs(initialId, res.info)])
           setActiveId(initialId)
         }
       }
       setInitializing(false)
-    })
+    })()
 
     window.koda.listSkills().then((r: any) => {
       if (r.success && r.skills) setAvailableSkills(r.skills)
