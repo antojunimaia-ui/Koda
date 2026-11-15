@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { spawnMock } = vi.hoisted(() => ({ spawnMock: vi.fn() }))
 
@@ -73,6 +73,11 @@ describe('ShellTool approval store', () => {
 describe('ShellTool.execute', () => {
   beforeEach(() => {
     spawnMock.mockReset()
+    ;(globalThis as { __PTY_MODULE__?: unknown }).__PTY_MODULE__ = { spawn: spawnMock }
+  })
+
+  afterAll(() => {
+    delete (globalThis as { __PTY_MODULE__?: unknown }).__PTY_MODULE__
   })
 
   it('fails when a required parameter is missing', async () => {

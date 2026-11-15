@@ -1,14 +1,30 @@
-import * as pty from 'node-pty'
+import type { IPty } from 'node-pty'
 import * as os from 'os'
 import { BaseTool, ToolParameter, ToolResult } from './base.js'
 import { BrowserWindow } from 'electron'
+import { ensureNativePaths } from '../utils/native-paths.js'
+
+// node-pty é um módulo nativo que, empacotado, vive FORA do asar
+// (resources/node_modules). Carregamos lazy para que ensureNativePaths() rode
+// antes do primeiro require, garantindo caminho físico (resolve o binário).
+// `__PTY_MODULE__` permite injeção nos testes sem depender do vi.mock.
+type PtyModule = typeof import('node-pty')
+let ptyModule: PtyModule | undefined
+function getPty(): PtyModule {
+  if (!ptyModule) {
+    ensureNativePaths()
+    const injected = (globalThis as { __PTY_MODULE__?: PtyModule }).__PTY_MODULE__
+    ptyModule = injected ?? (require('node-pty') as PtyModule)
+  }
+  return ptyModule
+}
 
 const TIMEOUT_MS = 0 // 0 means no default timeout
 const MAX_OUTPUT = 50_000 // Max output characters
 
 // ─── Module-level PTY registry ────────────────────────────────────────────────
 interface PtyState {
-  process: pty.IPty
+  process: IPty
   outputBuffer: string
   isExited: boolean
   exitCode?: number
@@ -50,7 +66,7 @@ export function listPtyProcesses(): number[] {
 /** Start a persistent interactive terminal for the user. */
 export function startInteractiveTerminal(cwd: string): number {
   const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash'
-  const ptyProcess = pty.spawn(shell, [], {
+  const ptyProcess = getPty().spawn(shell, [], {
     name: 'xterm-256color',
     cols: 80,
     rows: 24,
@@ -272,7 +288,7 @@ export class ShellTool extends BaseTool {
 
     // Background execution via PTY (Now Always)
     try {
-      const ptyProcess = pty.spawn(shell, shellArgs, {
+      const ptyProcess = getPty().spawn(shell, shellArgs, {
         name: 'xterm-256color',
         cols: 120,
         rows: 30,

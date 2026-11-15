@@ -1,14 +1,12 @@
-# Koda 26.1.6 — Patch importante para Linux/macOS (PTY)
+# Koda 26.1.7 — Fix for PTY loading on Linux/macOS (asar)
 
-Esta versão é um **patch importante** para Linux e macOS: corrige o terminal
-integrado (PTY) que estava ausente nos pacotes dessas plataformas.
+This patch fixes the **agent terminal (PTY)** still crashing on Linux (AppImage)
+and macOS (DMG) in 26.1.6.
 
----
+## What was happening
 
-## O que acontecia
-
-Ao iniciar o Koda no Linux (AppImage) ou macOS (DMG), o app falhava no
-processo principal com:
+Even though 26.1.6 shipped the compiled `pty.node` inside the package, the app
+still failed at startup with:
 
 ```
 Error: Failed to load native module: pty.node
@@ -16,41 +14,28 @@ checked: build/Release, build/Debug, prebuilds/linux-x64
 Cannot find module './prebuilds/linux-x64//pty.node'
 ```
 
-**Causa raiz:**
+**Root cause:** the `node-pty` package was packed inside the Electron **asar**
+archive, while its native binary (`.node`) lives in the unpacked payload. When
+the module resolves paths relative to the asar, it cannot find the unpacked
+binary. This is a known Electron + native-module limitation.
 
-- O módulo nativo `node-pty` 1.1.0 **não publica binário pré-compilado para
-  `linux-x64`** — ele precisa ser compilado no momento do build.
-- O pipeline de release usava `npm install --ignore-scripts` + `postinstall || true`,
-  que **mascarava a falha da compilação** — então o AppImage/DMG era empacotado
-  sem o `pty.node`.
-- Resultado: qualquer uso do terminal do agente (`shell`, `shell_wait`,
-  `shell_input`, `kill_pty`…) quebrava ao carregar o módulo nativo.
+## What was fixed
 
----
+- `node-pty` is now **excluded from the asar** and shipped as a real folder in
+  `resources/node_modules/node-pty` (physical path, original layout).
+- The main process registers `resources/node_modules` on the module resolver
+  before loading `node-pty`, so the native binary is found on disk.
+- Loading was made lazy and injectable, keeping tests green.
 
-## O que foi corrigido
-
-- O CI agora instala a toolchain de compilação no Linux
-  (`build-essential`, `python3`) junto das dependências X11/secret.
-- O rebuild de módulos nativos para Linux/macOS roda de verdade
-  (`electron-builder install-app-deps`, sem mascarar erro) → `node-pty`
-  compilado contra o Electron.
-- Novo passo de verificação que **falha o build** se o binário nativo
-  (`pty.node`) não existir antes de empacotar — impede releases futuras sem PTY.
-
----
-
-## Como instalar
+## How to install
 
 ### Linux (AppImage)
-
-Via script oficial:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/antojunimaia-ui/Koda/main/scripts/install/install-linux.sh | bash
 ```
 
-Ou manualmente: baixe o `koda.AppImage` desta release e execute:
+Or manually: download `koda.AppImage`, then:
 
 ```bash
 chmod +x koda.AppImage
@@ -59,20 +44,13 @@ chmod +x koda.AppImage
 
 ### macOS (DMG)
 
-Via script oficial:
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/antojunimaia-ui/Koda/main/scripts/install/install-macos.sh | bash
 ```
 
-Ou manualmente: baixe o `Koda-26.1.6.dmg`, abra e arraste o Koda para
-Aplicativos. Se o Gatekeeper bloquear, remova a quarentena:
-
-```bash
-xattr -cr /Applications/Koda.app
-```
+Or manually: download `Koda-26.1.7.dmg`, drag to Applications. If Gatekeeper
+blocks it: `xattr -cr /Applications/Koda.app`.
 
 ### Windows
 
-Instalador NSIS habitual (`Koda-Setup-26.1.6-x64.exe` / `-ia32.exe`) — não
-afetado por este patch.
+Usual NSIS installer (`Koda-Setup-26.1.7-x64.exe` / `-ia32.exe`).

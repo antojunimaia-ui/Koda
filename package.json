@@ -1,6 +1,6 @@
 {
   "name": "koda-electron",
-  "version": "26.1.6",
+  "version": "26.1.7",
   "description": "Koda - Your ideal development partner.",
   "main": "dist-electron/index.js",
   "type": "module",
@@ -128,16 +128,13 @@
       "dist/**/*",
       "dist-electron/**/*",
       "node_modules/**/*",
+      "!node_modules/node-pty/**",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": "node_modules/node-pty/build",
-        "to": "node_modules/node-pty/build"
-      },
-      {
-        "from": "node_modules/node-pty/prebuilds",
-        "to": "node_modules/node-pty/prebuilds"
+        "from": "node_modules/node-pty",
+        "to": "node_modules/node-pty"
       }
     ],
     "protocols": [
