@@ -1,12 +1,11 @@
-# Koda 26.1.7 — Fix for PTY loading on Linux/macOS (asar)
+# Koda v26.15.11 — Fix do PTY no Linux/macOS (asar)
 
-This patch fixes the **agent terminal (PTY)** still crashing on Linux (AppImage)
-and macOS (DMG) in 26.1.6.
+Esta versão corrige o **terminal do agente (PTY)**, que ainda falhava ao
+carregar no Linux (AppImage) e macOS (DMG) na 26.1.6.
 
-## What was happening
+## O que acontecia
 
-Even though 26.1.6 shipped the compiled `pty.node` inside the package, the app
-still failed at startup with:
+Mesmo com o `pty.node` compilado dentro do pacote, o app falhava ao iniciar:
 
 ```
 Error: Failed to load native module: pty.node
@@ -14,20 +13,20 @@ checked: build/Release, build/Debug, prebuilds/linux-x64
 Cannot find module './prebuilds/linux-x64//pty.node'
 ```
 
-**Root cause:** the `node-pty` package was packed inside the Electron **asar**
-archive, while its native binary (`.node`) lives in the unpacked payload. When
-the module resolves paths relative to the asar, it cannot find the unpacked
-binary. This is a known Electron + native-module limitation.
+**Causa raiz:** o pacote `node-pty` era empacotado dentro do arquivo **asar**
+do Electron, enquanto o binário nativo (`.node`) ficava no payload desempacotado.
+Ao resolver caminhos relativos ao asar, o módulo não encontra o binário.
 
-## What was fixed
+## O que foi corrigido
 
-- `node-pty` is now **excluded from the asar** and shipped as a real folder in
-  `resources/node_modules/node-pty` (physical path, original layout).
-- The main process registers `resources/node_modules` on the module resolver
-  before loading `node-pty`, so the native binary is found on disk.
-- Loading was made lazy and injectable, keeping tests green.
+- `node-pty` agora é **excluído do asar** e distribuído como pasta física em
+  `resources/node_modules/node-pty` (caminho real, layout original).
+- O processo principal registra `resources/node_modules` no resolvedor de
+  módulos antes de carregar `node-pty`, garantindo que o binário seja achado
+  em disco.
+- A carga ficou lazy e injetável, mantendo os testes verdes.
 
-## How to install
+## Como instalar
 
 ### Linux (AppImage)
 
@@ -35,7 +34,7 @@ binary. This is a known Electron + native-module limitation.
 curl -fsSL https://raw.githubusercontent.com/antojunimaia-ui/Koda/main/scripts/install/install-linux.sh | bash
 ```
 
-Or manually: download `koda.AppImage`, then:
+Ou manualmente: baixe `koda.AppImage` e rode:
 
 ```bash
 chmod +x koda.AppImage
@@ -48,9 +47,9 @@ chmod +x koda.AppImage
 curl -fsSL https://raw.githubusercontent.com/antojunimaia-ui/Koda/main/scripts/install/install-macos.sh | bash
 ```
 
-Or manually: download `Koda-26.1.7.dmg`, drag to Applications. If Gatekeeper
-blocks it: `xattr -cr /Applications/Koda.app`.
+Ou manualmente: baixe `Koda-26.15.11.dmg`, arraste para Aplicativos. Se o
+Gatekeeper bloquear: `xattr -cr /Applications/Koda.app`.
 
 ### Windows
 
-Usual NSIS installer (`Koda-Setup-26.1.7-x64.exe` / `-ia32.exe`).
+Instalador NSIS usual (`Koda-Setup-26.15.11-x64.exe` / `-ia32.exe`).

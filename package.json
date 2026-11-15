@@ -1,6 +1,6 @@
 {
   "name": "koda-electron",
-  "version": "26.1.7",
+  "version": "26.15.11",
   "description": "Koda - Your ideal development partner.",
   "main": "dist-electron/index.js",
   "type": "module",
