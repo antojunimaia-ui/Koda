@@ -55,7 +55,7 @@ interface Tab {
 
 const ImageViewer: React.FC<{ path: string }> = ({ path }) => {
   return (
-    <div className="h-full w-full bg-[#141414] flex items-center justify-center p-8 overflow-auto custom-scrollbar">
+    <div className="mui-panel h-full w-full flex items-center justify-center p-8 overflow-auto custom-scrollbar">
       <img src={`file://${path}`} className="max-w-full max-h-full shadow-2xl rounded-sm object-contain" alt={path} />
     </div>
   )
@@ -65,7 +65,7 @@ const ImageViewer: React.FC<{ path: string }> = ({ path }) => {
 
 const VideoPlayer: React.FC<{ path: string }> = ({ path }) => {
   return (
-    <div className="h-full w-full bg-[#141414] flex flex-col items-center justify-center relative group">
+    <div className="mui-panel h-full w-full flex flex-col items-center justify-center relative group">
       <video src={`file://${path}`} controls className="max-w-full max-h-full shadow-2xl rounded-lg" autoPlay />
     </div>
   )
@@ -534,10 +534,10 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       {/* Explorer Panel */}
       {showExplorerPanel && (
         <>
-          <div className="shrink-0 border-r border-white/10 bg-[#141414]" style={{ width: `${explorerWidth}px` }}>
+          <div className="mui-panel mui-hairline-r shrink-0" style={{ width: `${explorerWidth}px` }}>
             <div className="h-full overflow-y-auto custom-scrollbar">
               <div className="px-2 pt-1 pb-0.5 flex items-center justify-between">
-                <h3 className="text-slate-300 text-[9px] font-bold uppercase tracking-wider">Explorer</h3>
+                <h3 className="mui-eyebrow text-slate-300">Explorer</h3>
                 <div className="flex items-center gap-0.5">
                   <button
                     onClick={() => {
@@ -612,11 +612,11 @@ const IDELayout: React.FC<IDELayoutProps> = ({
       {/* Editor Panel */}
       {showEditorPanel && (
         <>
-          <div className="flex-1 border-r border-white/10 bg-[#141414] flex flex-col min-w-75">
+          <div className="mui-panel mui-hairline-r flex-1 flex flex-col min-w-75">
             {/* Tabs Bar — pill style */}
             {tabs.length > 0 && (
               <div
-                className="flex items-center gap-1.5 px-2 py-1.5 bg-[#1a1a1a] border-b border-white/5 overflow-x-auto custom-scrollbar"
+                className="mui-surface-1 mui-hairline-b flex items-center gap-1.5 px-2 py-1.5 overflow-x-auto custom-scrollbar"
                 style={{ scrollbarWidth: 'none' }}
               >
                 {tabs.map((tab) => {

@@ -144,10 +144,10 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
   const renderModernInput = () => (
     <div className="px-4 pb-4 pt-2">
       <div
-        className={`relative rounded-2xl border backdrop-blur-xl transition-all shadow-2xl ${isFocused ? 'bg-neutral-900/80 border-neutral-700' : 'bg-neutral-900/40 border-neutral-800 opacity-80'}`}
+        className={`mui-composer relative transition-all shadow-2xl ${isFocused ? 'mui-composer--active' : 'mui-composer--idle'}`}
       >
         {pendingImages.length > 0 && (
-          <div className="flex flex-wrap gap-3 p-3 border-b border-white/5 bg-black/20">
+          <div className="flex flex-wrap gap-3 p-3 mui-hairline-b bg-black/20">
             {pendingImages.map((img, i) => (
               <div key={i} className="relative group">
                 {img.isImage ? (
@@ -157,20 +157,18 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
                     alt="attached"
                   />
                 ) : (
-                  <div className="h-20 w-32 bg-[#1e1e1e] border border-white/10 rounded-lg p-2.5 flex flex-col justify-between shadow-xl relative overflow-hidden group-hover:border-white/20 transition-all">
+                  <div className="mui-thumb h-20 w-32 p-2.5 flex flex-col justify-between shadow-xl relative overflow-hidden transition-all">
                     <div className="text-[10px] text-zinc-300 font-bold leading-tight break-all line-clamp-2 pr-1 uppercase tracking-tight">
                       {img.name}
                     </div>
                     <div className="flex items-center">
-                      <div className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-                        {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
-                      </div>
+                      <div className="px-1.5 py-0.5 mui-chip">{img.name.split('.').pop()?.toUpperCase() || 'FILE'}</div>
                     </div>
                   </div>
                 )}
                 <button
                   onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
-                  className="absolute -top-2 -right-2 bg-[#ff4b4b] text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 border-[#141414] opacity-0 group-hover:opacity-100 transition-opacity z-raised"
+                  className="absolute -top-2 -right-2 bg-[#ff4b4b] text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 mui-border-canvas opacity-0 group-hover:opacity-100 transition-opacity z-raised"
                 >
                   ✕
                 </button>
@@ -303,7 +301,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
     >
       {/* Panel header */}
       <div
-        className={`flex items-center justify-between px-3 h-9 shrink-0 transition-colors border-b border-white/5 ${isFocused ? 'bg-white/5' : 'bg-transparent'}`}
+        className={`flex items-center justify-between px-3 h-9 shrink-0 transition-colors ${uiMode === 'modern' ? 'mui-hairline-b' : 'border-b border-white/5'} ${isFocused ? 'bg-white/5' : 'bg-transparent'}`}
       >
         <div className="flex items-center gap-2">
           <div

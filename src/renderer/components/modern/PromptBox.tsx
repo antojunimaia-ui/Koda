@@ -125,15 +125,14 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
       )}
 
       <div
-        className={`relative bg-white/[0.06] rounded-xl border transition-all ${
-          isDraggingOver ? 'border-white/20 bg-white/10' : 'border-white/[0.06]'
-        } backdrop-blur-xl focus-within:border-white/[0.06]`}
+        className="mui-composer mui-composer--glass relative transition-all"
+        data-dragging={isDraggingOver}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
         {pendingImages.length > 0 && (
-          <div className={`flex flex-wrap gap-3 p-3 border-b border-white/5 ${isIde ? '' : 'bg-black/20'}`}>
+          <div className={`flex flex-wrap gap-3 p-3 mui-hairline-b ${isIde ? '' : 'bg-black/20'}`}>
             {pendingImages.map((img, i) => (
               <div key={i} className="relative group">
                 {img.isImage ? (
@@ -143,14 +142,12 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
                     alt="attached"
                   />
                 ) : (
-                  <div className="h-20 w-32 bg-[#1e1e1e] border border-white/10 rounded-lg p-2.5 flex flex-col justify-between shadow-xl relative overflow-hidden group-hover:border-white/20 transition-all">
+                  <div className="mui-thumb h-20 w-32 p-2.5 flex flex-col justify-between shadow-xl relative overflow-hidden transition-all">
                     <div className="text-[10px] text-slate-200 font-bold leading-tight break-all line-clamp-2 pr-1 uppercase tracking-tight">
                       {img.name}
                     </div>
                     <div className="flex items-center">
-                      <div className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                        {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
-                      </div>
+                      <div className="px-1.5 py-0.5 mui-chip">{img.name.split('.').pop()?.toUpperCase() || 'FILE'}</div>
                     </div>
                     {/* Subtle decorative pattern */}
                     <div className="absolute top-0 right-0 w-12 h-12 bg-white/2 -mr-6 -mt-6 rotate-45 pointer-events-none" />
@@ -158,10 +155,8 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
                 )}
                 <button
                   onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
-                  className={`absolute bg-rose-500 text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg transition-opacity z-raised ${
-                    isIde
-                      ? '-top-1.5 -right-1.5 border-2 border-neutral-900'
-                      : '-top-2 -right-2 border-2 border-[#141414] opacity-0 group-hover:opacity-100'
+                  className={`absolute bg-rose-500 text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg transition-opacity z-raised border-2 mui-border-canvas ${
+                    isIde ? '-top-1.5 -right-1.5' : '-top-2 -right-2 opacity-0 group-hover:opacity-100'
                   }`}
                 >
                   ✕
@@ -177,10 +172,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
             const fileName = filePath.split(/[/\\]/).pop() || filePath
             const iconName = getIconForFile(fileName)
             return (
-              <div
-                key={i}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#1e1e1e] border border-white/10 rounded text-[11px] font-medium text-slate-300 hover:bg-[#252525] transition-all self-start"
-              >
+              <div key={i} className="mui-pill text-slate-300 transition-all self-start">
                 <img
                   src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${iconName}`}
                   width="12"
@@ -262,7 +254,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
                   </svg>
                 </button>
                 {showModeMenu && (
-                  <div className="absolute bottom-full right-0 mb-1 w-44 bg-[#0d1117] border border-white/10 rounded-xl shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-1 duration-150 z-dropdown">
+                  <div className="mui-menu bottom-full right-0 mb-1 w-44 shadow-none animate-in fade-in slide-in-from-bottom-1 duration-150">
                     <div className="p-1">
                       {MODES.map((m) => (
                         <button
@@ -271,7 +263,8 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
                             onModeChange(m.id)
                             setShowModeMenu(false)
                           }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md transition-all text-left ${mode === m.id ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                          className="mui-menu-item rounded-md"
+                          data-active={mode === m.id}
                         >
                           <span className="text-xs">{m.icon}</span>
                           <span
