@@ -218,10 +218,10 @@ const SettingsUI = memo(
       `group flex items-center gap-3 w-full px-3 py-2 rounded-lg text-xs font-bold transition-all text-left ${
         activeTab === id
           ? isModern
-            ? 'bg-white/[0.06] text-white'
+            ? 'mui-nav-item--active'
             : 'bg-cyan/10 text-cyan'
           : isModern
-            ? 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+            ? 'mui-nav-item'
             : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
       }`
 
@@ -335,11 +335,11 @@ const SettingsUI = memo(
                         // Class names based on uiMode
                         const isModern = uiMode === 'modern'
                         const containerClass = isModern
-                          ? `grid grid-cols-12 gap-2 items-center px-2 py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-white/[0.04] border-white/15 shadow-[inset_0_1px_rgba(255,255,255,0.05)]' : 'bg-white/[0.01] border-white/5 hover:border-white/10'}`
+                          ? `grid grid-cols-12 gap-2 items-center px-2 py-1.5 rounded-lg border transition-all ${isSelected ? 'mui-option-card--selected shadow-[inset_0_1px_rgba(255,255,255,0.05)]' : 'mui-option-card'}`
                           : `grid grid-cols-12 gap-2 items-center px-2 py-1.5 rounded-lg border transition-all ${isSelected ? 'bg-cyan/5 border-cyan/20' : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'}`
 
                         const badgeClass = isModern
-                          ? 'text-[9px] font-bold text-white bg-white/10 px-1.5 py-0.5 rounded border border-white/10'
+                          ? 'mui-chip bg-white/10 text-white'
                           : 'text-[9px] font-bold text-cyan bg-cyan/10 px-1 py-0.5 rounded border border-cyan/20'
 
                         const inputClass = isModern
@@ -371,7 +371,11 @@ const SettingsUI = memo(
                                     value={kodaCloudBaseUrl}
                                     onChange={(e) => setKodaCloudBaseUrl(e.target.value)}
                                     placeholder="http://your-proxy:2137"
-                                    className={`w-full bg-neutral-950/40 border border-white/5 text-zinc-300 rounded-md px-2 py-1 outline-none focus:border-amber-500/30 transition-all font-mono text-[11px] ${uiMode === 'modern' ? '' : 'bg-slate-800 border-slate-700'}`}
+                                    className={
+                                      uiMode === 'modern'
+                                        ? 'mui-field mui-field--mono focus:border-amber-500/30'
+                                        : 'w-full bg-slate-800 border border-slate-700 text-white rounded-md px-2 py-1 outline-none focus:border-amber-500/30 transition-all font-mono text-[11px]'
+                                    }
                                   />
                                   {kodaCloudBaseUrl.startsWith('http://') && (
                                     <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] font-bold text-amber-400 uppercase tracking-wide whitespace-nowrap">

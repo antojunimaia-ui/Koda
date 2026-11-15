@@ -289,9 +289,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                     key={t.name}
                     onClick={() => handleSelectTheme(t)}
                     className={`group p-3.5 rounded-lg border text-left transition-all flex flex-col gap-3 ${
-                      isSelected
-                        ? 'bg-white/5 border-white/20 text-white'
-                        : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-400'
+                      isSelected ? 'mui-option-card--selected' : 'mui-option-card'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -341,9 +339,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
             <div
               onClick={() => handleSelectProvider('koda-cloud')}
               className={`group p-4 rounded-lg border cursor-pointer transition-all ${
-                provider === 'koda-cloud'
-                  ? 'bg-white/5 border-white/20 text-white'
-                  : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-400'
+                provider === 'koda-cloud' ? 'mui-option-card--selected' : 'mui-option-card'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -392,9 +388,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                     key={p.id}
                     onClick={() => handleSelectProvider(p.id)}
                     className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      isSelected
-                        ? 'bg-white/5 border-white/20 text-white'
-                        : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/8 text-zinc-500'
+                      isSelected ? 'mui-option-card--selected' : 'mui-option-card'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -414,7 +408,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={selectedProvObj.placeholder || 'Paste your API Key...'}
-                  className="w-full px-3.5 py-2.5 text-[12px] bg-white/[0.03] border border-white/8 rounded-lg text-white placeholder-zinc-700 outline-none focus:border-white/20 font-mono transition-colors"
+                  className="w-full px-3.5 py-2.5 text-[12px] mui-tint-2 mui-border-strong rounded-lg text-white placeholder-zinc-700 outline-none focus:border-white/20 font-mono transition-colors"
                 />
               </div>
             )}
@@ -425,7 +419,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
         {step === 3 && (
           <div className="space-y-5 animate-fadeIn">
             {availableModels.length === 0 ? (
-              <div className="py-8 text-center text-zinc-600 text-[12px] border border-white/5 rounded-lg bg-white/[0.02]">
+              <div className="py-8 text-center text-zinc-600 text-[12px] mui-border mui-tint-1 rounded-lg">
                 {selectedProvObj.requiresKey && !apiKey
                   ? 'Enter your API Key in the previous step to load models.'
                   : 'Loading models...'}
@@ -440,9 +434,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                         key={m}
                         onClick={() => setModel(m)}
                         className={`group w-full px-3 py-2.5 rounded-lg border text-left flex items-center justify-between transition-all ${
-                          isSel
-                            ? 'bg-white/5 border-white/20 text-white'
-                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-500'
+                          isSel ? 'mui-option-card--selected' : 'mui-option-card'
                         }`}
                       >
                         <div className="flex flex-col gap-0.5 overflow-hidden">
@@ -463,7 +455,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
         {step === 4 && (
           <div className="space-y-5 animate-fadeIn">
             {availableModels.length === 0 ? (
-              <div className="py-8 text-center text-zinc-600 text-[12px] border border-white/5 rounded-lg bg-white/[0.02]">
+              <div className="py-8 text-center text-zinc-600 text-[12px] mui-border mui-tint-1 rounded-lg">
                 No models available.
               </div>
             ) : (
@@ -476,9 +468,7 @@ export const WelcomeWizardModal: React.FC<WelcomeWizardModalProps> = ({
                         key={m}
                         onClick={() => setAdvisorModel(m)}
                         className={`group w-full px-3 py-2.5 rounded-lg border text-left flex items-center justify-between transition-all ${
-                          isSel
-                            ? 'bg-white/5 border-white/20 text-white'
-                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10 text-zinc-500'
+                          isSel ? 'mui-option-card--selected' : 'mui-option-card'
                         }`}
                       >
                         <div className="flex flex-col gap-0.5 overflow-hidden">

@@ -44,6 +44,10 @@
   --mui-surface-3: #242424;
   --mui-surface-hover: rgba(255, 255, 255, 0.05);
   --mui-surface-active: rgba(255, 255, 255, 0.08);
+  /* Subtle white tints (welcome-wizard selectable cards / inputs) */
+  --mui-tint-1: rgba(255, 255, 255, 0.02);
+  --mui-tint-2: rgba(255, 255, 255, 0.03);
+  --mui-tint-3: rgba(255, 255, 255, 0.04);
   --mui-composer: rgba(23, 23, 23, 0.9);
   --mui-composer-border: rgba(64, 64, 64, 0.6);
 
@@ -58,6 +62,7 @@
   --mui-hairline: rgba(255, 255, 255, 0.05);
   --mui-hairline-strong: rgba(255, 255, 255, 0.1);
   --mui-border-input: rgba(255, 255, 255, 0.12);
+  --mui-border-selected: rgba(255, 255, 255, 0.2);
 
   /* Accent (follows the active theme) */
   --mui-accent: var(--koda-accent, #22d3ee);
@@ -150,6 +155,12 @@
   }
 
   /* ── Text ───────────────────────────────────────────────────────────────── */
+  .mui-text {
+    color: var(--mui-fg);
+  }
+  .mui-text-strong {
+    color: var(--mui-fg-strong);
+  }
   .mui-muted {
     color: var(--mui-fg-muted);
   }
@@ -404,8 +415,65 @@
   .mui-surface-3 {
     background-color: var(--mui-surface-3);
   }
+  .mui-surface-hover {
+    background-color: var(--mui-surface-hover);
+  }
+  .mui-tint-1 {
+    background-color: var(--mui-tint-1);
+  }
+  .mui-tint-2 {
+    background-color: var(--mui-tint-2);
+  }
+  .mui-tint-3 {
+    background-color: var(--mui-tint-3);
+  }
   .mui-border-canvas {
     border-color: var(--mui-canvas);
+  }
+
+  /* Selectable option card (welcome-wizard theme/provider/model grids) */
+  .mui-option-card {
+    background-color: var(--mui-tint-1);
+    border-color: var(--mui-hairline);
+    color: var(--mui-fg-muted);
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+  .mui-option-card:hover {
+    background-color: var(--mui-tint-3);
+    border-color: var(--mui-hairline-strong);
+  }
+  .mui-option-card--selected {
+    background-color: var(--mui-surface-hover);
+    border-color: var(--mui-border-selected);
+    color: var(--mui-fg-strong);
+  }
+
+  /* Settings sidebar / tab navigation item */
+  .mui-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--mui-radius-sm);
+    font-size: var(--mui-text-base);
+    font-weight: 700;
+    color: var(--mui-fg-muted);
+    text-align: left;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+  .mui-nav-item:hover {
+    background-color: var(--mui-tint-3);
+    color: var(--mui-fg);
+  }
+  .mui-nav-item--active {
+    background-color: var(--mui-surface-hover);
+    color: var(--mui-fg-strong);
   }
 
   /* Inline file pills (composer) */

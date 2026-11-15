@@ -57,7 +57,7 @@ const UserMessage = memo(({ text, images, onRollback, remote, uiMode }: UserMess
               🌐 Remote
             </span>
           )}
-          <span className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap">{text}</span>
+          <span className="mui-text text-sm leading-relaxed whitespace-pre-wrap">{text}</span>
         </div>
 
         {/* Actions — aparecem no hover */}
@@ -68,7 +68,7 @@ const UserMessage = memo(({ text, images, onRollback, remote, uiMode }: UserMess
             <button
               onClick={onRollback}
               title="Rollback to this point — restores files and memory"
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-rose-400 hover:bg-rose-900/20 transition-all"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider mui-subtle hover:text-rose-400 hover:bg-rose-900/20 transition-all"
             >
               <svg
                 width="11"
