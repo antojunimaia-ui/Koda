@@ -140,6 +140,14 @@
         "to": "node_modules/node-pty/prebuilds"
       }
     ],
+    "protocols": [
+      {
+        "name": "Koda Workspace",
+        "schemes": [
+          "koda"
+        ]
+      }
+    ],
     "win": {
       "target": "nsis",
       "icon": "public/icon.ico"

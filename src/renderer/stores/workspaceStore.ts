@@ -76,7 +76,7 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
     })),
 
   createNewWorkspace: async (cwd) => {
-    const id = Math.random().toString(36).substring(7)
+    const id = await window.koda.generateWorkspaceId()
     const ws = newWorkspace(id, cwd || '...', get().workspaces.length + 1)
     set((state) => ({ workspaces: [...state.workspaces, ws], activeId: id }))
     await window.koda.init(id)

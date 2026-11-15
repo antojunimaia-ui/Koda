@@ -6,6 +6,7 @@ import { fileWatcher } from './services/file-watcher.js'
 import { selfInstallOnLinux } from './services/linux-installer.js'
 import { registerSchemesAsPrivileged, registerKodaAssetProtocol } from './protocols/koda-asset.js'
 import { createWindow, createIDEWindow, getMainWindow, getAllWindows } from './windows.js'
+import { handleDeepLink, flushPendingDeepLink } from './deeplink.js'
 import { registerAllHandlers } from './ipc/index.js'
 import electronUpdater from 'electron-updater'
 import dotenv from 'dotenv'
@@ -50,6 +51,36 @@ dotenv.config()
 // Must be called before app is ready
 registerSchemesAsPrivileged()
 
+// ── Protocolo koda:// (deep links) ────────────────────────────────────────────
+// Single-instance lock: deep links chegam via argv (Windows/Linux) ou open-url
+// (macOS), sempre na instância já aberta — nunca numa segunda cópia do app.
+app.setAsDefaultProtocolClient('koda')
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, argv) => {
+    const url = argv.find((arg) => arg.startsWith('koda://'))
+    if (url) handleDeepLink(url)
+
+    const win = getMainWindow()
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
+  })
+
+  app.on('open-url', (event, url) => {
+    event.preventDefault()
+    handleDeepLink(url)
+  })
+}
+
+// Cold start: o primeiro argv pode já conter uma URL koda://
+const initialDeepLink = process.argv.find((arg) => arg.startsWith('koda://'))
+if (initialDeepLink) handleDeepLink(initialDeepLink)
+
 // ── Shared state ─────────────────────────────────────────────────────────────
 
 const agents = new Map<string, Agent>()
@@ -68,11 +99,14 @@ registerAllHandlers(agents, discordRPC, getMainWindow, getAllWindows, broadcastA
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
+  if (!gotSingleInstanceLock) return
   registerKodaAssetProtocol()
 
   createWindow((win) => fileWatcher.setMainWindow(win))
+  flushPendingDeepLink()
 
   app.on('activate', () => {
+    if (!gotSingleInstanceLock) return
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow((win) => fileWatcher.setMainWindow(win))
     }

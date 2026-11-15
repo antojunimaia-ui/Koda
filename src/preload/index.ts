@@ -6,6 +6,12 @@ const api: KodaApi = {
   openIDE: () => ipcRenderer.invoke(IPC_CHANNELS.window.openIDE),
   openAgent: () => ipcRenderer.invoke(IPC_CHANNELS.window.openAgent),
   openADE: () => ipcRenderer.invoke(IPC_CHANNELS.window.openADE),
+  generateWorkspaceId: () => ipcRenderer.invoke(IPC_CHANNELS.workspace.newId),
+  onOpenWorkspace: (callback) => {
+    const listener = (_event: unknown, id: string) => callback(id)
+    ipcRenderer.on(IPC_CHANNELS.deeplink.workspace, listener)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.deeplink.workspace, listener)
+  },
   sendMessage: (workspaceId: string, messageId: number, message: string, images?: unknown[]) =>
     ipcRenderer.invoke(IPC_CHANNELS.agent.message, workspaceId, messageId, message, images),
   snapshotRestore: (workspaceId: string, messageId: number) =>

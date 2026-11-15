@@ -11,6 +11,7 @@ import { registerKoclawHandlers } from './koclaw.js'
 import { registerMcpHandlers } from './mcp.js'
 import { registerDiscordHandlers } from './discord.js'
 import { registerGitHandlers } from './git.js'
+import { registerWorkspaceHandlers } from './workspace.js'
 
 export function registerAllHandlers(
   agents: Map<string, Agent>,
@@ -28,4 +29,5 @@ export function registerAllHandlers(
   registerMcpHandlers(agents)
   registerDiscordHandlers(discordRPC)
   registerGitHandlers()
+  registerWorkspaceHandlers()
 }

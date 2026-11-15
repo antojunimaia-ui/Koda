@@ -127,6 +127,12 @@ export const IPC_CHANNELS = {
     getModels: 'agent:getModels',
     update: 'agent:update',
   },
+  workspace: {
+    newId: 'workspace:new_id',
+  },
+  deeplink: {
+    workspace: 'deeplink:workspace',
+  },
   project: {
     getFiles: 'project:get_files',
     listDirLazy: 'project:list_dir_lazy',
@@ -309,4 +315,12 @@ export interface KodaApi {
   openIDE: () => Promise<void>
   openAgent: () => Promise<void>
   openADE: () => Promise<void>
+
+  // ── Workspaces ───────────────────────────────────────
+  /** Pede um novo ID de workspace ao main (fonte da verdade). */
+  generateWorkspaceId: () => Promise<string>
+
+  // ── Deep links ───────────────────────────────────────
+  /** Assina eventos koda://workspace/<id> vindos do main. */
+  onOpenWorkspace: (callback: (id: string) => void) => () => void
 }

@@ -18,6 +18,7 @@ import { useAgentInit } from './hooks/useAgentInit.js'
 import { useInputHandlers } from './hooks/useInputHandlers.js'
 import { useMessageActions } from './hooks/useMessageActions.js'
 import { useUIStore } from './stores/uiStore.js'
+import { useWorkspaceStore } from './stores/workspaceStore.js'
 
 // ─── Components ──────────────────────────────────────────────────────────────
 import MCPSettings from './components/MCPSettings.js'
@@ -105,6 +106,15 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('koda_settings', JSON.stringify(kodaSettings))
   }, [kodaSettings])
+
+  // ── Deep links (koda://workspace/<id>) ──────────────────────────────────────
+  // Fase 0: um deep link externo foca o workspace, se ele existir na store.
+  useEffect(() => {
+    return window.koda?.onOpenWorkspace?.((id) => {
+      const exists = useWorkspaceStore.getState().workspaces.some((w) => w.id === id)
+      if (exists) useWorkspaceStore.getState().setActiveId(id)
+    })
+  }, [])
 
   // ── IDE window detection ──────────────────────────────────────────────────
   const isIDEWindow = useMemo(() => new URLSearchParams(window.location.search).get('window') === 'ide', [])
