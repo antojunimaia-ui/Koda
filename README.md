@@ -326,7 +326,7 @@ src/
 │   │   ├── conversation.ts        # Message history, microCompact, trimIfNeeded, rollback
 │   │   ├── prompt-builder.ts      # Dynamic system prompt assembly (env + project + tools)
 │   │   └── context.ts             # Project detection (language, framework, package manager)
-│   ├── providers/                 # 17 LLM provider implementations (all extend BaseProvider)
+│   ├── providers/                 # 18 LLM provider implementations (all extend BaseProvider)
 │   │   ├── base.ts                # BaseProvider, Message, StreamChunk, ToolCall interfaces
 │   │   ├── koda-cloud.ts
 │   │   ├── opencode-zen.ts
@@ -406,6 +406,10 @@ src/
     │   ├── useSessionStorage.ts   # localStorage-based session persistence (list/save/delete)
     │   ├── useResizable.ts        # Panel resize state (left, right, browser height, context, explorer)
     │   └── useDragDrop.ts         # Drag & drop handler (images + file @mentions)
+    ├── styles/
+    │   ├── modern.css             # Design system: semantic tokens + .mui-* primitives (ModernUI skin)
+    │   └── __tests__/
+    │       └── design-system-guardrails.test.ts  # Forbids raw surface hex in skin components
     └── components/
         ├── modern/
         │   ├── ModernUI.tsx       # Default UI: sleek backdrop-blur interface with Iconbar
@@ -424,7 +428,7 @@ src/
         ├── context/
         │   └── ContextPanel.tsx   # File tracker panel + Explorer panel (overlay)
         ├── settings/
-        │   ├── SettingsUI.tsx     # Settings modal root
+        │   ├── SettingsUI.tsx     # Full-screen settings view (replaces the agent screen)
         │   ├── KodaSettingsTab.tsx# UI/behavior settings tab
         │   └── SkillManager.tsx   # Skills marketplace + local skill management
         ├── modals/
@@ -444,6 +448,12 @@ src/
         ├── StatusBar.tsx          # Bottom status bar (IDE mode)
         └── BrailleSpinner.tsx     # Animated thinking indicator
 ```
+
+---
+
+### Design System (ModernUI)
+
+The ModernUI skin is styled entirely by `src/renderer/styles/modern.css`: semantic custom properties (`--mui-canvas`, `--mui-surface-1..3`, `--mui-fg*`, `--mui-hairline*`, `--mui-accent`, `--mui-radius*`, `--mui-shadow*`, `--mui-tint-*`) plus short `.mui-*` primitive classes (`mui-app`, `mui-panel`, `mui-btn`, `mui-icon-btn`, `mui-field`, `mui-menu`, `mui-popover`, `mui-composer`, `mui-option-card`, …). Tokens are defined on `:root` so shared components (TitleBar, ContextPanel, StatusBar, TerminalPanel…) can use the primitives while ClassicUI — which never uses `.mui-*` classes — stays untouched. A vitest guardrail (`styles/__tests__/design-system-guardrails.test.ts`) fails the suite if raw surface hex or legacy palette utilities reappear in `components/modern/**` or `components/settings/**`.
 
 ---
 
