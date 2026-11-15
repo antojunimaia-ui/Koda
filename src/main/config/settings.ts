@@ -3,6 +3,16 @@ import { resolve, dirname } from 'path'
 import { existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { EnvironmentSettingsSchema } from '../../shared/schemas.js'
+import {
+  DEFAULT_INCEPTION_BASE_URL,
+  DEFAULT_MAX_TOKENS,
+  DEFAULT_MODELS,
+  DEFAULT_TEMPERATURE,
+  DEFAULT_WEBHOOK_PORT,
+} from '../../shared/configDefaults.js'
+import type { LLMProvider } from '../../shared/configDefaults.js'
+
+export type { LLMProvider }
 
 // Load .env from current working directory
 const envPath = resolve(process.cwd(), '.env')
@@ -29,25 +39,6 @@ try {
   // Ignore
 }
 
-export type LLMProvider =
-  | 'openai'
-  | 'anthropic'
-  | 'google'
-  | 'openrouter'
-  | 'ollama'
-  | 'llamacpp'
-  | 'groq'
-  | 'deepseek'
-  | 'mistral'
-  | 'together'
-  | 'xai'
-  | 'zhipu'
-  | 'maritaca'
-  | 'koda-cloud'
-  | 'fireworks'
-  | 'opencode-zen'
-  | 'inception'
-
 export interface AppSettings {
   provider: LLMProvider
   model: string
@@ -61,26 +52,6 @@ export interface AppSettings {
   webhookToken: string
   kodaCloudBaseUrl: string
   inceptionBaseUrl: string
-}
-
-const DEFAULT_MODELS: Record<LLMProvider, string> = {
-  openai: 'gpt-4o',
-  anthropic: 'claude-sonnet-4-20250514',
-  google: 'gemini-2.0-flash',
-  openrouter: 'anthropic/claude-3.7-sonnet',
-  ollama: 'llama3',
-  llamacpp: 'local-model',
-  groq: 'llama-3.3-70b-versatile',
-  deepseek: 'deepseek-chat',
-  mistral: 'codestral-latest',
-  together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
-  xai: 'grok-beta',
-  zhipu: 'glm-5',
-  maritaca: 'sabia-4',
-  'koda-cloud': 'gemini-2.0-flash-exp',
-  fireworks: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
-  'opencode-zen': '',
-  inception: 'mercury-3',
 }
 
 export function getSettings(): AppSettings {
@@ -133,14 +104,14 @@ export function getSettings(): AppSettings {
     model: modelOverride[provider] || DEFAULT_MODELS[provider],
     advisorModel: process.env.ADVISOR_MODEL || modelOverride[provider] || DEFAULT_MODELS[provider],
     apiKey: apiKeyMap[provider],
-    maxTokens: parseInt(process.env.MAX_TOKENS || '8192', 10),
-    temperature: parseFloat(process.env.TEMPERATURE || '0.3'),
+    maxTokens: parseInt(process.env.MAX_TOKENS || String(DEFAULT_MAX_TOKENS), 10),
+    temperature: parseFloat(process.env.TEMPERATURE || String(DEFAULT_TEMPERATURE)),
     systemPrompt: getSystemPrompt(),
     webhookEnabled: process.env.WEBHOOK_ENABLED === 'true',
-    webhookPort: parseInt(process.env.WEBHOOK_PORT || '3141', 10),
+    webhookPort: parseInt(process.env.WEBHOOK_PORT || String(DEFAULT_WEBHOOK_PORT), 10),
     webhookToken: process.env.WEBHOOK_TOKEN || '',
     kodaCloudBaseUrl: process.env.KODA_CLOUD_BASE_URL || '',
-    inceptionBaseUrl: process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1',
+    inceptionBaseUrl: process.env.INCEPTION_BASE_URL || DEFAULT_INCEPTION_BASE_URL,
   }
 }
 

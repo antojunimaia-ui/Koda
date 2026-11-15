@@ -6,6 +6,7 @@ import RemoteControlTab from './RemoteControlTab.js'
 import SkillMarketplace from './SkillMarketplace.js'
 import OnboardingTour from '../modern/OnboardingTour.js'
 import { KoDB } from '../../db/kodb.js'
+import { DEFAULT_MODELS, PROVIDERS as PROVIDER_LIST } from '../../../shared/configDefaults.js'
 import tokyoNight from '../../themes/tokyo-night.json'
 import monokai from '../../themes/monokai.json'
 import cyberpunk from '../../themes/cyberpunk.json'
@@ -20,48 +21,9 @@ export const THEMES: KodaTheme[] = [
 
 export const DEFAULT_THEME = THEMES[0]
 
-const PROVIDER_LIST = [
-  { id: 'google', name: 'Google Gemini', requiresKey: true, placeholder: 'AIzaSy...' },
-  { id: 'openai', name: 'OpenAI', requiresKey: true, placeholder: 'sk-proj-...' },
-  { id: 'anthropic', name: 'Anthropic', requiresKey: true, placeholder: 'sk-ant-...' },
-  { id: 'openrouter', name: 'OpenRouter', requiresKey: true, placeholder: 'sk-or-v1-...' },
-  { id: 'deepseek', name: 'DeepSeek', requiresKey: true, placeholder: 'sk-...' },
-  { id: 'groq', name: 'Groq', requiresKey: true, placeholder: 'gsk_...' },
-  { id: 'mistral', name: 'Mistral AI', requiresKey: true, placeholder: '...' },
-  { id: 'together', name: 'Together AI', requiresKey: true, placeholder: '...' },
-  { id: 'xai', name: 'xAI (Grok)', requiresKey: true, placeholder: '...' },
-  { id: 'fireworks', name: 'Fireworks AI', requiresKey: true, placeholder: '...' },
-  { id: 'zhipu', name: 'Zhipu AI', requiresKey: true, placeholder: '...' },
-  { id: 'maritaca', name: 'Maritaca AI', requiresKey: true, placeholder: '...' },
-  { id: 'opencode-zen', name: 'OpenCode Zen', requiresKey: true, placeholder: 'opencode_...' },
-  { id: 'inception', name: 'Inception Labs', requiresKey: true, placeholder: 'inception_...' },
-  { id: 'ollama', name: 'Ollama (Local)', requiresKey: false, placeholder: 'Optional API key...' },
-  { id: 'llamacpp', name: 'Llama.cpp (Local)', requiresKey: false, placeholder: 'Optional API key...' },
-  { id: 'koda-cloud', name: 'Koda Cloud', requiresKey: false, placeholder: 'Cloud handles keys' },
-]
-
-const PROVIDER_DEFAULTS: Record<string, { model: string; advisorModel: string }> = {
-  openai: { model: 'gpt-4o', advisorModel: 'gpt-4o' },
-  anthropic: { model: 'claude-3-5-sonnet-20241022', advisorModel: 'claude-3-5-sonnet-20241022' },
-  google: { model: 'gemini-1.5-flash', advisorModel: 'gemini-1.5-flash' },
-  openrouter: { model: 'google/gemini-2.0-flash-exp:free', advisorModel: 'google/gemini-2.0-flash-exp:free' },
-  deepseek: { model: 'deepseek-chat', advisorModel: 'deepseek-chat' },
-  groq: { model: 'llama3-8b-8192', advisorModel: 'llama3-8b-8192' },
-  ollama: { model: 'llama3', advisorModel: 'llama3' },
-  llamacpp: { model: 'local-model', advisorModel: 'local-model' },
-  mistral: { model: 'mistral-large-latest', advisorModel: 'mistral-large-latest' },
-  together: { model: 'meta-llama/Llama-3-70b-chat-hf', advisorModel: 'meta-llama/Llama-3-70b-chat-hf' },
-  xai: { model: 'grok-beta', advisorModel: 'grok-beta' },
-  fireworks: {
-    model: 'accounts/fireworks/models/llama-v3-8b-instruct',
-    advisorModel: 'accounts/fireworks/models/llama-v3-8b-instruct',
-  },
-  zhipu: { model: 'glm-4-flash', advisorModel: 'glm-4-flash' },
-  maritaca: { model: 'sabia-3', advisorModel: 'sabia-3' },
-  'opencode-zen': { model: '', advisorModel: '' },
-  inception: { model: 'mercury-3', advisorModel: 'mercury-3' },
-  'koda-cloud': { model: 'gemini-1.5-flash', advisorModel: 'gemini-1.5-flash' },
-}
+const PROVIDER_DEFAULTS: Record<string, { model: string; advisorModel: string }> = Object.fromEntries(
+  PROVIDER_LIST.map((p) => [p.id, { model: DEFAULT_MODELS[p.id], advisorModel: DEFAULT_MODELS[p.id] }]),
+)
 
 interface SettingsUIProps {
   onClose: () => void

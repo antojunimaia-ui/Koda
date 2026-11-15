@@ -1,5 +1,6 @@
 import { KodaTheme } from '../types/index.js'
 import tokyoNight from '../themes/tokyo-night.json'
+import { DEFAULT_MODELS, DEFAULT_PROVIDER } from '../../shared/configDefaults.js'
 
 const DEFAULT_THEME = tokyoNight as KodaTheme
 
@@ -36,7 +37,7 @@ export const KODB_METADATA: Record<keyof KoDBSchema, DBMetadata & { defaultValue
     name: 'Active Provider',
     category: 'API',
     description: 'The currently active LLM provider',
-    defaultValue: 'openai',
+    defaultValue: DEFAULT_PROVIDER,
   },
   apiKey: {
     id: 'koda_api_key',
@@ -50,14 +51,14 @@ export const KODB_METADATA: Record<keyof KoDBSchema, DBMetadata & { defaultValue
     name: 'Active Model',
     category: 'API',
     description: 'The primary model name for the active provider',
-    defaultValue: 'gpt-5.5',
+    defaultValue: DEFAULT_MODELS[DEFAULT_PROVIDER],
   },
   advisorModel: {
     id: 'koda_advisor_model',
     name: 'Advisor Model',
     category: 'API',
     description: 'The advisor model name for the active provider',
-    defaultValue: 'gpt-5.5',
+    defaultValue: DEFAULT_MODELS[DEFAULT_PROVIDER],
   },
   providersConfig: {
     id: 'koda_providers_config',
