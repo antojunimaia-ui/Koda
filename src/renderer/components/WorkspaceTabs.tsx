@@ -45,7 +45,7 @@ const TabContextMenu: React.FC<{
   return (
     <div
       ref={ref}
-      className="fixed z-dropdown bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl py-1 min-w-[180px] animate-in fade-in slide-in-from-top-1 duration-100"
+      className="mui-menu fixed min-w-[180px] animate-in fade-in slide-in-from-top-1 duration-100"
       style={{ left: state.x, top: state.y }}
     >
       {onSplitWith && (
@@ -188,7 +188,7 @@ const ModernTabs: React.FC<Omit<WorkspaceTabsProps, 'variant' | 'iconbarWidth'>>
 
   return (
     <>
-      <div id="tour-workspaces" className="flex items-center h-9 select-none bg-[#0a0a0b] border-b border-white/[0.06]">
+      <div id="tour-workspaces" className="mui-chrome mui-hairline-b flex items-center h-9 select-none">
         <div className="flex items-center gap-0.5 px-2 h-full flex-1 overflow-x-auto no-scrollbar">
           {workspaces.map((ws) => {
             const isActive = activeId === ws.id

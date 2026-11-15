@@ -58,9 +58,11 @@ const QuestionsModal = memo(({ questions, onSubmit, variant = 'modern' }: Questi
 
   return (
     <div
-      className={`w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl shadow-lg overflow-hidden
-      ${variant === 'modern' ? 'rounded-2xl rounded-b-none border-b-0' : 'rounded-xl rounded-b-none border-b-0 mb-0'}
-    `}
+      className={`w-full overflow-hidden shadow-lg ${
+        variant === 'modern'
+          ? 'mui-popover'
+          : 'bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-xl rounded-b-none border-b-0'
+      }`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">

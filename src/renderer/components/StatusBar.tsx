@@ -8,7 +8,7 @@ interface StatusBarProps {
 
 const StatusBar: React.FC<StatusBarProps> = ({ onSettingsClick, onToggleSplit, isSplitEnabled }) => {
   return (
-    <div className="h-6 bg-[#0a0a0a] border-t border-white/5 flex items-center px-2 shrink-0 select-none">
+    <div className="mui-chrome mui-hairline-t h-6 flex items-center px-2 shrink-0 select-none">
       {/* Left section */}
       <div className="flex items-center gap-0.5">
         {/* Settings */}

@@ -295,7 +295,7 @@ const CompactToolView = memo(({ tools, uiMode, isLastAndActive }: CompactToolVie
                         />
                       ) : (
                         row.output && (
-                          <div className="bg-[#0d1117] border border-slate-700/60 p-2 rounded text-[10px] font-mono overflow-x-auto custom-scrollbar max-h-[300px]">
+                          <div className="mui-code p-2 text-[10px] font-mono overflow-x-auto custom-scrollbar max-h-[300px]">
                             {row.output.split('\n').map((line: string, idx: number) => (
                               <div key={idx} dangerouslySetInnerHTML={{ __html: ansi.toHtml(line) || '&nbsp;' }} />
                             ))}

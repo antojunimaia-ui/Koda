@@ -323,7 +323,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
   return (
     <div
       ref={panelRef}
-      className="absolute top-8 bottom-0 right-0 flex bg-[#141414] border-l border-white/5 z-panel"
+      className="mui-panel mui-hairline-l absolute top-8 bottom-0 right-0 flex z-panel"
       style={{ width }}
     >
       {/* Resize handle */}
@@ -334,8 +334,8 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 shrink-0">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Source Control</span>
+        <div className="mui-hairline-b flex items-center justify-between px-3 py-2 shrink-0">
+          <span className="mui-eyebrow">Source Control</span>
           <button
             onClick={refresh}
             className="w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
@@ -425,7 +425,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
                     {syncing ? 'Syncing...' : 'Sync Changes'}
                   </button>
                 ) : (
-                  <div className="flex rounded-lg overflow-hidden border border-white/10">
+                  <div className="mui-border-strong flex rounded-lg overflow-hidden">
                     <button
                       onClick={handleCommit}
                       disabled={isDisabled}
@@ -457,13 +457,9 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
                   </div>
                 )}
                 {showMenu && (
-                  <div className="absolute top-full right-0 mt-1 w-44 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-dropdown animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="mui-menu absolute top-full right-0 mt-1 w-44 animate-in fade-in slide-in-from-top-1 duration-150">
                     {menuItems.map((item) => (
-                      <button
-                        key={item.label}
-                        onClick={item.action}
-                        className="w-full text-left px-3 py-2 text-[11px] text-slate-300 hover:bg-white/5 transition-colors"
-                      >
+                      <button key={item.label} onClick={item.action} className="mui-menu-item text-[11px]">
                         {item.label}
                       </button>
                     ))}
@@ -555,9 +551,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
 
             {/* ── Graph section (independent scroll) ── */}
             {commits.length > 0 && (
-              <div
-                className={`flex flex-col overflow-hidden border-t border-white/5 ${graphOpen ? 'flex-1' : 'shrink-0'}`}
-              >
+              <div className={`mui-hairline-t flex flex-col overflow-hidden ${graphOpen ? 'flex-1' : 'shrink-0'}`}>
                 {/* Graph header */}
                 <div className="flex items-center justify-between px-3 py-1.5 shrink-0">
                   <button
@@ -689,7 +683,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
           ref={detailRef}
           onMouseEnter={handlePopoverMouseEnter}
           onMouseLeave={handlePopoverMouseLeave}
-          className="absolute bg-[#1c1c1c] border border-white/10 rounded-lg flex flex-col z-dropdown animate-in fade-in duration-100"
+          className="mui-card absolute flex flex-col z-dropdown animate-in fade-in duration-100"
           style={{
             right: width + 8,
             top: Math.min(
@@ -765,7 +759,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
           )}
 
           {/* Footer */}
-          <div className="flex items-center gap-2 px-4 py-2.5 border-t border-white/5 shrink-0">
+          <div className="mui-hairline-t flex items-center gap-2 px-4 py-2.5 shrink-0">
             {/* stat */}
             {(hoveredCommit.commit.filesChanged ?? 0) > 0 && (
               <span className="text-slate-500 text-[10px]">

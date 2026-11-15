@@ -98,10 +98,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({ onClose, onSave }) => {
       className="absolute inset-0 z-modal flex items-center justify-center bg-black/85 animate-in fade-in duration-150"
       onClick={onClose}
     >
-      <div
-        className="flex w-[860px] h-[580px] bg-[#0f1115] border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl"
-        onClick={handleWrapperClick}
-      >
+      <div className="mui-card flex w-[860px] h-[580px] rounded-xl" onClick={handleWrapperClick}>
         {/* Sidebar */}
         <div className="w-1/3 bg-slate-800/30 border-r border-slate-700/50 flex flex-col p-4 gap-2">
           <div className="text-emerald-400 font-bold flex items-center gap-2 mb-6 px-2">

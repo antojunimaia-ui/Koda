@@ -60,7 +60,7 @@ const PtyMessage = memo(({ pty, settings }: { pty: PtyEntry; settings: KodaSetti
       {settings.showPty && (
         <div
           ref={scrollRef}
-          className="bg-[#0d1117] border border-slate-700 p-3 rounded-md text-[11px] text-[#58a6ff] font-mono max-h-[150px] overflow-y-auto custom-scrollbar whitespace-pre-wrap"
+          className="mui-code p-3 text-[11px] text-[#58a6ff] font-mono max-h-[150px] overflow-y-auto custom-scrollbar whitespace-pre-wrap"
           dangerouslySetInnerHTML={{ __html: ansi.toHtml(pty?.output || '') }}
         />
       )}

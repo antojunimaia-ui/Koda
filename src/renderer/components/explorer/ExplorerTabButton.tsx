@@ -133,11 +133,7 @@ export const ExplorerTabButton: React.FC<ExplorerTabButtonProps> = ({
     <>
       {btn}
       {menu && (
-        <div
-          ref={menuRef}
-          className="fixed z-dropdown bg-[#141414] border border-white/10 rounded-xl shadow-2xl py-1 w-52"
-          style={{ top: menu.y, left: menu.x }}
-        >
+        <div ref={menuRef} className="mui-menu fixed w-52" style={{ top: menu.y, left: menu.x }}>
           <div className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-600">Move to</div>
           {LOCATIONS.map((loc) => (
             <button

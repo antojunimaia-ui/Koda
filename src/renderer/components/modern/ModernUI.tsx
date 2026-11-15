@@ -642,7 +642,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
     return (
       <div
         style={{ width: pos === 'left' ? `${leftPanelWidth}%` : `${rightPanelWidth}%` }}
-        className={`flex flex-col shrink-0 min-w-50 relative h-full bg-[#141414] ${pos === 'left' ? 'border-r' : 'border-l'} border-white/5`}
+        className={`mui-panel flex flex-col shrink-0 min-w-50 relative h-full ${pos === 'left' ? 'mui-hairline-r' : 'mui-hairline-l'}`}
       >
         {hasBrowser && (
           <div className="shrink-0 min-h-25 relative" style={{ height: hasTerminal ? `${browserHeight}%` : '100%' }}>

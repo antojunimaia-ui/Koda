@@ -319,7 +319,7 @@ const ToolMessage = memo(({ tool, settings, agentInfo, uiMode = 'classic' }: Too
           }
 
           return (
-            <div className="mt-1 bg-[#0d1117] border border-slate-700/60 p-3 rounded-md text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
+            <div className="mui-code mt-1 p-3 text-[11px] font-mono overflow-hidden shadow-inner relative max-h-[400px] overflow-y-auto custom-scrollbar">
               {(outputToRender || tool.args?.command || tool.args?.text || '')
                 .split('\n')
                 .map((line: string, i: number) => {

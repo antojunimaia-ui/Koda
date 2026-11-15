@@ -7,7 +7,12 @@
    change is a single edit here.
 
    Rules
-   - Tokens live under [data-ui-mode='modern'] so ClassicUI is untouched.
+   - Tokens live on :root so the primitives can be used from shared components
+     (TitleBar, ContextPanel, StatusBar...) that the ClassicUI also renders.
+     Defining a custom property changes nothing on its own: the ClassicUI is
+     untouched because it never uses a .mui-* class. Scoping the tokens under
+     [data-ui-mode='modern'] would leave var(--mui-*) empty in classic mode and
+     silently drop the declaration.
    - Structural surfaces/hairlines stay neutral (white-alpha) on purpose:
      the ModernUI skin is neutral-on-neutral with a themed accent.
    - Colours that must follow the active theme read `--koda-*` (set by useTheme).
@@ -18,6 +23,8 @@
      <div className="mui-app">                     app shell
      <aside className="mui-sidebar">               left sidebar (canvas + hairline)
      <div className="mui-panel mui-hairline-l">    panel surface
+     <div className="mui-chrome">                  sunken chrome (tabs, status bar)
+     <div className="mui-card">                    floating card (header + body)
      <div className="mui-menu"> / .mui-menu-item   dropdown
      <button className="mui-btn mui-btn--primary"> button
      <button className="mui-icon-btn">             icon-only button
@@ -28,9 +35,10 @@
      <span className="mui-eyebrow">                uppercase section label
    ────────────────────────────────────────────────────────────────────────── */
 
-[data-ui-mode='modern'] {
+:root {
   /* Surfaces */
   --mui-canvas: #141414;
+  --mui-chrome: #0a0a0a;
   --mui-surface-1: #181818;
   --mui-surface-2: #1d1d1d;
   --mui-surface-3: #242424;
@@ -99,6 +107,11 @@
     background-color: var(--mui-canvas);
   }
 
+  /* Sunken chrome: workspace tab strip, status bar */
+  .mui-chrome {
+    background-color: var(--mui-chrome);
+  }
+
   .mui-sidebar {
     display: flex;
     flex-direction: column;
@@ -127,6 +140,13 @@
     height: 1px;
     width: 100%;
     background-color: var(--mui-hairline);
+  }
+  /* Full 1px border (all sides) — for bordered groups/badges */
+  .mui-border {
+    border: 1px solid var(--mui-hairline);
+  }
+  .mui-border-strong {
+    border: 1px solid var(--mui-hairline-strong);
   }
 
   /* ── Text ───────────────────────────────────────────────────────────────── */
@@ -270,6 +290,15 @@
   }
 
   /* ── Menus / popovers ───────────────────────────────────────────────────── */
+  /* Floating card with header/body/footer sections (model list, branch list) */
+  .mui-card {
+    overflow: hidden;
+    background-color: var(--mui-surface-2);
+    border: 1px solid var(--mui-hairline-strong);
+    border-radius: var(--mui-radius-lg);
+    box-shadow: var(--mui-shadow-3);
+  }
+
   .mui-menu {
     position: absolute;
     z-index: var(--koda-z-dropdown);
@@ -301,6 +330,13 @@
   .mui-menu-item[data-active='true'] {
     background-color: var(--mui-surface-hover);
     color: var(--mui-fg-strong);
+  }
+  .mui-menu-item--danger {
+    color: #f87171;
+  }
+  .mui-menu-item--danger:hover {
+    background-color: rgba(248, 113, 113, 0.1);
+    color: #fca5a5;
   }
 
   .mui-popover {
@@ -344,9 +380,29 @@
     opacity: 0.8;
   }
 
+  /* Bubble used by the user message row */
+  .mui-bubble {
+    background-color: rgba(39, 39, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--mui-radius-xl);
+  }
+
+  /* Tool output / code block */
+  .mui-code {
+    background-color: var(--mui-chrome);
+    border: 1px solid var(--mui-hairline-strong);
+    border-radius: var(--mui-radius);
+  }
+
   /* ── Surfaces helpers ───────────────────────────────────────────────────── */
   .mui-surface-1 {
     background-color: var(--mui-surface-1);
+  }
+  .mui-surface-2 {
+    background-color: var(--mui-surface-2);
+  }
+  .mui-surface-3 {
+    background-color: var(--mui-surface-3);
   }
   .mui-border-canvas {
     border-color: var(--mui-canvas);

@@ -82,9 +82,9 @@ const ContextPanel = memo(
     }
 
     return (
-      <div className="flex flex-col h-full w-full overflow-hidden bg-[#141414]">
+      <div className="mui-panel flex flex-col h-full w-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-0.5 px-2 pt-2 pb-1.5 border-b border-white/5 shrink-0">
+        <div className="mui-hairline-b flex items-center gap-0.5 px-2 pt-2 pb-1.5 shrink-0">
           <button
             onClick={() => setTab('context')}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
@@ -242,7 +242,7 @@ export const ContextPanelOverlay: React.FC<ContextPanelOverlayProps> = ({
 }) => {
   return (
     <div
-      className="absolute top-10 bottom-0 right-0 z-panel animate-in slide-in-from-right duration-200 flex bg-[#141414] border-l border-white/5"
+      className="mui-panel mui-hairline-l absolute top-10 bottom-0 right-0 z-panel animate-in slide-in-from-right duration-200 flex"
       style={{ width }}
     >
       <div

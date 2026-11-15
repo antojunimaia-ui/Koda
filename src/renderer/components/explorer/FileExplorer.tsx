@@ -528,7 +528,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
       {selectedFile && !disableInlineEditor && (
         <div className="w-1/2 border-r border-white/10 flex flex-col">
           {/* Editor Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-[#141414]">
+          <div className="mui-panel mui-hairline-b flex items-center justify-between px-3 py-2">
             <div className="flex items-center gap-2">
               <span className="text-slate-300 text-[10px] font-medium truncate" title={selectedFile}>
                 {selectedFile.split('/').pop()}

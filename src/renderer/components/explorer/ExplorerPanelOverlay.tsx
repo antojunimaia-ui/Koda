@@ -12,10 +12,7 @@ export const ExplorerPanelOverlay: React.FC<ExplorerPanelOverlayProps> = ({
   onStartResize,
 }) => {
   return (
-    <div
-      className="absolute top-10 bottom-0 right-0 flex flex-col bg-[#141414] border-l border-white/5 z-panel"
-      style={{ width }}
-    >
+    <div className="mui-panel mui-hairline-l absolute top-10 bottom-0 right-0 flex flex-col z-panel" style={{ width }}>
       {/* Resize handle */}
       <div
         onMouseDown={onStartResize}

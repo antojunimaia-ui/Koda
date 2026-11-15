@@ -34,13 +34,13 @@ const UserMessage = memo(({ text, images, onRollback, remote, uiMode }: UserMess
               ) : (
                 <div
                   key={i}
-                  className="h-16 w-32 bg-[#1e1e1e] border border-white/5 rounded-xl p-2.5 flex flex-col justify-between shadow-lg relative overflow-hidden group/file"
+                  className="mui-thumb h-16 w-32 p-2.5 flex flex-col justify-between shadow-lg relative overflow-hidden group/file"
                 >
                   <div className="text-[9px] text-slate-300 font-bold leading-tight break-all line-clamp-2 uppercase tracking-tight">
                     {img.name}
                   </div>
                   <div className="flex items-center">
-                    <div className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                    <div className="px-1 py-0.5 mui-chip text-[8px]">
                       {img.name.split('.').pop()?.toUpperCase() || 'FILE'}
                     </div>
                   </div>
@@ -51,7 +51,7 @@ const UserMessage = memo(({ text, images, onRollback, remote, uiMode }: UserMess
         )}
 
         {/* Bubble */}
-        <div className="max-w-[80%] bg-zinc-800/60 border border-white/8 rounded-2xl px-3.5 py-2">
+        <div className="max-w-[80%] mui-bubble px-3.5 py-2">
           {remote && (
             <span className="inline-flex items-center gap-1 mr-2 text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-900/30 border border-emerald-500/30 px-1.5 py-0.5 rounded align-middle">
               🌐 Remote

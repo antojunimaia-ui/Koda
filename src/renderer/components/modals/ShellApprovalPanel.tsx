@@ -33,9 +33,11 @@ const ShellApprovalPanel = memo(({ command, baseCommand, variant = 'modern' }: S
 
   return (
     <div
-      className={`w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl shadow-lg overflow-visible
-      ${variant === 'modern' ? 'rounded-2xl rounded-b-none border-b-0' : 'rounded-xl rounded-b-none border-b-0'}
-    `}
+      className={`w-full overflow-visible shadow-lg ${
+        variant === 'modern'
+          ? 'mui-popover'
+          : 'bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-xl rounded-b-none border-b-0'
+      }`}
     >
       <div className="px-4 py-3 flex items-center gap-3">
         {/* Left: command */}

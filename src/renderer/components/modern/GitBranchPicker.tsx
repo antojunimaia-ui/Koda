@@ -104,19 +104,11 @@ export const GitBranchPicker: React.FC<GitBranchPickerProps> = ({ cwd, onCheckou
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-56 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-dropdown animate-in fade-in slide-in-from-bottom-1 duration-150">
-          <div className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-zinc-600 border-b border-white/5">
-            Switch Branch
-          </div>
+        <div className="mui-card absolute bottom-full left-0 mb-2 w-56 z-dropdown animate-in fade-in slide-in-from-bottom-1 duration-150">
+          <div className="mui-eyebrow mui-hairline-b px-3 py-2">Switch Branch</div>
           <div className="max-h-52 overflow-y-auto custom-scrollbar py-1">
             {branches.map((b) => (
-              <button
-                key={b}
-                onClick={() => handleCheckout(b)}
-                className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors ${
-                  b === branch ? 'text-indigo-400 bg-indigo-500/10' : 'text-zinc-300 hover:bg-white/5'
-                }`}
-              >
+              <button key={b} onClick={() => handleCheckout(b)} className="mui-menu-item" data-active={b === branch}>
                 <svg
                   width="11"
                   height="11"
@@ -133,7 +125,11 @@ export const GitBranchPicker: React.FC<GitBranchPickerProps> = ({ cwd, onCheckou
                   <circle cx="6" cy="18" r="3" />
                   <path d="M18 9a9 9 0 0 1-9 9" />
                 </svg>
-                <span className="text-[11px] font-medium truncate">{b}</span>
+                <span
+                  className={`text-[11px] font-medium truncate ${b === branch ? 'text-indigo-400' : 'text-zinc-300'}`}
+                >
+                  {b}
+                </span>
                 {b === branch && <span className="ml-auto text-[9px] text-indigo-400 font-bold shrink-0">current</span>}
               </button>
             ))}

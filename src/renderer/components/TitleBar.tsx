@@ -114,7 +114,13 @@ const TitleBar: React.FC<TitleBarProps> = ({
       </button>
 
       {showDropdown && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200 z-dropdown">
+        <div
+          className={`absolute top-full left-0 mt-1 w-64 animate-in fade-in slide-in-from-top-1 duration-200 ${
+            uiMode === 'modern'
+              ? 'mui-menu'
+              : 'bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl overflow-hidden z-dropdown'
+          }`}
+        >
           <div className="p-1">
             {MODES.map((m) => (
               <button

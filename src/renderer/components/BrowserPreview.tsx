@@ -88,7 +88,7 @@ const BrowserPreview: React.FC<BrowserPreviewProps> = ({ initialUrl = 'http://lo
   }, [isReady])
 
   return (
-    <div className="flex flex-col h-full bg-[#141414] border-r border-white/5 overflow-hidden">
+    <div className="mui-panel mui-hairline-r flex flex-col h-full overflow-hidden">
       {/* Modern Browser Toolbar (Thinner) */}
       <div className="relative h-9 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/40 flex items-center px-3 gap-3 justify-between select-none">
         {/* Navigation Controls */}

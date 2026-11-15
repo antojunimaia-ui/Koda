@@ -10,9 +10,11 @@ interface UpdateBannerProps {
 
 const UpdateBanner = memo(({ version, downloaded, onInstall, onDismiss, variant = 'modern' }: UpdateBannerProps) => (
   <div
-    className={`w-full bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl overflow-hidden -mb-4
-    ${variant === 'modern' ? 'rounded-2xl rounded-b-none border-b-0' : 'rounded-xl rounded-b-none border-b-0'}
-  `}
+    className={`w-full overflow-hidden -mb-4 ${
+      variant === 'modern'
+        ? 'mui-popover'
+        : 'bg-neutral-900/90 border border-neutral-700/60 backdrop-blur-xl rounded-xl rounded-b-none border-b-0'
+    }`}
   >
     <div className="px-4 pt-2 pb-6 flex items-center gap-3">
       {/* Left: message */}

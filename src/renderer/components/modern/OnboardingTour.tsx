@@ -243,7 +243,7 @@ function TourOverlay({
           width: tw,
         }}
       >
-        <div className="bg-[#0a0a0b] border border-white/10 rounded-2xl shadow-2xl p-4 relative">
+        <div className="mui-chrome mui-border-strong rounded-2xl shadow-2xl p-4 relative">
           {targetRect && <div className={`absolute w-0 h-0 ${arrowClass}`} style={arrowStyle()} />}
           <div className="flex items-center justify-between mb-2">
             <span className="text-slate-600 text-[10px] font-black uppercase tracking-widest">

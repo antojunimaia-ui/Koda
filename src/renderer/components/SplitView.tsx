@@ -168,7 +168,7 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
                 )}
                 <button
                   onClick={() => setPendingImages((p) => p.filter((_, idx) => idx !== i))}
-                  className="absolute -top-2 -right-2 bg-[#ff4b4b] text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 mui-border-canvas opacity-0 group-hover:opacity-100 transition-opacity z-raised"
+                  className="absolute -top-2 -right-2 bg-rose-500 text-white text-[9px] rounded-full w-5 h-5 flex items-center justify-center shadow-lg border-2 mui-border-canvas opacity-0 group-hover:opacity-100 transition-opacity z-raised"
                 >
                   ✕
                 </button>

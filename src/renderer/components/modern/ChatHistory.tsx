@@ -140,7 +140,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
 
                 {/* Sub-items (VSCode Agent Session Items) */}
                 {isExpanded && (
-                  <div className="ml-3 pl-2 border-l border-white/8 space-y-0.5 py-0.5">
+                  <div className="ml-3 pl-2 mui-hairline-l space-y-0.5 py-0.5">
                     {project.sessions.length === 0 ? (
                       <div className="px-2 py-1 text-[11px] text-zinc-600 italic">No sessions</div>
                     ) : (
@@ -184,13 +184,10 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ projectPath, onNewSession, on
                           </button>
 
                           {menuOpenId === session.id && (
-                            <div
-                              ref={menuRef}
-                              className="absolute right-1 top-7 z-dropdown bg-[#18181b] border border-white/10 rounded-md shadow-2xl py-1 w-32"
-                            >
+                            <div ref={menuRef} className="mui-menu right-1 top-7 w-32">
                               <button
                                 onClick={(e) => handleDelete(e, project.path, session.id)}
-                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                className="mui-menu-item mui-menu-item--danger text-[11px]"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                                 Delete Session
