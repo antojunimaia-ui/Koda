@@ -243,12 +243,25 @@ export function useMessageActions({
           if (!last) return prev
           if (chunk) {
             if (last.type === 'assistant' && !last.done) {
-              updated[updated.length - 1] = { ...last, text: (last.text || '') + chunk, done: true }
+              updated[updated.length - 1] = {
+                ...last,
+                text: (last.text || '') + chunk,
+                done: true,
+                completedAt: Date.now(),
+              }
             } else {
-              updated.push({ id: nextId(), type: 'assistant', text: chunk, done: true })
+              const now = Date.now()
+              updated.push({
+                id: nextId(),
+                type: 'assistant',
+                text: chunk,
+                done: true,
+                createdAt: now,
+                completedAt: now,
+              })
             }
           } else if (last.type === 'assistant') {
-            updated[updated.length - 1] = { ...last, done: true }
+            updated[updated.length - 1] = { ...last, done: true, completedAt: Date.now() }
           }
           return { ...prev, messages: updated }
         })

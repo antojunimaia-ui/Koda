@@ -14,7 +14,8 @@ import WorkspaceTabs from '../WorkspaceTabs.js'
 import { ModelDropdown } from './ModelDropdown.js'
 import { formatModelName } from '../../utils/formatModelName.js'
 import SplitView from '../SplitView.js'
-import CompactToolView from '../messages/CompactToolView.js'
+import CompactTurnView from '../messages/CompactTurnView.js'
+import { groupTurns } from '../../utils/groupTurns.js'
 import QuestionsModal from '../modals/QuestionsModal.js'
 import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
 import UpdateBanner from '../UpdateBanner.js'
@@ -513,26 +514,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
   const renderableMessages = useMemo(() => {
     if (kodaSettings.toolViewMode !== 'compact') return messages
 
-    const groups: any[] = []
-    let currentToolGroup: any[] = []
-
-    messages.forEach((msg, idx) => {
-      if (msg.type === 'tool') {
-        currentToolGroup.push(msg)
-      } else {
-        if (currentToolGroup.length > 0) {
-          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` })
-          currentToolGroup = []
-        }
-        groups.push(msg)
-      }
-    })
-
-    if (currentToolGroup.length > 0) {
-      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' })
-    }
-
-    return groups
+    // Um único bloco por turno (avatar único + texto e tools contínuos)
+    return groupTurns(messages)
   }, [messages, kodaSettings.toolViewMode])
 
   const thinkingLabel = React.useMemo(() => {
@@ -950,9 +933,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         className="custom-scrollbar pr-2"
                         itemContent={(index, item: any) => (
                           <div className="mb-6 w-full max-w-5xl mx-auto px-4">
-                            {item.type === 'tool_group' ? (
-                              <CompactToolView
-                                tools={item.tools}
+                            {item.type === 'turn' ? (
+                              <CompactTurnView
+                                entries={item.entries}
                                 settings={kodaSettings}
                                 agentInfo={agentInfo}
                                 uiMode="modern"
@@ -1152,9 +1135,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       style={{ scrollbarGutter: 'stable' }}
                       itemContent={(index, item: any) => (
                         <div className="mb-6 px-4 max-w-5xl mx-auto">
-                          {item.type === 'tool_group' ? (
-                            <CompactToolView
-                              tools={item.tools}
+                          {item.type === 'turn' ? (
+                            <CompactTurnView
+                              entries={item.entries}
                               settings={kodaSettings}
                               agentInfo={agentInfo}
                               uiMode="modern"

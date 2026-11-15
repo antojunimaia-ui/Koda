@@ -16,6 +16,10 @@ export interface MessageEntry {
   images?: AttachedFile[]
   done?: boolean
   remote?: boolean
+  /** Quando a entrada foi criada (ms epoch) — usado para "Worked for Xs". */
+  createdAt?: number
+  /** Quando a entrada terminou (ms epoch) — usado para "Worked for Xs". */
+  completedAt?: number
   tool?: {
     name: string
     status: 'running' | 'writing' | 'done' | 'awaiting_approval'

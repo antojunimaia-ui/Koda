@@ -64,7 +64,7 @@ export function useAgentStream({
           updated[updated.length - 1] = { ...last, text: (last.text || '') + chunk }
           return updated
         }
-        return [...updated, { id: nextId(), type: 'assistant', text: chunk, done: false }]
+        return [...updated, { id: nextId(), type: 'assistant', text: chunk, done: false, createdAt: Date.now() }]
       })
     },
     [onUpdate],
@@ -117,13 +117,22 @@ export function useAgentStream({
 
           if (chunk) {
             if (last && last.type === 'assistant' && !last.done) {
-              updated[updated.length - 1] = { ...last, text: (last.text || '') + chunk, done: true }
+              updated[updated.length - 1] = {
+                ...last,
+                text: (last.text || '') + chunk,
+                done: true,
+                completedAt: Date.now(),
+              }
             } else {
-              finalized = [...updated, { id: nextId(), type: 'assistant', text: chunk, done: true }]
+              const now = Date.now()
+              finalized = [
+                ...updated,
+                { id: nextId(), type: 'assistant', text: chunk, done: true, createdAt: now, completedAt: now },
+              ]
             }
           } else {
             if (last && last.type === 'assistant' && !last.done) {
-              updated[updated.length - 1] = { ...last, done: true }
+              updated[updated.length - 1] = { ...last, done: true, completedAt: Date.now() }
             }
           }
 
@@ -132,6 +141,7 @@ export function useAgentStream({
             {
               id: nextId(),
               type: 'tool' as const,
+              createdAt: Date.now(),
               tool: {
                 name: update.name,
                 args: update.args,
@@ -185,6 +195,7 @@ export function useAgentStream({
               (m.tool.status === 'running' || m.tool.status === 'writing' || m.tool.status === 'awaiting_approval')
                 ? {
                     ...m,
+                    completedAt: Date.now(),
                     tool: {
                       ...m.tool,
                       status: 'done' as const,

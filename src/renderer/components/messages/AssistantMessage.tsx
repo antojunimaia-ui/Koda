@@ -6,9 +6,11 @@ interface AssistantMessageProps {
   text?: string
   done?: boolean
   uiMode?: 'classic' | 'modern'
+  /** When false the avatar header is omitted (the parent turn renders a single one). */
+  showAvatar?: boolean
 }
 
-const AssistantMessage = memo(({ text, done, uiMode = 'classic' }: AssistantMessageProps) => {
+const AssistantMessage = memo(({ text, done, uiMode = 'classic', showAvatar = true }: AssistantMessageProps) => {
   let html = ''
   if (text) {
     try {
@@ -51,6 +53,32 @@ const AssistantMessage = memo(({ text, done, uiMode = 'classic' }: AssistantMess
     }
   }
 
+  const content = (
+    <div className="flex flex-col max-w-full overflow-hidden">
+      {!done && !text && (
+        <div className="ml-1">
+          <BrailleSpinner rotateLabel color="cyan" />
+        </div>
+      )}
+      {text && (
+        <>
+          <div
+            className="markdown-body text-slate-300 leading-relaxed overflow-x-auto w-full"
+            dangerouslySetInnerHTML={{ __html: html }}
+            onClick={handleMessageClick}
+          />
+          {!done && (
+            <span className="inline-block mt-2">
+              <BrailleSpinner color="cyan" />
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  )
+
+  if (!showAvatar) return content
+
   return (
     <div className="flex flex-col ml-4">
       {/* Koda Avatar - sempre no topo */}
@@ -85,27 +113,7 @@ const AssistantMessage = memo(({ text, done, uiMode = 'classic' }: AssistantMess
       </div>
 
       {/* Message Content */}
-      <div className="flex flex-col max-w-full overflow-hidden">
-        {!done && !text && (
-          <div className="ml-1">
-            <BrailleSpinner rotateLabel color="cyan" />
-          </div>
-        )}
-        {text && (
-          <>
-            <div
-              className="markdown-body text-slate-300 leading-relaxed overflow-x-auto w-full"
-              dangerouslySetInnerHTML={{ __html: html }}
-              onClick={handleMessageClick}
-            />
-            {!done && (
-              <span className="inline-block mt-2">
-                <BrailleSpinner color="cyan" />
-              </span>
-            )}
-          </>
-        )}
-      </div>
+      {content}
     </div>
   )
 })

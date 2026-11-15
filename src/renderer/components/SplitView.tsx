@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
-import CompactToolView from './messages/CompactToolView.js'
+import CompactTurnView from './messages/CompactTurnView.js'
+import { groupTurns } from '../utils/groupTurns.js'
 import { Workspace, AttachedFile, KodaSettings, KodaTheme, Mode } from '../types/index.js'
 import MessageRow from './messages/MessageRow.js'
 import { BrailleSpinner } from './BrailleSpinner.js'
@@ -136,26 +137,8 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
   const renderableMessages = React.useMemo(() => {
     if (kodaSettings.toolViewMode !== 'compact') return workspace.messages
 
-    const groups: any[] = []
-    let currentToolGroup: any[] = []
-
-    workspace.messages.forEach((msg, idx) => {
-      if (msg.type === 'tool') {
-        currentToolGroup.push(msg)
-      } else {
-        if (currentToolGroup.length > 0) {
-          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` })
-          currentToolGroup = []
-        }
-        groups.push(msg)
-      }
-    })
-
-    if (currentToolGroup.length > 0) {
-      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' })
-    }
-
-    return groups
+    // Um único bloco por turno (avatar único + texto e tools contínuos)
+    return groupTurns(workspace.messages)
   }, [workspace.messages, kodaSettings.toolViewMode])
 
   const renderModernInput = () => (
@@ -359,9 +342,9 @@ const SplitPanel: React.FC<SplitPanelProps> = ({
           className="custom-scrollbar h-full"
           itemContent={(_, item: any) => (
             <div className="px-3 py-1">
-              {item.type === 'tool_group' ? (
-                <CompactToolView
-                  tools={item.tools}
+              {item.type === 'turn' ? (
+                <CompactTurnView
+                  entries={item.entries}
                   settings={kodaSettings}
                   agentInfo={workspace.agentInfo}
                   uiMode={uiMode}

@@ -17,7 +17,8 @@ import BrowserPreview from '../BrowserPreview.js'
 import TerminalPanel from '../TerminalPanel.js'
 import WorkspaceTabs from '../WorkspaceTabs.js'
 import SplitView from '../SplitView.js'
-import CompactToolView from '../messages/CompactToolView.js'
+import CompactTurnView from '../messages/CompactTurnView.js'
+import { groupTurns } from '../../utils/groupTurns.js'
 import { ArrowUpIcon } from 'lucide-react'
 import QuestionsModal from '../modals/QuestionsModal.js'
 import ShellApprovalPanel from '../modals/ShellApprovalPanel.js'
@@ -215,26 +216,8 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
   const renderableMessages = React.useMemo(() => {
     if (kodaSettings.toolViewMode !== 'compact') return messages
 
-    const groups: any[] = []
-    let currentToolGroup: any[] = []
-
-    messages.forEach((msg, idx) => {
-      if (msg.type === 'tool') {
-        currentToolGroup.push(msg)
-      } else {
-        if (currentToolGroup.length > 0) {
-          groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: `group-${idx}` })
-          currentToolGroup = []
-        }
-        groups.push(msg)
-      }
-    })
-
-    if (currentToolGroup.length > 0) {
-      groups.push({ type: 'tool_group', tools: [...currentToolGroup], id: 'group-last' })
-    }
-
-    return groups
+    // Um único bloco por turno (avatar único + texto e tools contínuos)
+    return groupTurns(messages)
   }, [messages, kodaSettings.toolViewMode])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -429,10 +412,10 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   alignToBottom
                   increaseViewportBy={{ top: 200, bottom: 200 }}
                   itemContent={(_index, item: any) =>
-                    item.type === 'tool_group' ? (
+                    item.type === 'turn' ? (
                       <div className="mb-4">
-                        <CompactToolView
-                          tools={item.tools}
+                        <CompactTurnView
+                          entries={item.entries}
                           settings={kodaSettings}
                           agentInfo={agentInfo}
                           uiMode="classic"
