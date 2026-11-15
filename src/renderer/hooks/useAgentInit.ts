@@ -32,10 +32,11 @@ export function useAgentInit({
           if (res.success && res.models) {
             setLoadedModels((prevModels) => ({ ...prevModels, [provId]: res.models as string[] }))
           } else {
-            console.warn(`[App] Failed to fetch models for ${provId}:`, res.error)
+            // Situação esperada (provider sem chave/rede indisponível) — não polui o console
+            console.debug(`[App] Failed to fetch models for ${provId}:`, res.error)
           }
         } catch (err) {
-          console.error(`[App] Error fetching models for ${provId}:`, err)
+          console.debug(`[App] Error fetching models for ${provId}:`, err)
         } finally {
           setLoadingState((prevLoading) => ({ ...prevLoading, [provId]: false }))
         }

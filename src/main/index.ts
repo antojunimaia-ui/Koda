@@ -10,6 +10,13 @@ import { registerAllHandlers } from './ipc/index.js'
 import electronUpdater from 'electron-updater'
 import dotenv from 'dotenv'
 
+// O app deliberadamente usa `webviewTag` com `webSecurity: false` para o painel
+// de preview no navegador (BrowserPreview). Esses avisos são esperados em dev.
+// Em builds empacotados o Electron não os exibe. Suprimimos para não poluir o
+// console de desenvolvimento — a política de segurança real é definida nas
+// webPreferences das janelas.
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true'
+
 const { autoUpdater } = electronUpdater
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
