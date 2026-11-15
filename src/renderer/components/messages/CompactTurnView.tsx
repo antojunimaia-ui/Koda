@@ -3,6 +3,7 @@ import { MessageEntry, KodaSettings, AgentInfo } from '../../types/index.js'
 import { ChevronRight } from 'lucide-react'
 import AssistantMessage from './AssistantMessage.js'
 import CompactToolView from './CompactToolView.js'
+import CompactPtyView from './CompactPtyView.js'
 import { formatDuration } from '../../utils/formatDuration.js'
 
 interface CompactTurnViewProps {
@@ -13,7 +14,10 @@ interface CompactTurnViewProps {
   isLastAndActive?: boolean
 }
 
-type Segment = { kind: 'text'; msg: MessageEntry } | { kind: 'tools'; key: string; msgs: MessageEntry[] }
+type Segment =
+  | { kind: 'text'; msg: MessageEntry }
+  | { kind: 'tools'; key: string; msgs: MessageEntry[] }
+  | { kind: 'pty'; msg: MessageEntry }
 
 /** Duração do turno a partir dos timestamps das entradas (undefined em sessões antigas). */
 function turnDuration(entries: MessageEntry[]): number | undefined {
@@ -31,6 +35,8 @@ function buildSegments(entries: MessageEntry[]): Segment[] {
       else segments.push({ kind: 'tools', key: `tools-${entry.id}`, msgs: [entry] })
     } else if (entry.type === 'assistant') {
       segments.push({ kind: 'text', msg: entry })
+    } else if (entry.type === 'pty') {
+      segments.push({ kind: 'pty', msg: entry })
     }
   }
   return segments
@@ -132,7 +138,7 @@ const CompactTurnView = memo(({ entries, settings, agentInfo, uiMode, isLastAndA
                 uiMode={uiMode}
                 showAvatar={false}
               />
-            ) : (
+            ) : seg.kind === 'tools' ? (
               <CompactToolView
                 key={seg.key}
                 tools={seg.msgs}
@@ -141,6 +147,8 @@ const CompactTurnView = memo(({ entries, settings, agentInfo, uiMode, isLastAndA
                 uiMode={uiMode}
                 isLastAndActive={false}
               />
+            ) : (
+              <CompactPtyView key={seg.msg.id} msg={seg.msg} settings={settings} uiMode={uiMode} />
             ),
           )}
         </div>

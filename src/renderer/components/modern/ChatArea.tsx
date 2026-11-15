@@ -125,7 +125,6 @@ const ChatArea: React.FC<ChatAreaProps> = (props) => {
         <Virtuoso
           ref={virtuosoRef}
           data={renderableMessages}
-          alignToBottom
           increaseViewportBy={{ top: 200, bottom: 200 }}
           className="custom-scrollbar h-full"
           style={{ scrollbarGutter: 'stable' }}

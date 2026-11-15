@@ -919,7 +919,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       <Virtuoso
                         ref={virtuosoRef}
                         data={renderableMessages}
-                        alignToBottom
                         increaseViewportBy={{ top: 200, bottom: 200 }}
                         className="custom-scrollbar pr-2"
                         itemContent={(index, item: any) => (

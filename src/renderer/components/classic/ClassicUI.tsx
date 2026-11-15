@@ -409,7 +409,6 @@ const ClassicUI: React.FC<ClassicUIProps> = ({
                   ref={virtuosoRef}
                   className="h-full custom-scrollbar w-full"
                   data={renderableMessages}
-                  alignToBottom
                   increaseViewportBy={{ top: 200, bottom: 200 }}
                   itemContent={(_index, item: any) =>
                     item.type === 'turn' ? (

@@ -336,7 +336,6 @@ export const SplitPanel: React.FC<SplitPanelProps> = ({
         <Virtuoso
           ref={virtuosoRef}
           data={renderableMessages}
-          alignToBottom
           increaseViewportBy={{ top: 200, bottom: 200 }}
           className="custom-scrollbar h-full"
           itemContent={(_, item: any) => (

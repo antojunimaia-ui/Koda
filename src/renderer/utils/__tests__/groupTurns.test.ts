@@ -9,6 +9,11 @@ const tool = (name: string): MessageEntry => ({
   type: 'tool',
   tool: { name, status: 'done', success: true, args: { path: `${name}.ts` } },
 })
+const pty = (): MessageEntry => ({
+  id: ++seq,
+  type: 'pty',
+  pty: { pid: 1234, output: 'hello', exited: true },
+})
 const user = (text: string): MessageEntry => ({ id: ++seq, type: 'user', text })
 
 const isTurn = (item: unknown): item is TurnItem => (item as TurnItem).type === 'turn'
@@ -85,5 +90,15 @@ describe('groupTurns', () => {
     }
     const turn = groupTurns([assistant('reading'), running]).find(isTurn)!
     expect(turn.entries[1].tool!.status).toBe('running')
+  })
+
+  it('includes pty messages inside the turn block (no standalone leakage)', () => {
+    const messages = [user('rode o teste'), assistant('rodando'), pty(), assistant('concluído')]
+    const out = groupTurns(messages)
+    const turn = out.find(isTurn)!
+
+    expect(out).toHaveLength(2) // user + turn
+    expect(turn.entries.map((m) => m.type)).toEqual(['assistant', 'pty', 'assistant'])
+    expect(turn.entries[1]).toEqual(messages[2])
   })
 })

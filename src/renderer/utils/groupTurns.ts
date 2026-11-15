@@ -22,14 +22,17 @@ export function groupTurns(messages: MessageEntry[]): RenderableItem[] {
 
   while (i < messages.length) {
     const msg = messages[i]
-    if (msg.type !== 'assistant' && msg.type !== 'tool') {
+    if (msg.type !== 'assistant' && msg.type !== 'tool' && msg.type !== 'pty') {
       out.push(msg)
       i++
       continue
     }
 
     const entries: MessageEntry[] = []
-    while (i < messages.length && (messages[i].type === 'assistant' || messages[i].type === 'tool')) {
+    while (
+      i < messages.length &&
+      (messages[i].type === 'assistant' || messages[i].type === 'tool' || messages[i].type === 'pty')
+    ) {
       entries.push(messages[i])
       i++
     }
