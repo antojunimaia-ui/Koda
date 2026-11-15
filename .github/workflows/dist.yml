@@ -1,12 +1,12 @@
 name: Release Koda-AI
- 
+
 on:
   push:
     tags:
       - 'v*'
     branches:
       - main
- 
+
 jobs:
   typecheck:
     runs-on: ubuntu-latest
@@ -29,7 +29,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     needs: typecheck
-    
+
     strategy:
       matrix:
         include:
@@ -43,22 +43,22 @@ jobs:
           - os: windows-2022
             platform: win
             arch: ia32
- 
+
     steps:
       - name: Check out git repository
         uses: actions/checkout@v4
- 
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
- 
+
       - name: Install Linux Build Dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxkbfile-dev libsecret-1-dev
+          sudo apt-get install -y libx11-dev libxkbfile-dev libsecret-1-dev build-essential python3
 
       - name: Install dependencies
         run: npm install --ignore-scripts
@@ -66,10 +66,22 @@ jobs:
       - name: Security audit dependencies
         run: npm audit --audit-level=critical
 
-      - name: Restore postinstall for non-Windows
+      - name: Rebuild native modules for Electron (Linux/macOS)
         if: matrix.platform != 'win'
-        run: npm run postinstall || true
- 
+        run: npx electron-builder install-app-deps
+
+      - name: Verify node-pty native binary (Linux/macOS)
+        if: matrix.platform != 'win'
+        run: |
+          if [ -f node_modules/node-pty/build/Release/pty.node ]; then
+            echo "node-pty compiled: build/Release/pty.node"
+          elif [ -f "node_modules/node-pty/prebuilds/$(node -p 'process.platform')-$(node -p 'process.arch')/pty.node" ]; then
+            echo "node-pty prebuilt found"
+          else
+            echo "::error::node-pty native binary missing — build will ship without PTY support"
+            exit 1
+          fi
+
       - name: Build Vite App
         if: matrix.platform == 'win'
         run: npm run build
