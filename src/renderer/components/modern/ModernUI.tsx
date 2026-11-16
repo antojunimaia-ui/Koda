@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { Paperclip, ArrowUpIcon } from 'lucide-react'
 import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings } from '../../types/index.js'
+import { DEFAULT_MODELS, getProvider, PROVIDERS } from '../../../shared/configDefaults.js'
 
 import TitleBar from '../TitleBar.js'
 import { BrailleSpinner } from '../BrailleSpinner.js'
@@ -373,32 +374,17 @@ const ModernUI: React.FC<ModernUIProps> = ({
   const [showChatHistory, setShowChatHistory] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
 
-  const PROVIDER_NAMES: Record<string, string> = {
-    openai: 'OpenAI',
-    anthropic: 'Anthropic',
-    google: 'Google Gemini',
-    openrouter: 'OpenRouter',
-    deepseek: 'DeepSeek',
-    groq: 'Groq',
-    ollama: 'Ollama',
-    llamacpp: 'Llama.cpp',
-    mistral: 'Mistral AI',
-    together: 'Together AI',
-    xai: 'xAI',
-    fireworks: 'Fireworks AI',
-    zhipu: 'Zhipu AI',
-    maritaca: 'Maritaca AI',
-    'koda-cloud': 'Koda Cloud',
-    inception: 'Inception Labs',
-  }
-
   const modelDropdownOptions = useMemo(() => {
-    // Free providers that should always show in the dropdown list
-    const defaultFreeProviders = [
-      { id: 'koda-cloud', name: 'Koda Cloud', model: 'gemini-1.5-flash', advisorModel: 'gemini-1.5-flash', apiKey: '' },
-      { id: 'ollama', name: 'Ollama (Local)', model: 'llama3', advisorModel: 'llama3', apiKey: '' },
-      { id: 'llamacpp', name: 'Llama.cpp (Local)', model: 'local-model', advisorModel: 'local-model', apiKey: '' },
-    ]
+    // Providers que sempre aparecem no dropdown (locais + Koda Cloud) — derivados
+    // do registry para nunca divergir (inclui KoboldCpp automaticamente).
+    const alwaysShown = PROVIDERS.filter((p) => p.kind === 'local' || p.id === 'koda-cloud')
+    const defaultFreeProviders = alwaysShown.map((p) => ({
+      id: p.id,
+      name: p.name,
+      model: DEFAULT_MODELS[p.id],
+      advisorModel: DEFAULT_MODELS[p.id],
+      apiKey: '',
+    }))
 
     try {
       const saved = localStorage.getItem('koda_providers_config')
@@ -418,7 +404,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
         const savedData = config[p.id] || {}
         optionsMap.set(p.id, {
           providerId: p.id,
-          providerName: PROVIDER_NAMES[p.id] || p.name,
+          providerName: getProvider(p.id)?.name || p.name,
           model: savedData.model || p.model,
           advisorModel: savedData.advisorModel || p.advisorModel,
           apiKey: savedData.apiKey || p.apiKey,
@@ -430,7 +416,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
         if (!optionsMap.has(provId) && data.apiKey) {
           optionsMap.set(provId, {
             providerId: provId,
-            providerName: PROVIDER_NAMES[provId] || provId,
+            providerName: getProvider(provId)?.name || provId,
             model: data.model,
             advisorModel: data.advisorModel,
             apiKey: data.apiKey,
@@ -443,7 +429,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
       if (!optionsMap.has(activeProv)) {
         optionsMap.set(activeProv, {
           providerId: activeProv,
-          providerName: PROVIDER_NAMES[activeProv] || activeProv,
+          providerName: getProvider(activeProv)?.name || activeProv,
           model: agentInfo.model,
           advisorModel: agentInfo.advisorModel || '',
           apiKey: '',
@@ -461,7 +447,7 @@ const ModernUI: React.FC<ModernUIProps> = ({
     return [
       {
         providerId: agentInfo.providerId || agentInfo.provider || 'openai',
-        providerName: PROVIDER_NAMES[agentInfo.providerId || agentInfo.provider || 'openai'] || 'OpenAI',
+        providerName: getProvider(agentInfo.providerId || agentInfo.provider || 'openai')?.name || 'OpenAI',
         model: agentInfo.model,
         advisorModel: agentInfo.advisorModel || '',
         apiKey: '',

@@ -37,25 +37,9 @@ export const KoClawStartConfigSchema = z.object({
 export type KoClawStartConfig = z.infer<typeof KoClawStartConfigSchema>
 
 // ── Variáveis de ambiente relevantes (config/settings.ts) ───────────────────
-export const LLM_PROVIDERS = [
-  'openai',
-  'anthropic',
-  'google',
-  'openrouter',
-  'ollama',
-  'llamacpp',
-  'groq',
-  'deepseek',
-  'mistral',
-  'together',
-  'xai',
-  'zhipu',
-  'maritaca',
-  'koda-cloud',
-  'fireworks',
-  'opencode-zen',
-  'inception',
-] as const
+// Deriva da fonte única do registry de providers para nunca divergir.
+import { LLM_PROVIDER_IDS } from './configDefaults.js'
+export const LLM_PROVIDERS = LLM_PROVIDER_IDS
 
 export const EnvironmentSettingsSchema = z.object({
   LLM_PROVIDER: z.enum(LLM_PROVIDERS).optional(),

@@ -10,6 +10,7 @@ import { GoogleProvider } from '../providers/google.js'
 import { OpenRouterProvider } from '../providers/openrouter.js'
 import { OllamaProvider } from '../providers/ollama.js'
 import { LlamaCppProvider } from '../providers/llamacpp.js'
+import { KoboldCppProvider } from '../providers/koboldcpp.js'
 import { GroqProvider } from '../providers/groq.js'
 import { DeepSeekProvider } from '../providers/deepseek.js'
 import { MistralProvider } from '../providers/mistral.js'
@@ -88,6 +89,8 @@ export class Agent {
         return new OllamaProvider(model, apiKey, maxTokens, temperature)
       case 'llamacpp':
         return new LlamaCppProvider(model, apiKey, maxTokens, temperature)
+      case 'koboldcpp':
+        return new KoboldCppProvider(model, apiKey, maxTokens, temperature)
       case 'groq':
         return new GroqProvider(model, apiKey, maxTokens, temperature)
       case 'deepseek':

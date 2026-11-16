@@ -368,6 +368,23 @@ export function registerAgentHandlers(agents: Map<string, Agent>, broadcastAgent
         }
       }
 
+      if (provider === 'koboldcpp') {
+        // KoboldCpp roda em localhost ou 127.0.0.1:5001.
+        for (const host of ['http://localhost:5001', 'http://127.0.0.1:5001']) {
+          try {
+            const res = await efetch(`${host}/v1/models`)
+            if (res.ok) {
+              const data = await res.json()
+              const models = (data.data || data.models || []).map((m: any) => m.id || m.name || m)
+              if (models.length > 0) return { success: true, models }
+            }
+          } catch {
+            /* tenta o próximo host */
+          }
+        }
+        return { success: true, models: ['local-model'] }
+      }
+
       if (provider === 'groq') {
         const res = await efetch('https://api.groq.com/openai/v1/models', {
           headers: { Authorization: `Bearer ${apiKey}` },
