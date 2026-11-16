@@ -372,13 +372,20 @@
   }
   /* Glass variant used by the main PromptBox (white-alpha, not neutral) */
   .mui-composer--glass {
-    background-color: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.06);
+    background-color: var(--mui-surface-1);
+    border-color: var(--mui-hairline-strong);
     border-radius: var(--mui-radius-lg);
   }
   .mui-composer--glass[data-dragging='true'] {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--mui-surface-2);
+    border-color: var(--mui-border-selected);
+  }
+  /* Internals seguem o tema (fg/placeholder) em vez de tintas hardcoded */
+  .mui-composer--glass textarea {
+    color: var(--mui-fg);
+  }
+  .mui-composer--glass textarea::placeholder {
+    color: var(--mui-fg-faint);
   }
   /* Split-view panels: focused vs idle */
   .mui-composer--active {

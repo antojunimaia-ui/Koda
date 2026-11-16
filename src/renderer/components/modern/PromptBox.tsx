@@ -99,11 +99,11 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-zinc-600 group-hover:text-indigo-400 transition-colors shrink-0"
+              className="mui-faint group-hover:text-indigo-400 transition-colors shrink-0"
             >
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
-            <span className="text-[11px] font-semibold text-zinc-500 group-hover:text-zinc-300 transition-colors truncate max-w-72">
+            <span className="text-[11px] font-semibold mui-muted group-hover:text-[var(--mui-fg)] transition-colors truncate max-w-72">
               {projectName}
             </span>
             <svg
@@ -115,7 +115,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-zinc-700 group-hover:text-zinc-500 transition-colors shrink-0"
+              className="mui-subtle group-hover:text-[var(--mui-fg-muted)] transition-colors shrink-0"
             >
               <path d="M6 9l6 6 6-6" />
             </svg>
@@ -207,7 +207,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
             onPaste={onPaste}
             id="tour-input"
             placeholder={inputFiles.length === 0 ? 'Ask Koda anything...' : ''}
-            className="flex-1 min-w-50 bg-transparent border-none text-neutral-100 text-sm focus:outline-none placeholder:text-neutral-300 placeholder:text-sm min-h-5 resize-none leading-snug align-top"
+            className="flex-1 min-w-50 bg-transparent border-none text-sm focus:outline-none min-h-5 resize-none leading-snug align-top"
             style={{ overflow: 'hidden' }}
           />
         </div>
@@ -217,10 +217,10 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
             <button
               type="button"
               onClick={onFileAttach}
-              className="group p-1 hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-1"
+              className="group p-1 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-1"
             >
-              <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
-              <span className="text-[10px] text-zinc-500 hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">
+              <Paperclip className="w-3.5 h-3.5 mui-subtle group-hover:text-[var(--mui-fg-strong)] transition-colors" />
+              <span className="text-[10px] mui-faint hidden group-hover:inline transition-opacity uppercase font-bold tracking-wider">
                 Attach
               </span>
             </button>
@@ -233,7 +233,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
               <div className="relative" ref={modeMenuRef}>
                 <button
                   onClick={() => setShowModeMenu((m) => !m)}
-                  className="flex items-center gap-1 text-slate-400 hover:text-slate-200 text-[12px] font-sans transition-colors cursor-pointer"
+                  className="flex items-center gap-1 mui-muted hover:text-[var(--mui-fg-strong)] text-[12px] font-sans transition-colors cursor-pointer"
                   title="Switch mode"
                 >
                   <span>
@@ -248,7 +248,7 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={`text-zinc-500 transition-transform duration-150 ${showModeMenu ? 'rotate-180' : ''}`}
+                    className={`mui-faint transition-transform duration-150 ${showModeMenu ? 'rotate-180' : ''}`}
                   >
                     <path d="M6 9l6 6 6-6" />
                   </svg>
@@ -288,10 +288,10 @@ export const PromptBox: React.FC<PromptBoxProps> = ({
               disabled={!isProcessing && !input.trim()}
               className={`flex items-center justify-center p-1 rounded-lg transition-all ${
                 isProcessing
-                  ? 'border border-zinc-400 text-zinc-400 hover:border-white hover:text-white bg-transparent cursor-pointer'
+                  ? 'border border-[var(--mui-hairline-strong)] text-[var(--mui-fg-muted)] hover:border-[var(--mui-fg-strong)] hover:text-[var(--mui-fg-strong)] bg-transparent cursor-pointer'
                   : input.trim()
                     ? 'bg-white text-black hover:bg-zinc-200'
-                    : 'bg-neutral-800 text-zinc-600 cursor-not-allowed'
+                    : 'bg-white/10 text-[var(--mui-fg-faint)] cursor-not-allowed'
               }`}
             >
               {isProcessing ? (

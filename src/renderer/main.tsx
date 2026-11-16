@@ -1,7 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
-// @ts-expect-error - CSS import without type declarations; handled by Vite
 import './index.css'
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
@@ -41,3 +40,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </ErrorBoundary>,
 )
+
+// Métrica simples de boot do renderer (aparece no console: [boot] ...)
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    console.info(`[boot] renderer first paint: ${Math.round(performance.now())}ms`)
+  })
+})

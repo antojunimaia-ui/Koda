@@ -1,6 +1,6 @@
 {
   "name": "koda-electron",
-  "version": "26.15.11",
+  "version": "26.16.11",
   "description": "Koda - Your ideal development partner.",
   "main": "dist-electron/index.js",
   "type": "module",
@@ -37,9 +37,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
+    "@fontsource/inter": "^5.3.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "@monaco-editor/react": "^4.7.0",
     "ansi-to-html": "^0.7.2",
     "diff": "^8.0.4",
     "discord-rpc": "^4.0.1",

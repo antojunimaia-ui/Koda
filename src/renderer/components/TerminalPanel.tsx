@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, memo } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
-// @ts-expect-error - xterm CSS side-effect import; handled by Vite, not TS
 import 'xterm/css/xterm.css'
 
 interface TerminalPanelProps {

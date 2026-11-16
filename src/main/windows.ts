@@ -2,6 +2,7 @@ import { BrowserWindow, shell } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { bootMark } from './boot-timing.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -83,7 +84,12 @@ export function createWindow(fileWatcherSetMainWindow: (win: BrowserWindow) => v
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    bootMark('did-finish-load')
+  })
+
   mainWindow.once('ready-to-show', () => {
+    bootMark('ready-to-show')
     mainWindow?.maximize()
     mainWindow?.show()
     mainWindow?.webContents.setZoomFactor(0.9)

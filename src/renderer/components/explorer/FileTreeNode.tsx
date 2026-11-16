@@ -1,6 +1,6 @@
 import React, { memo } from 'react'
 import { FileNode } from './types.js'
-import { IconChevron, IconFolder, getFileIcon, IconAt, IconPin } from './FileIcons.js'
+import { IconChevron, IconFolder, FileIcon, IconAt, IconPin } from './FileIcons.js'
 
 export interface FileTreeNodeProps {
   node: FileNode
@@ -107,7 +107,7 @@ export const FileTreeNode: React.FC<FileTreeNodeProps> = memo(
           title={node.path}
         >
           {node.isDir ? <IconChevron open={isOpen} /> : <span className="w-[10px] flex-shrink-0" />}
-          {node.isDir ? <IconFolder open={isOpen} /> : getFileIcon(node.name)}
+          {node.isDir ? <IconFolder open={isOpen} /> : <FileIcon filename={node.name} />}
           {isRenaming ? (
             <input
               type="text"

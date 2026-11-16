@@ -14,13 +14,13 @@ export function registerPtyHandlers(agents: Map<string, Agent>) {
     return { success: ok, error: ok ? undefined : `No active PTY with PID ${pid}` }
   })
 
-  ipcMain.handle(IPC_CHANNELS.pty.start, async (_event, workspaceId?: string, cwd?: string) => {
+  ipcMain.handle(IPC_CHANNELS.pty.start, async (event, workspaceId?: string, cwd?: string) => {
     let finalCwd = cwd
     if (!finalCwd && workspaceId) {
       finalCwd = agents.get(workspaceId)?.getInfo().cwd
     }
     if (!finalCwd) finalCwd = process.cwd()
-    const pid = startInteractiveTerminal(finalCwd)
+    const pid = startInteractiveTerminal(finalCwd, event.sender)
     return { success: true, pid }
   })
 

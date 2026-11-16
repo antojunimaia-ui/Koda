@@ -17,6 +17,12 @@ export interface FileExplorerProps {
   onOpenMarkdownPreview?: (path: string) => void
   pinnedFiles: string[]
   disableInlineEditor?: boolean
+  /**
+   * Clique na linha do arquivo. Sem esta prop, o clique injeta no contexto
+   * (comportamento legado); `null` desliga a ação — a árvore fica só de
+   * navegação, como no IDE do Koda.
+   */
+  onSelectFile?: ((path: string) => void) | null
 }
 
 export interface ExplorerTabButtonProps {

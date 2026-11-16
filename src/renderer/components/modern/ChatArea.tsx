@@ -174,11 +174,6 @@ const ChatArea: React.FC<ChatAreaProps> = (props) => {
       <div
         className={`max-w-5xl mx-auto w-full px-6 pb-6 ${messages.length === 0 && !isProcessing ? 'flex-1 flex flex-col justify-center pt-0' : 'pt-2'}`}
       >
-        {messages.length === 0 && !isProcessing && (
-          <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
-            What are we building today?
-          </p>
-        )}
         {updateInfo && onUpdateDismiss && (
           <div className="mb-0">
             <UpdateBanner

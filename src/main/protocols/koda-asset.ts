@@ -1,4 +1,5 @@
 import { protocol, net } from 'electron'
+import { pathToFileURL } from 'node:url'
 
 /**
  * Registers the koda-asset:// custom protocol.
@@ -28,7 +29,8 @@ export function registerKodaAssetProtocol() {
       // pathname: /C:/path/to/file  — strip the leading slash on Windows
       let filePath = decodeURIComponent(url.pathname)
       if (filePath.match(/^\/[A-Za-z]:\//)) filePath = filePath.slice(1)
-      return net.fetch(`file:///${filePath.replace(/\\/g, '/')}`)
+      // pathToFileURL encoda espaço/#/% corretamente em Windows e POSIX.
+      return net.fetch(pathToFileURL(filePath).href)
     } catch (err) {
       console.error('[koda-asset] Protocol error:', err)
       return new Response('Not found', { status: 404 })

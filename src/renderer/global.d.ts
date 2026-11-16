@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import type { KodaApi } from '../shared/ipc'
 
 declare global {
@@ -21,3 +22,7 @@ declare module '*.jpg'
 declare module '*.jpeg'
 declare module '*.gif'
 declare module '*.webp'
+declare module '*?worker' {
+  const workerConstructor: new () => Worker
+  export default workerConstructor
+}

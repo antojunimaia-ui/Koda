@@ -1,7 +1,7 @@
 import type { IPty } from 'node-pty'
 import * as os from 'os'
 import { BaseTool, ToolParameter, ToolResult } from './base.js'
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, type WebContents } from 'electron'
 import { ensureNativePaths } from '../utils/native-paths.js'
 
 // node-pty é um módulo nativo que, empacotado, vive FORA do asar
@@ -63,8 +63,24 @@ export function listPtyProcesses(): number[] {
   return Array.from(backgroundProcesses.keys())
 }
 
+/**
+ * A janela que recebe eventos broadcast do PTY (output, spawn, exit).
+ * Para juntar o terminal ao renderer certo (janela IDE vs. agente), prefere o
+ * `webContents` que iniciou o PTY; caindo para a primeira janela quando não há
+ * origem (ex.: shell do agente).
+ */
+function sendTerminalEvent(pid: number, type: string, data: unknown, sender?: WebContents) {
+  const payload = { type, pid, ...(data !== undefined ? { data } : {}) }
+  if (sender && !sender.isDestroyed()) {
+    sender.send('agent:update', payload)
+    return
+  }
+  const window = BrowserWindow.getAllWindows()[0]
+  if (window) window.webContents.send('agent:update', payload)
+}
+
 /** Start a persistent interactive terminal for the user. */
-export function startInteractiveTerminal(cwd: string): number {
+export function startInteractiveTerminal(cwd: string, sender?: WebContents): number {
   const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash'
   const ptyProcess = getPty().spawn(shell, [], {
     name: 'xterm-256color',
@@ -83,33 +99,17 @@ export function startInteractiveTerminal(cwd: string): number {
   }
   backgroundProcesses.set(pid, state)
 
-  const window = BrowserWindow.getAllWindows()[0]
-  if (window) {
-    window.webContents.send('agent:update', {
-      type: 'terminal:spawned',
-      pid: pid,
-    })
-  }
+  sendTerminalEvent(pid, 'terminal:spawned', undefined, sender)
 
   ptyProcess.onData((data) => {
     state.outputBuffer = (state.outputBuffer + data).slice(-50000)
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) {
-      window.webContents.send('agent:update', {
-        type: 'terminal:output',
-        pid: pid,
-        data: data,
-      })
-    }
+    sendTerminalEvent(pid, 'terminal:output', data, sender)
   })
 
   ptyProcess.onExit(({ exitCode }) => {
     state.isExited = true
     state.exitCode = exitCode
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) {
-      window.webContents.send('agent:update', { type: 'terminal:exit', pid })
-    }
+    sendTerminalEvent(pid, 'terminal:exit', undefined, sender)
     backgroundProcesses.delete(pid)
   })
 

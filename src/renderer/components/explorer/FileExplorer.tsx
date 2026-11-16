@@ -14,6 +14,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   onOpenMarkdownPreview,
   pinnedFiles,
   disableInlineEditor = false,
+  onSelectFile,
 }) => {
   const [tree, setTree] = useState<FileNode[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -245,9 +246,28 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
     setHasUnsavedChanges(true)
   }
 
+  /**
+   * Clique na linha de um arquivo.
+   * `onSelectFile === null` desliga a ação (árvore só de navegação).
+   */
+  const handleSelectFile = (filePath: string) => {
+    if (onSelectFile === null) return
+    if (onSelectFile) {
+      onSelectFile(filePath)
+      return
+    }
+    if (disableInlineEditor) {
+      onInject(filePath)
+    } else {
+      void loadFileContent(filePath)
+    }
+  }
+
   const getContextMenuItems = (filePath: string, isDir: boolean = false): ContextMenuItem[] => {
     const fileName = filePath.split('/').pop() || ''
     const items: ContextMenuItem[] = []
+    // Sem viewer de arquivo não existe "abrir": só contexto, pin e arquivos.
+    const canOpenFiles = onSelectFile !== null
 
     if (isDir) {
       items.push({
@@ -272,7 +292,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
     }
 
     if (!isDir) {
-      if (isMarkdown(fileName)) {
+      if (canOpenFiles && isMarkdown(fileName)) {
         items.push({
           id: 'preview',
           label: 'Open Preview',
@@ -288,18 +308,14 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
         items.push({ id: 'sep1', label: '', separator: true })
       }
 
-      items.push({
-        id: 'open',
-        label: 'Open File',
-        icon: 'file',
-        onClick: () => {
-          if (disableInlineEditor) {
-            onInject(filePath)
-          } else {
-            loadFileContent(filePath)
-          }
-        },
-      })
+      if (canOpenFiles) {
+        items.push({
+          id: 'open',
+          label: 'Open File',
+          icon: 'file',
+          onClick: () => handleSelectFile(filePath),
+        })
+      }
 
       items.push({
         id: 'inject',
@@ -476,13 +492,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
         newName={newName}
         disableInlineEditor={disableInlineEditor}
         onToggle={toggle}
-        onSelect={(p) => {
-          if (disableInlineEditor) {
-            onInject(p)
-          } else {
-            loadFileContent(p)
-          }
-        }}
+        onSelect={(p) => handleSelectFile(p)}
         onContextMenu={(e, p, isDir) => {
           e.preventDefault()
           setContextMenu({ x: e.clientX, y: e.clientY, path: p, isDir })

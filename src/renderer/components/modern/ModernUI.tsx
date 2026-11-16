@@ -827,8 +827,6 @@ const ModernUI: React.FC<ModernUIProps> = ({
               onPin={onPin}
               onInject={onInject || (() => {})}
               onAddToInput={onAddToInput || (() => {})}
-              onSend={handleSendForWs || (() => {})}
-              showEditorPanel={kodaSettings.showEditorPanel || false}
               showBrowser={showBrowser}
               showTerminal={showTerminal}
               onBrowserClose={onBrowserClick}
@@ -908,7 +906,9 @@ const ModernUI: React.FC<ModernUIProps> = ({
                         increaseViewportBy={{ top: 200, bottom: 200 }}
                         className="custom-scrollbar pr-2"
                         itemContent={(index, item: any) => (
-                          <div className="mb-6 w-full max-w-5xl mx-auto px-4">
+                          <div
+                            className={`mb-6 w-full mx-auto px-4 ${isIDEMode && kodaSettings.showEditorPanel ? 'max-w-4xl' : 'max-w-5xl'}`}
+                          >
                             {item.type === 'turn' ? (
                               <CompactTurnView
                                 entries={item.entries}
@@ -951,15 +951,10 @@ const ModernUI: React.FC<ModernUIProps> = ({
                       </div>
                     )}
 
-                    {/* Input Area */}
+                    {/* Input Area — no modo IDE fica alinhado às mensagens (mesmo limite de largura) */}
                     <div
-                      className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-2' : 'px-6'} ${messages.length === 0 && !isProcessing ? 'pt-0 pb-6' : 'pt-2 pb-2'}`}
+                      className={`${isIDEMode && kodaSettings.showEditorPanel ? 'px-2 max-w-4xl mx-auto w-full' : 'px-6'} ${messages.length === 0 && !isProcessing ? 'pt-0 pb-6' : 'pt-2 pb-2'}`}
                     >
-                      {messages.length === 0 && !isProcessing && (
-                        <p className="text-center text-slate-600 text-sm font-medium mb-4 tracking-wide">
-                          What are we building today?
-                        </p>
-                      )}
                       {updateInfo && onUpdateDismiss && (
                         <div className="mb-0">
                           <UpdateBanner
@@ -1168,8 +1163,8 @@ const ModernUI: React.FC<ModernUIProps> = ({
         <StatusBar onSettingsClick={onSettingsClick} onToggleSplit={onToggleSplit} isSplitEnabled={isSplitEnabled} />
       )}
 
-      {/* Source Control overlay */}
-      {showSourceControl && (
+      {/* Source Control overlay — no modo IDE ele já vive dentro do quadrante Changes */}
+      {showSourceControl && !isIDEMode && (
         <SourceControlPanel
           cwd={agentInfo.cwd}
           width={explorerWidth}

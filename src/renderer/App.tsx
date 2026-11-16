@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-// @ts-expect-error - CSS import without type declarations; emitted by Vite
 import 'highlight.js/styles/tokyo-night-dark.css'
 import { VirtuosoHandle } from 'react-virtuoso'
 

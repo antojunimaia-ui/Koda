@@ -1,78 +1,65 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import Editor from '@monaco-editor/react'
-import { MessageEntry, AttachedFile, AgentInfo, Mode, KodaTheme, KodaSettings, TrackedFile } from '../types/index.js'
+import React, { useEffect, useRef, useState } from 'react'
 import { FileExplorer } from './context/ContextPanel.js'
 import { Codicon } from './Codicon.js'
-import { getIconForFile } from 'vscode-icons-js'
 import BrowserPreview from './BrowserPreview.js'
 import TerminalPanel from './TerminalPanel.js'
-import MarkdownWebview from './MarkdownWebview.js'
+import SourceControlPanel from './SourceControlPanel.js'
 
+/**
+ * Shell do IDE do Koda.
+ *
+ * O centro não é o editor — não existe editor de arquivos. São quatro
+ * superfícies, cada uma com um papel:
+ *
+ *   ┌───────────────┬──────────────────────────────┐
+ *   │  Files        │  Agente (chat)               │
+ *   ├───────────────┼──────────────────────────────┤
+ *   │  Changes      │  Terminal │ Preview          │
+ *   └───────────────┴──────────────────────────────┘
+ *
+ * A árvore de arquivos é navegação: clicar não abre nada; ela serve para
+ * localizar o projeto, arrastar arquivos para o chat e alimentar o contexto.
+ * Código aparece no app como diff (Changes) ou como bloco no chat.
+ */
 interface IDELayoutProps {
-  // Explorer props
+  // Files
   showExplorerPanel: boolean
   cwd: string
   pinnedFiles: string[]
   onPin: (path: string) => void
   onInject: (path: string) => void
-  onSend: (text: string, images: AttachedFile[], wsId: string) => void
   onAddToInput: (path: string) => void
 
-  // Editor props
-  showEditorPanel: boolean
-
-  // Browser/Terminal props
+  // Terminal / Preview
   showBrowser?: boolean
   showTerminal?: boolean
   onBrowserClose?: () => void
   onTerminalClose?: () => void
 
-  // Chat props (será o conteúdo principal quando não há editor)
+  // Chat (superfície principal, ocupa o quadrante superior direito)
   children: React.ReactNode
 }
 
-interface OpenFile {
-  path: string
-  content: string
-  hasUnsavedChanges: boolean
-  isDeleted?: boolean // Track if file was deleted from disk
-}
+type BottomTab = 'terminal' | 'preview'
 
-type TabType = 'file' | 'browser' | 'terminal' | 'markdown-preview' | 'video' | 'image'
-
-interface Tab {
-  id: string
-  type: TabType
-  title: string
-  icon?: string
-  file?: OpenFile
-  markdownPath?: string // for markdown-preview tabs
-  videoPath?: string
-  imagePath?: string
-}
-
-// ─── Image Viewer Component ──────────────────────────────────────────────────
-
-const ImageViewer: React.FC<{ path: string }> = ({ path }) => {
-  return (
-    <div className="mui-panel h-full w-full flex items-center justify-center p-8 overflow-auto custom-scrollbar">
-      <img src={`file://${path}`} className="max-w-full max-h-full shadow-2xl rounded-sm object-contain" alt={path} />
-    </div>
-  )
-}
-
-// ─── Video Player Component ──────────────────────────────────────────────────
-
-const VideoPlayer: React.FC<{ path: string }> = ({ path }) => {
-  return (
-    <div className="mui-panel h-full w-full flex flex-col items-center justify-center relative group">
-      <video src={`file://${path}`} controls className="max-w-full max-h-full shadow-2xl rounded-lg" autoPlay />
-    </div>
-  )
-}
-
-// ─── Markdown Preview Component ───────────────────────────────────────────────
-// Moved to MarkdownWebview.tsx (webview-based for security isolation)
+/** Arrasta uma coluna/linha e devolve o deslocamento em pixels. */
+const startDrag =
+  (onStart: (event: React.MouseEvent) => ((event: MouseEvent) => void) | null) => (event: React.MouseEvent) => {
+    event.preventDefault()
+    const onMove = onStart(event)
+    if (!onMove) return
+    const handleMouseMove = (moveEvent: MouseEvent) => onMove(moveEvent)
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = getComputedStyle(event.currentTarget as HTMLElement).cursor
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
 
 const IDELayout: React.FC<IDELayoutProps> = ({
   showExplorerPanel,
@@ -81,966 +68,214 @@ const IDELayout: React.FC<IDELayoutProps> = ({
   onPin,
   onInject,
   onAddToInput,
-  showEditorPanel,
   showBrowser = false,
   showTerminal = false,
   onBrowserClose,
   onTerminalClose,
   children,
 }) => {
-  const [tabs, setTabs] = useState<Tab[]>([])
-  const [pendingImages, setPendingImages] = useState<AttachedFile[]>([])
-  const [activeTabId, setActiveTabId] = useState<string | null>(null)
-  const [isLoadingFile, setIsLoadingFile] = useState(false)
+  const [leftWidth, setLeftWidth] = useState(300)
+  const [filesRatio, setFilesRatio] = useState(0.55)
+  const [bottomRatio, setBottomRatio] = useState(0.38)
+  const [bottomTab, setBottomTab] = useState<BottomTab>(showTerminal ? 'terminal' : 'preview')
 
-  // ── Global Event Listeners ──────────────────────────────────────────────────
+  const rightColumnRef = useRef<HTMLDivElement | null>(null)
+  const leftColumnRef = useRef<HTMLElement | null>(null)
+
+  const hasBottomPanel = showTerminal || showBrowser
+
+  // A aba ativa precisa existir: terminal e preview entram/saem por atalho.
   useEffect(() => {
-    const handleOpenPreview = (e: any) => {
-      if (e.detail && e.detail.path) {
-        openMarkdownPreview(e.detail.path)
-      }
+    if (bottomTab === 'terminal' && !showTerminal) setBottomTab('preview')
+    if (bottomTab === 'preview' && !showBrowser) setBottomTab('terminal')
+  }, [showTerminal, showBrowser, bottomTab])
+
+  // Sem limites fixos: a coluna vai de 0 até a largura disponível, e o painel
+  // inferior de 0 até 100% da coluna direita.
+  const handleLeftResize = startDrag((event) => {
+    const startX = event.clientX
+    const startWidth = leftWidth
+    const available = leftColumnRef.current?.parentElement?.clientWidth ?? window.innerWidth
+    return (moveEvent) => {
+      setLeftWidth(Math.max(0, Math.min(available, startWidth + moveEvent.clientX - startX)))
     }
-    const handleOpenVideo = (e: any) => {
-      if (e.detail && e.detail.path) {
-        openVideoPlayer(e.detail.path)
-      }
+  })
+
+  const handleBottomResize = startDrag(() => {
+    const rect = rightColumnRef.current?.getBoundingClientRect()
+    if (!rect || rect.height === 0) return null
+    return (moveEvent) => {
+      const height = rect.height - (moveEvent.clientY - rect.top)
+      setBottomRatio(Math.max(0, Math.min(1, height / rect.height)))
     }
-    window.addEventListener('koda:open-markdown-preview', handleOpenPreview)
-    window.addEventListener('koda:open-video', handleOpenVideo)
-    return () => {
-      window.removeEventListener('koda:open-markdown-preview', handleOpenPreview)
-      window.removeEventListener('koda:open-video', handleOpenVideo)
+  })
+
+  // Divisor Files ↔ Changes, também sem limites (0 a 100% da coluna).
+  const handleFilesResize = startDrag(() => {
+    const rect = leftColumnRef.current?.getBoundingClientRect()
+    if (!rect || rect.height === 0) return null
+    return (moveEvent) => {
+      setFilesRatio(Math.max(0, Math.min(1, (moveEvent.clientY - rect.top) / rect.height)))
     }
-  }, [tabs])
-  const [terminalHeight, setTerminalHeight] = useState(250) // Pixels
-  const [explorerWidth, setExplorerWidth] = useState(256) // Pixels
-  const [chatWidth, setChatWidth] = useState(448) // Pixels
-  const [discordEnabled, setDiscordEnabled] = useState(false)
-  const [activityStartTime] = useState(Date.now())
-
-  const activeTab = tabs.find((t) => t.id === activeTabId)
-
-  // Check Discord RPC status on mount
-  useEffect(() => {
-    ;(window.koda as any).discordIsEnabled().then((result: any) => {
-      setDiscordEnabled(result.enabled)
-    })
-  }, [])
-
-  // Update Discord activity when active tab changes
-  useEffect(() => {
-    if (!discordEnabled || !activeTab || activeTab.type !== 'file' || !activeTab.file) {
-      return
-    }
-
-    const fileName = activeTab.file.path.split('/').pop() || activeTab.file.path
-    const fileExt = fileName.split('.').pop()?.toLowerCase()
-    const projectName = cwd.split('/').pop() || cwd.split('\\').pop() || 'Unknown Project'
-
-    ;(window.koda as any).discordUpdateActivity({
-      projectName,
-      fileName,
-      fileType: fileExt,
-      startTimestamp: activityStartTime,
-    })
-  }, [activeTab, discordEnabled, cwd, activityStartTime])
-
-  // Adicionar tab do navegador quando showBrowser mudar
-  useEffect(() => {
-    if (showBrowser && showEditorPanel) {
-      const browserTab: Tab = {
-        id: '__browser__',
-        type: 'browser',
-        title: 'Browser',
-        icon: 'default_folder.svg',
-      }
-
-      setTabs((prev) => {
-        const hasBrowser = prev.some((t) => t.id === '__browser__')
-        if (!hasBrowser) {
-          return [...prev, browserTab]
-        }
-        return prev
-      })
-      setActiveTabId('__browser__')
-    } else if (!showBrowser) {
-      setTabs((prev) => prev.filter((t) => t.id !== '__browser__'))
-      if (activeTabId === '__browser__') {
-        const remaining = tabs.filter((t) => t.id !== '__browser__')
-        setActiveTabId(remaining.length > 0 ? remaining[0].id : null)
-      }
-    }
-  }, [showBrowser, showEditorPanel])
-
-  // Listen for file system changes to mark deleted files
-  useEffect(() => {
-    const unsubscribe = window.koda.onFileSystemChange?.((change) => {
-      if (change.type === 'rename' || change.type === 'change') {
-        // Check if any open tab's file was deleted
-        setTabs((prev) =>
-          prev.map((tab) => {
-            if (tab.type === 'file' && tab.file) {
-              const normalizedTabPath = tab.file.path.replace(/\\/g, '/')
-              const normalizedChangePath = change.path.replace(/\\/g, '/')
-
-              if (normalizedTabPath === normalizedChangePath) {
-                // File was deleted or renamed, mark as deleted
-                return {
-                  ...tab,
-                  file: {
-                    ...tab.file,
-                    isDeleted: true,
-                  },
-                }
-              }
-            }
-            return tab
-          }),
-        )
-      }
-    })
-
-    return () => {
-      unsubscribe?.()
-    }
-  }, [])
-
-  const isVideo = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase() || ''
-    return ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'].includes(ext)
-  }
-
-  const isImage = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase() || ''
-    return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'bmp', 'svg'].includes(ext)
-  }
-
-  const openVideoPlayer = (filePath: string) => {
-    const existingTab = tabs.find((t) => t.type === 'video' && t.videoPath === filePath)
-    if (existingTab) {
-      setActiveTabId(existingTab.id)
-      return
-    }
-
-    const fileName = filePath.replace(/\\/g, '/').split('/').pop() || filePath
-    const newTab: Tab = {
-      id: `video-${Date.now()}`,
-      type: 'video',
-      title: fileName,
-      icon: getIconForFile(fileName),
-      videoPath: filePath,
-    }
-    setTabs((prev) => [...prev, newTab])
-    setActiveTabId(newTab.id)
-  }
-
-  const openImageViewer = (filePath: string) => {
-    const existingTab = tabs.find((t) => t.type === 'image' && t.imagePath === filePath)
-    if (existingTab) {
-      setActiveTabId(existingTab.id)
-      return
-    }
-
-    const fileName = filePath.replace(/\\/g, '/').split('/').pop() || filePath
-    const newTab: Tab = {
-      id: `image-${Date.now()}`,
-      type: 'image',
-      title: fileName,
-      icon: getIconForFile(fileName),
-      imagePath: filePath,
-    }
-    setTabs((prev) => [...prev, newTab])
-    setActiveTabId(newTab.id)
-  }
-
-  const loadFileContent = async (filePath: string) => {
-    if (isVideo(filePath)) {
-      openVideoPlayer(filePath)
-      return
-    }
-    if (isImage(filePath)) {
-      openImageViewer(filePath)
-      return
-    }
-    // Verificar se o arquivo já está aberto
-    const existingTab = tabs.find((t) => t.type === 'file' && t.file?.path === filePath)
-    if (existingTab) {
-      setActiveTabId(existingTab.id)
-      return
-    }
-
-    setIsLoadingFile(true)
-    try {
-      const result = await window.koda.readFile(filePath)
-      if (result.success) {
-        const newFile: OpenFile = {
-          path: filePath,
-          content: result.content || '',
-          hasUnsavedChanges: false,
-        }
-        const fileName = filePath.replace(/\\/g, '/').split('/').pop() || filePath
-        const newTab: Tab = {
-          id: `file-${Date.now()}`,
-          type: 'file',
-          title: fileName,
-          icon: getIconForFile(fileName),
-          file: newFile,
-        }
-        setTabs((prev) => [...prev, newTab])
-        setActiveTabId(newTab.id)
-      }
-    } catch (error) {
-      console.error('Error loading file:', error)
-    } finally {
-      setIsLoadingFile(false)
-    }
-  }
-
-  const openMarkdownPreview = async (filePath: string) => {
-    // If a preview for this file already exists, just activate it
-    const existingTab = tabs.find((t) => t.type === 'markdown-preview' && t.markdownPath === filePath)
-    if (existingTab) {
-      setActiveTabId(existingTab.id)
-      return
-    }
-
-    try {
-      const result = await window.koda.readFile(filePath)
-      if (result.success) {
-        const fileName = filePath.replace(/\\/g, '/').split('/').pop() || filePath
-        const newTab: Tab = {
-          id: `md-preview-${Date.now()}`,
-          type: 'markdown-preview',
-          title: `Preview: ${fileName}`,
-          markdownPath: filePath,
-          file: {
-            path: filePath,
-            content: result.content || '',
-            hasUnsavedChanges: false,
-          },
-        }
-        setTabs((prev) => [...prev, newTab])
-        setActiveTabId(newTab.id)
-      }
-    } catch (error) {
-      console.error('Error loading markdown file for preview:', error)
-    }
-  }
-
-  const saveFileContent = async (tabId: string) => {
-    const tab = tabs.find((t) => t.id === tabId && t.type === 'file')
-    if (!tab || !tab.file) return
-
-    try {
-      await window.koda.writeFile(tab.file.path, tab.file.content)
-      setTabs((prev) =>
-        prev.map((t) => (t.id === tabId && t.file ? { ...t, file: { ...t.file, hasUnsavedChanges: false } } : t)),
-      )
-    } catch (error) {
-      console.error('Error saving file:', error)
-    }
-  }
-
-  const handleFileContentChange = (tabId: string, newContent: string) => {
-    setTabs((prev) =>
-      prev.map((t) =>
-        t.id === tabId && t.file ? { ...t, file: { ...t.file, content: newContent, hasUnsavedChanges: true } } : t,
-      ),
-    )
-  }
-
-  const closeTab = (tabId: string) => {
-    const tab = tabs.find((t) => t.id === tabId)
-
-    // Se for browser ou terminal, chamar o callback apropriado
-    if (tab?.type === 'browser' && onBrowserClose) {
-      onBrowserClose()
-      return
-    }
-
-    setTabs((prev) => prev.filter((t) => t.id !== tabId))
-    if (activeTabId === tabId) {
-      const remainingTabs = tabs.filter((t) => t.id !== tabId)
-      setActiveTabId(remainingTabs.length > 0 ? remainingTabs[remainingTabs.length - 1].id : null)
-    }
-  }
-
-  // Keyboard shortcuts
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+W to close active tab
-      if ((e.ctrlKey || e.metaKey) && e.key === 'w' && activeTabId) {
-        e.preventDefault()
-        closeTab(activeTabId)
-      }
-      // Ctrl+S to save active file
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.key === 's' &&
-        activeTab?.type === 'file' &&
-        activeTab.file?.hasUnsavedChanges
-      ) {
-        e.preventDefault()
-        saveFileContent(activeTabId!)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeTabId, activeTab, tabs])
-
-  const getLanguageFromFilename = (filename: string): string => {
-    // Normalize path separators and extract just the filename
-    const baseName = filename.replace(/\\/g, '/').split('/').pop() || filename
-    // Handle dotfiles like .gitignore, Dockerfile, etc.
-    const lowerName = baseName.toLowerCase()
-    const dotfileMap: Record<string, string> = {
-      dockerfile: 'dockerfile',
-      '.dockerignore': 'plaintext',
-      '.gitignore': 'plaintext',
-      '.gitattributes': 'plaintext',
-      '.env': 'ini',
-      '.editorconfig': 'ini',
-      makefile: 'makefile',
-      'cmakelists.txt': 'cmake',
-      gemfile: 'ruby',
-      rakefile: 'ruby',
-      procfile: 'plaintext',
-    }
-    if (dotfileMap[lowerName]) return dotfileMap[lowerName]
-
-    const ext = lowerName.split('.').pop() || ''
-    const languageMap: Record<string, string> = {
-      // Web
-      js: 'javascript',
-      jsx: 'javascript',
-      mjs: 'javascript',
-      cjs: 'javascript',
-      ts: 'typescript',
-      tsx: 'typescript',
-      mts: 'typescript',
-      cts: 'typescript',
-      html: 'html',
-      htm: 'html',
-      xhtml: 'html',
-      css: 'css',
-      scss: 'scss',
-      sass: 'scss',
-      less: 'less',
-      vue: 'html',
-      svelte: 'html',
-      // Data / Config
-      json: 'json',
-      jsonc: 'json',
-      json5: 'json',
-      yaml: 'yaml',
-      yml: 'yaml',
-      toml: 'ini',
-      ini: 'ini',
-      env: 'ini',
-      xml: 'xml',
-      svg: 'xml',
-      plist: 'xml',
-      csproj: 'xml',
-      props: 'xml',
-      targets: 'xml',
-      gradle: 'kotlin',
-      pom: 'xml',
-      // Docs
-      md: 'markdown',
-      mdx: 'markdown',
-      rst: 'restructuredtext',
-      tex: 'latex',
-      // Systems
-      c: 'c',
-      h: 'c',
-      cpp: 'cpp',
-      cc: 'cpp',
-      cxx: 'cpp',
-      hpp: 'cpp',
-      hxx: 'cpp',
-      cs: 'csharp',
-      java: 'java',
-      kt: 'kotlin',
-      kts: 'kotlin',
-      rs: 'rust',
-      go: 'go',
-      swift: 'swift',
-      mm: 'objective-c',
-      m: 'objective-c',
-      // Scripting
-      py: 'python',
-      pyw: 'python',
-      rb: 'ruby',
-      php: 'php',
-      php3: 'php',
-      php4: 'php',
-      php5: 'php',
-      lua: 'lua',
-      pl: 'perl',
-      pm: 'perl',
-      r: 'r',
-      jl: 'julia',
-      ex: 'elixir',
-      exs: 'elixir',
-      erl: 'erlang',
-      hrl: 'erlang',
-      hs: 'haskell',
-      lhs: 'haskell',
-      clj: 'clojure',
-      cljs: 'clojure',
-      scala: 'scala',
-      sc: 'scala',
-      dart: 'dart',
-      // Shell
-      sh: 'shell',
-      bash: 'shell',
-      zsh: 'shell',
-      fish: 'shell',
-      ps1: 'powershell',
-      psm1: 'powershell',
-      psd1: 'powershell',
-      bat: 'bat',
-      cmd: 'bat',
-      // SQL
-      sql: 'sql',
-      pgsql: 'pgsql',
-      mysql: 'mysql',
-      // Other
-      graphql: 'graphql',
-      gql: 'graphql',
-      proto: 'proto',
-      tf: 'hcl',
-      hcl: 'hcl',
-      bicep: 'bicep',
-      zig: 'zig',
-      v: 'v',
-      nim: 'nim',
-      wasm: 'plaintext',
-    }
-    return languageMap[ext] || 'plaintext'
-  }
-
-  const handleFileClick = (filePath: string) => {
-    if (showEditorPanel) {
-      loadFileContent(filePath)
-    } else {
-      onInject(filePath)
-    }
-  }
+  })
 
   return (
-    <div className="flex h-full">
-      {/* Explorer Panel */}
-      {showExplorerPanel && (
-        <>
-          <div className="mui-panel mui-hairline-r shrink-0" style={{ width: `${explorerWidth}px` }}>
-            <div className="h-full overflow-y-auto custom-scrollbar">
-              <div className="px-2 pt-1 pb-0.5 flex items-center justify-between">
-                <h3 className="mui-eyebrow text-slate-300">Explorer</h3>
-                <div className="flex items-center gap-0.5">
-                  <button
-                    onClick={() => {
-                      // Trigger new file creation in FileExplorer
-                      window.dispatchEvent(new CustomEvent('koda:create-file', { detail: { parentPath: cwd } }))
-                    }}
-                    className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
-                    title="New File"
-                  >
-                    <Codicon icon="new-file" size={14} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Trigger new folder creation in FileExplorer
-                      window.dispatchEvent(new CustomEvent('koda:create-folder', { detail: { parentPath: cwd } }))
-                    }}
-                    className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
-                    title="New Folder"
-                  >
-                    <Codicon icon="new-folder" size={14} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Trigger refresh in FileExplorer
-                      window.dispatchEvent(new CustomEvent('koda:refresh-tree'))
-                    }}
-                    className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
-                    title="Refresh"
-                  >
-                    <Codicon icon="refresh" size={14} />
-                  </button>
-                </div>
+    <div className="flex h-full min-h-0">
+      {/* ── Coluna esquerda: Files / Changes ────────────────────────────── */}
+      <aside
+        ref={leftColumnRef}
+        className="shrink-0 flex flex-col min-h-0 mui-hairline-r"
+        style={{ width: `${leftWidth}px` }}
+        aria-label="Files and changes"
+      >
+        {showExplorerPanel && (
+          <section className="flex flex-col min-h-0 overflow-hidden" style={{ flex: `${filesRatio} 1 0%` }}>
+            <div className="mui-hairline-b flex items-center justify-between px-3 h-8 shrink-0">
+              <span className="mui-eyebrow">Files</span>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() =>
+                    window.dispatchEvent(new CustomEvent('koda:create-file', { detail: { parentPath: cwd } }))
+                  }
+                  className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
+                  title="New File"
+                >
+                  <Codicon icon="new-file" size={14} />
+                </button>
+                <button
+                  onClick={() =>
+                    window.dispatchEvent(new CustomEvent('koda:create-folder', { detail: { parentPath: cwd } }))
+                  }
+                  className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
+                  title="New Folder"
+                >
+                  <Codicon icon="new-folder" size={14} />
+                </button>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('koda:refresh-tree'))}
+                  className="p-0.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded transition-colors"
+                  title="Refresh"
+                >
+                  <Codicon icon="refresh" size={14} />
+                </button>
               </div>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pt-1">
               <FileExplorer
                 cwd={cwd}
-                onInject={handleFileClick}
+                onInject={onInject}
                 onPin={onPin}
                 onAddToInput={onAddToInput}
                 pinnedFiles={pinnedFiles}
                 disableInlineEditor={true}
-                onOpenMarkdownPreview={openMarkdownPreview}
+                // Árvore é só navegação: clique na linha não abre nem injeta nada.
+                onSelectFile={null}
               />
             </div>
-          </div>
+          </section>
+        )}
 
-          {/* Explorer Resize Handle */}
+        {/* Divisor arrastável Files ↔ Changes */}
+        {showExplorerPanel && (
           <div
-            onMouseDown={(e) => {
-              e.preventDefault()
-              const startX = e.clientX
-              const startWidth = explorerWidth
+            onMouseDown={handleFilesResize}
+            className="h-1 shrink-0 cursor-row-resize transition-all z-raised bg-white/5 hover:bg-indigo-500/50"
+            role="separator"
+            aria-orientation="horizontal"
+          />
+        )}
 
-              const handleMouseMove = (moveEvent: MouseEvent) => {
-                const deltaX = moveEvent.clientX - startX
-                const newWidth = Math.max(200, Math.min(600, startWidth + deltaX))
-                setExplorerWidth(newWidth)
-              }
+        <section
+          className="flex flex-col min-h-0 overflow-hidden"
+          style={{ flex: showExplorerPanel ? `${1 - filesRatio} 1 0%` : '1 1 0%' }}
+        >
+          <SourceControlPanel cwd={cwd} embedded />
+        </section>
+      </aside>
 
-              const handleMouseUp = () => {
-                document.removeEventListener('mousemove', handleMouseMove)
-                document.removeEventListener('mouseup', handleMouseUp)
-              }
+      <div
+        onMouseDown={handleLeftResize}
+        className="w-1 cursor-col-resize shrink-0 transition-all z-raised bg-transparent hover:bg-indigo-500/50"
+        role="separator"
+        aria-orientation="vertical"
+      />
 
-              document.addEventListener('mousemove', handleMouseMove)
-              document.addEventListener('mouseup', handleMouseUp)
-            }}
-            className="w-1 cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
-          ></div>
-        </>
-      )}
+      {/* ── Coluna direita: Agente / Terminal|Preview ───────────────────── */}
+      <div ref={rightColumnRef} className="flex-1 min-w-0 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 relative overflow-hidden">{children}</div>
 
-      {/* Editor Panel */}
-      {showEditorPanel && (
-        <>
-          <div className="mui-panel mui-hairline-r flex-1 flex flex-col min-w-75">
-            {/* Tabs Bar — pill style */}
-            {tabs.length > 0 && (
-              <div
-                className="mui-surface-1 mui-hairline-b flex items-center gap-1.5 px-2 py-1.5 overflow-x-auto custom-scrollbar"
-                style={{ scrollbarWidth: 'none' }}
-              >
-                {tabs.map((tab) => {
-                  const isActive = tab.id === activeTabId
-                  const isDeleted = tab.type === 'file' && tab.file?.isDeleted
-
-                  // Icon per tab type
-                  let iconElement: React.ReactNode
-                  if (tab.type === 'browser') {
-                    iconElement = (
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="2" y1="12" x2="22" y2="12" />
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                      </svg>
-                    )
-                  } else if (tab.type === 'terminal') {
-                    iconElement = (
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="4 17 10 11 4 5" />
-                        <line x1="12" y1="19" x2="20" y2="19" />
-                      </svg>
-                    )
-                  } else if (tab.type === 'markdown-preview') {
-                    iconElement = (
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-indigo-400"
-                      >
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )
-                  } else if (tab.icon) {
-                    iconElement = (
-                      <img
-                        src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${tab.icon}`}
-                        width="12"
-                        height="12"
-                        className="shrink-0"
-                        alt={tab.title}
-                        style={{ objectFit: 'contain' }}
-                      />
-                    )
-                  }
-
-                  return (
-                    <div
-                      key={tab.id}
-                      onClick={() => setActiveTabId(tab.id)}
-                      title={
-                        tab.type === 'file' ? (isDeleted ? `${tab.file?.path} (deleted)` : tab.file?.path) : tab.title
-                      }
-                      className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer transition-all shrink-0 max-w-44 select-none ${
-                        isDeleted
-                          ? 'text-slate-400 ring-1 ring-red-500/60'
-                          : isActive && tab.type === 'file' && tab.file?.hasUnsavedChanges
-                            ? 'bg-white/10 text-white ring-1 ring-white'
-                            : isActive
-                              ? 'bg-white/10 text-white ring-1 ring-white/15'
-                              : tab.type === 'file' && tab.file?.hasUnsavedChanges
-                                ? 'text-slate-300 hover:bg-white/5 ring-1 ring-white/40'
-                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                      }`}
-                    >
-                      {/* Icon */}
-                      <span className="shrink-0">{iconElement}</span>
-
-                      {/* Title */}
-                      <span
-                        className={`text-[10px] font-medium truncate leading-none ${isDeleted ? 'line-through' : ''}`}
-                      >
-                        {tab.title}
-                      </span>
-
-                      {/* Deleted warning */}
-                      {isDeleted && (
-                        <span className="text-[9px] text-red-400 shrink-0" title="File deleted from disk">
-                          ⚠
-                        </span>
-                      )}
-
-                      {/* Close button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          closeTab(tab.id)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 ml-0.5 p-0.5 rounded-full hover:bg-white/15 transition-all shrink-0"
-                        title="Close (Ctrl+W)"
-                      >
-                        <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
-                          <path
-                            d="M1.5 1.5l9 9M10.5 1.5l-9 9"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Editor/Browser Content Area */}
-            <div className="flex-1 flex flex-col min-h-0">
-              {activeTab ? (
-                <>
-                  {/* Main Content Area (Editor or Browser) */}
-                  <div
-                    className={`${showTerminal ? 'shrink-0' : 'flex-1'} relative`}
-                    style={{ height: showTerminal ? `calc(100% - ${terminalHeight}px - 4px)` : '100%' }}
+        {hasBottomPanel && (
+          <>
+            <div
+              onMouseDown={handleBottomResize}
+              className="h-1 cursor-row-resize shrink-0 transition-all z-raised bg-white/5 hover:bg-indigo-500/50"
+              role="separator"
+              aria-orientation="horizontal"
+            />
+            <section
+              className="shrink-0 flex flex-col min-h-0 mui-hairline-t"
+              style={{ height: `${bottomRatio * 100}%` }}
+            >
+              <div className="mui-hairline-b flex items-center gap-1 px-2 h-8 shrink-0">
+                {showTerminal && (
+                  <button
+                    onClick={() => setBottomTab('terminal')}
+                    className={`text-[10px] font-medium px-2 py-1 rounded-md transition-colors ${
+                      bottomTab === 'terminal'
+                        ? 'bg-white/10 text-slate-100 ring-1 ring-white/15'
+                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                    }`}
                   >
-                    {activeTab.type === 'file' && activeTab.file ? (
-                      isLoadingFile ? (
-                        <div className="flex items-center justify-center h-full">
-                          <span className="text-slate-600 text-[11px]">Loading...</span>
-                        </div>
-                      ) : (
-                        <Editor
-                          height="100%"
-                          language={getLanguageFromFilename(activeTab.file.path)}
-                          value={activeTab.file.content}
-                          onChange={(value) => handleFileContentChange(activeTab.id, value || '')}
-                          options={{
-                            fontSize: 13,
-                            minimap: { enabled: true },
-                            scrollBeyondLastLine: false,
-                            wordWrap: 'on',
-                            automaticLayout: true,
-                            tabSize: 2,
-                            insertSpaces: true,
-                            formatOnPaste: true,
-                            formatOnType: true,
-                            renderWhitespace: 'selection',
-                            bracketPairColorization: { enabled: true },
-                            guides: {
-                              bracketPairs: true,
-                              indentation: true,
-                            },
-                            // Semantic tokens improve highlight accuracy for TS/JS
-                            'semanticHighlighting.enabled': true,
-                          }}
-                          beforeMount={(monaco) => {
-                            // Register theme only once to avoid flicker on re-renders
-                            if (!(monaco as any).__kodaThemeRegistered) {
-                              ;(monaco as any).__kodaThemeRegistered = true
-
-                              // Suppress TS/JS red-squiggles (we're not running a compiler)
-                              monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-                                noSemanticValidation: true,
-                                noSyntaxValidation: true,
-                              })
-                              monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-                                noSemanticValidation: true,
-                                noSyntaxValidation: true,
-                              })
-
-                              // Enable JSX in TS/JS so .tsx/.jsx files get proper highlight
-                              monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-                                jsx: monaco.languages.typescript.JsxEmit.React,
-                                jsxFactory: 'React.createElement',
-                                allowNonTsExtensions: true,
-                                allowJs: true,
-                              })
-                              monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-                                jsx: monaco.languages.typescript.JsxEmit.React,
-                                allowNonTsExtensions: true,
-                              })
-
-                              // Define Koda dark theme — token rules cover all major grammars
-                              monaco.editor.defineTheme('koda-dark', {
-                                base: 'vs-dark',
-                                inherit: true,
-                                rules: [
-                                  // Comments
-                                  { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
-                                  { token: 'comment.doc', foreground: '608B4E', fontStyle: 'italic' },
-                                  // Keywords
-                                  { token: 'keyword', foreground: 'C586C0' },
-                                  { token: 'keyword.control', foreground: 'C586C0' },
-                                  { token: 'keyword.operator', foreground: 'D4D4D4' },
-                                  { token: 'keyword.other', foreground: 'C586C0' },
-                                  // Storage / modifier keywords
-                                  { token: 'storage', foreground: 'C586C0' },
-                                  { token: 'storage.type', foreground: '569CD6' },
-                                  { token: 'storage.modifier', foreground: '569CD6' },
-                                  // Strings
-                                  { token: 'string', foreground: 'CE9178' },
-                                  { token: 'string.escape', foreground: 'D7BA7D' },
-                                  { token: 'string.regexp', foreground: 'D16969' },
-                                  // Numbers
-                                  { token: 'number', foreground: 'B5CEA8' },
-                                  { token: 'number.float', foreground: 'B5CEA8' },
-                                  { token: 'number.hex', foreground: 'B5CEA8' },
-                                  // Regexp
-                                  { token: 'regexp', foreground: 'D16969' },
-                                  // Types & Classes
-                                  { token: 'type', foreground: '4EC9B0' },
-                                  { token: 'type.identifier', foreground: '4EC9B0' },
-                                  { token: 'class', foreground: '4EC9B0' },
-                                  { token: 'class.name', foreground: '4EC9B0' },
-                                  { token: 'interface', foreground: '4EC9B0' },
-                                  { token: 'enum', foreground: '4EC9B0' },
-                                  { token: 'struct', foreground: '4EC9B0' },
-                                  { token: 'namespace', foreground: '4EC9B0' },
-                                  // Functions
-                                  { token: 'function', foreground: 'DCDCAA' },
-                                  { token: 'function.call', foreground: 'DCDCAA' },
-                                  { token: 'entity.name.function', foreground: 'DCDCAA' },
-                                  { token: 'support.function', foreground: 'DCDCAA' },
-                                  // Variables & Parameters
-                                  { token: 'variable', foreground: '9CDCFE' },
-                                  { token: 'variable.other', foreground: '9CDCFE' },
-                                  { token: 'variable.parameter', foreground: '9CDCFE' },
-                                  { token: 'parameter', foreground: '9CDCFE' },
-                                  // Constants
-                                  { token: 'constant', foreground: '4FC1FF' },
-                                  { token: 'constant.language', foreground: '569CD6' },
-                                  { token: 'constant.numeric', foreground: 'B5CEA8' },
-                                  // Annotations / Decorators
-                                  { token: 'annotation', foreground: 'DCDCAA' },
-                                  { token: 'decorator', foreground: 'DCDCAA' },
-                                  { token: 'metatag', foreground: 'DCDCAA' },
-                                  // Operators & Delimiters
-                                  { token: 'operator', foreground: 'D4D4D4' },
-                                  { token: 'delimiter', foreground: 'D4D4D4' },
-                                  { token: 'delimiter.bracket', foreground: 'D4D4D4' },
-                                  { token: 'delimiter.parenthesis', foreground: 'D4D4D4' },
-                                  // Punctuation
-                                  { token: 'punctuation', foreground: 'D4D4D4' },
-                                  // HTML / XML / JSX tags
-                                  { token: 'tag', foreground: '569CD6' },
-                                  { token: 'tag.id', foreground: '569CD6' },
-                                  { token: 'tag.class', foreground: '569CD6' },
-                                  { token: 'attribute.name', foreground: '9CDCFE' },
-                                  { token: 'attribute.value', foreground: 'CE9178' },
-                                  { token: 'metatag.html', foreground: 'C586C0' },
-                                  // CSS specific
-                                  { token: 'attribute', foreground: '9CDCFE' },
-                                  { token: 'property', foreground: '9CDCFE' },
-                                  { token: 'unit', foreground: 'B5CEA8' },
-                                  // Markdown
-                                  { token: 'strong', fontStyle: 'bold' },
-                                  { token: 'emphasis', fontStyle: 'italic' },
-                                ],
-                                colors: {
-                                  'editor.background': '#141414',
-                                  'editor.foreground': '#D4D4D4',
-                                  'editor.lineHighlightBackground': '#1A1A1A',
-                                  'editor.lineHighlightBorder': '#00000000',
-                                  'editorLineNumber.foreground': '#4A4A4A',
-                                  'editorLineNumber.activeForeground': '#C6C6C6',
-                                  'editor.selectionBackground': '#264F78',
-                                  'editor.inactiveSelectionBackground': '#3A3D41',
-                                  'editor.selectionHighlightBackground': '#2D2D2D',
-                                  'editor.wordHighlightBackground': '#575757B8',
-                                  'editor.wordHighlightStrongBackground': '#004972B8',
-                                  'editorCursor.foreground': '#AEAFAD',
-                                  'editorWhitespace.foreground': '#3A3A3A',
-                                  'editorIndentGuide.background': '#404040',
-                                  'editorIndentGuide.activeBackground': '#707070',
-                                  'editorBracketMatch.background': '#0064001A',
-                                  'editorBracketMatch.border': '#888888',
-                                  'editorGutter.background': '#141414',
-                                  'scrollbarSlider.background': '#79797966',
-                                  'scrollbarSlider.hoverBackground': '#646464B3',
-                                  'scrollbarSlider.activeBackground': '#BFBFBF66',
-                                },
-                              })
-                            }
-                          }}
-                          onMount={(editor, monaco) => {
-                            monaco.editor.setTheme('koda-dark')
-
-                            // Add Ctrl+S keybinding
-                            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-                              saveFileContent(activeTab.id)
-                            })
-                          }}
-                        />
-                      )
-                    ) : activeTab.type === 'browser' ? (
-                      <BrowserPreview onClose={onBrowserClose || (() => {})} />
-                    ) : activeTab.type === 'markdown-preview' && activeTab.file ? (
-                      <MarkdownWebview content={activeTab.file.content} filePath={activeTab.file.path} />
-                    ) : activeTab.type === 'video' && activeTab.videoPath ? (
-                      <VideoPlayer path={activeTab.videoPath} />
-                    ) : activeTab.type === 'image' && activeTab.imagePath ? (
-                      <ImageViewer path={activeTab.imagePath} />
-                    ) : null}
-                  </div>
-
-                  {/* Terminal Split Resize Handle */}
-                  {showTerminal && (
-                    <div
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        const startY = e.clientY
-                        const startHeight = terminalHeight
-
-                        const handleMouseMove = (moveEvent: MouseEvent) => {
-                          const deltaY = startY - moveEvent.clientY // Inverted because we're dragging up
-                          const newHeight = Math.max(100, Math.min(600, startHeight + deltaY))
-                          setTerminalHeight(newHeight)
-                        }
-
-                        const handleMouseUp = () => {
-                          document.removeEventListener('mousemove', handleMouseMove)
-                          document.removeEventListener('mouseup', handleMouseUp)
-                        }
-
-                        document.addEventListener('mousemove', handleMouseMove)
-                        document.addEventListener('mouseup', handleMouseUp)
-                      }}
-                      className="h-1 w-full cursor-row-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-white/5 hover:bg-indigo-500/50"
-                    ></div>
-                  )}
-
-                  {/* Terminal Panel Below Editor/Browser */}
-                  {showTerminal && (
-                    <div className="shrink-0 relative" style={{ height: `${terminalHeight}px` }}>
-                      <TerminalPanel onClose={onTerminalClose || (() => {})} cwd={cwd} />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <svg
-                    width="220"
-                    height="220"
-                    viewBox="0 0 200 200"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="text-slate-700 opacity-30"
+                    Terminal
+                  </button>
+                )}
+                {showBrowser && (
+                  <button
+                    onClick={() => setBottomTab('preview')}
+                    className={`text-[10px] font-medium px-2 py-1 rounded-md transition-colors ${
+                      bottomTab === 'preview'
+                        ? 'bg-white/10 text-slate-100 ring-1 ring-white/15'
+                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                    }`}
                   >
-                    <circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" strokeWidth="4" />
-                    <ellipse
-                      cx="97"
-                      cy="70"
-                      rx="9"
-                      ry="16"
-                      fill="none"
+                    Preview
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (bottomTab === 'terminal') onTerminalClose?.()
+                    else onBrowserClose?.()
+                  }}
+                  className="ml-auto p-1 rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-colors"
+                  title="Close panel"
+                >
+                  <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M1.5 1.5l9 9M10.5 1.5l-9 9"
                       stroke="currentColor"
-                      strokeWidth="3"
-                      transform="rotate(-8 97 70)"
-                    />
-                    <ellipse
-                      cx="128"
-                      cy="70"
-                      rx="9"
-                      ry="16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      transform="rotate(-8 128 70)"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
                     />
                   </svg>
-                </div>
-              )}
-            </div>
-          </div>
+                </button>
+              </div>
 
-          {/* Editor-Chat Resize Handle — only when Editor is visible */}
-          {showEditorPanel && (
-            <div
-              onMouseDown={(e) => {
-                e.preventDefault()
-                const startX = e.clientX
-                const startWidth = chatWidth
-
-                const handleMouseMove = (moveEvent: MouseEvent) => {
-                  const deltaX = startX - moveEvent.clientX // Inverted because chat is on the right
-                  const newWidth = Math.max(300, Math.min(800, startWidth + deltaX))
-                  setChatWidth(newWidth)
-                }
-
-                const handleMouseUp = () => {
-                  document.removeEventListener('mousemove', handleMouseMove)
-                  document.removeEventListener('mouseup', handleMouseUp)
-                }
-
-                document.addEventListener('mousemove', handleMouseMove)
-                document.addEventListener('mouseup', handleMouseUp)
-              }}
-              className="w-1 cursor-col-resize transition-all z-raised shrink-0 flex items-center justify-center group bg-transparent hover:bg-indigo-500/50"
-            ></div>
-          )}
-        </>
-      )}
-
-      {/* Chat Panel — fixed width when Editor is visible, flex-1 otherwise */}
-      <div
-        className={showEditorPanel ? 'shrink-0' : 'flex-1 min-w-0'}
-        style={showEditorPanel ? { width: `${chatWidth}px` } : undefined}
-      >
-        {children}
+              <div className="flex-1 min-h-0 relative">
+                {/* Ambos ficam montados: trocar de aba não reinicia o PTY nem recarrega a página. */}
+                {showTerminal && (
+                  <div className={bottomTab === 'terminal' ? 'h-full' : 'hidden'}>
+                    <TerminalPanel onClose={onTerminalClose || (() => {})} cwd={cwd} />
+                  </div>
+                )}
+                {showBrowser && (
+                  <div className={bottomTab === 'preview' ? 'h-full' : 'hidden'}>
+                    <BrowserPreview onClose={onBrowserClose || (() => {})} />
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </div>
   )

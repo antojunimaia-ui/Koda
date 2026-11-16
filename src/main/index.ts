@@ -9,6 +9,7 @@ import { createWindow, createIDEWindow, getMainWindow, getAllWindows } from './w
 import { handleDeepLink, flushPendingDeepLink } from './deeplink.js'
 import { attachPanelsToWindow, getPanelWebContents } from './panels.js'
 import { registerAllHandlers } from './ipc/index.js'
+import { bootMark } from './boot-timing.js'
 import electronUpdater from 'electron-updater'
 import dotenv from 'dotenv'
 
@@ -100,14 +101,17 @@ function broadcastAgentUpdate(data: object) {
 // ── IPC handlers ─────────────────────────────────────────────────────────────
 
 registerAllHandlers(agents, discordRPC, getMainWindow, getAllWindows, broadcastAgentUpdate)
+bootMark('ipc handlers registrados')
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
   if (!gotSingleInstanceLock) return
+  bootMark('app ready')
   registerKodaAssetProtocol()
 
   createWindow((win) => fileWatcher.setMainWindow(win))
+  bootMark('janela criada')
   attachPanelsToWindow(getMainWindow()!)
   flushPendingDeepLink()
 

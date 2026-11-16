@@ -1,59 +1,57 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta
-    http-equiv="Content-Security-Policy"
-    content="
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
       default-src 'self';
       script-src 'self';
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      img-src 'self' data: blob:;
-      media-src 'self' data: blob:;
-      font-src 'self' data: https://fonts.gstatic.com;
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: blob: koda-asset: https://cdn.jsdelivr.net;
+      media-src 'self' data: blob: koda-asset:;
+      font-src 'self' data:;
       connect-src 'self' https://* http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*;
       worker-src 'self' blob:;
       frame-src 'self' https://* http://localhost:*;
       object-src 'none';
       base-uri 'self';
     "
-  />
-  <title>Koda</title>
-</head>
+    />
+    <title>Koda</title>
+  </head>
 
-<body>
-  <div id="root">
-    <style>
-      body {
-        margin: 0;
-        background-color: #0a0a0b;
-        overflow: hidden;
-      }
+  <body>
+    <div id="root">
+      <style>
+        body {
+          margin: 0;
+          background-color: #0a0a0b;
+          overflow: hidden;
+        }
 
-      .splash {
-        display: flex;
-        width: 100vw;
-        height: 100vh;
-        align-items: center;
-        justify-content: center;
-        background-color: #0a0a0b;
-      }
+        .splash {
+          display: flex;
+          width: 100vw;
+          height: 100vh;
+          align-items: center;
+          justify-content: center;
+          background-color: #0a0a0b;
+        }
 
-      .splash video {
-        width: 220px;
-        height: 220px;
-        object-fit: contain;
-      }
-    </style>
-    <div class="splash">
-      <video autoplay loop muted playsinline>
-        <source src="/Loading.webm" type="video/webm" />
-      </video>
+        .splash video {
+          width: 220px;
+          height: 220px;
+          object-fit: contain;
+        }
+      </style>
+      <div class="splash">
+        <video autoplay loop muted playsinline>
+          <source src="/Loading.webm" type="video/webm" />
+        </video>
+      </div>
     </div>
-  </div>
-  <script type="module" src="/src/renderer/main.tsx"></script>
-</body>
-
+    <script type="module" src="/src/renderer/main.tsx"></script>
+  </body>
 </html>

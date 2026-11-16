@@ -24,9 +24,14 @@ interface GitCommit {
 
 interface SourceControlPanelProps {
   cwd: string
-  onStartResize: (e: React.MouseEvent) => void
-  isResizing: boolean
-  width: number
+  onStartResize?: (e: React.MouseEvent) => void
+  isResizing?: boolean
+  width?: number
+  /**
+   * Embutido num quadrante do IDE: ocupa 100% do espaço e não desenha a alça de
+   * resize (quem divide é o shell). Sem `embedded`, mantém o overlay absoluto.
+   */
+  embedded?: boolean
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -124,7 +129,13 @@ const FileRow: React.FC<{
 }
 
 // ── Main Panel ───────────────────────────────────────────────────────────────
-const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartResize, isResizing, width }) => {
+const SourceControlPanel: React.FC<SourceControlPanelProps> = ({
+  cwd,
+  onStartResize,
+  isResizing,
+  width,
+  embedded = false,
+}) => {
   const [files, setFiles] = useState<GitFile[]>([])
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -218,7 +229,7 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
     const totalH = innerRef.current?.getBoundingClientRect().height ?? 1
     const onMove = (ev: MouseEvent) => {
       const delta = ((ev.clientY - startY) / totalH) * 100
-      setScHeight(Math.min(80, Math.max(20, startPct + delta)))
+      setScHeight(Math.min(100, Math.max(0, startPct + delta)))
     }
     const onUp = () => {
       setIsDraggingDivider(false)
@@ -320,22 +331,34 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
     },
   ]
 
+  // O popover de commit vive preso à direita do painel quando é overlay; no
+  // quadrante embutido ele abre para a direita, sobre o chat.
+  const popoverPosition: React.CSSProperties = embedded
+    ? { left: 8, width: 460, maxHeight: 480 }
+    : { right: (width ?? 0) + 8, width: 480, maxHeight: 480 }
+
   return (
     <div
       ref={panelRef}
-      className="mui-panel mui-hairline-l absolute top-8 bottom-0 right-0 flex z-panel"
-      style={{ width }}
+      className={
+        embedded
+          ? 'relative flex w-full h-full min-h-0 min-w-0'
+          : 'mui-panel mui-hairline-l absolute top-8 bottom-0 right-0 flex z-panel'
+      }
+      style={embedded ? undefined : { width }}
     >
-      {/* Resize handle */}
-      <div
-        onMouseDown={onStartResize}
-        className={`w-1 h-full cursor-col-resize shrink-0 transition-colors ${isResizing ? 'bg-indigo-500' : 'bg-transparent hover:bg-indigo-500/50'}`}
-      />
+      {/* Resize handle — só no modo overlay */}
+      {!embedded && (
+        <div
+          onMouseDown={onStartResize}
+          className={`w-1 h-full cursor-col-resize shrink-0 transition-colors ${isResizing ? 'bg-indigo-500' : 'bg-transparent hover:bg-indigo-500/50'}`}
+        />
+      )}
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <div className="mui-hairline-b flex items-center justify-between px-3 py-2 shrink-0">
-          <span className="mui-eyebrow">Source Control</span>
+        <div className="mui-hairline-b flex items-center justify-between px-3 h-8 shrink-0">
+          <span className="mui-eyebrow">{embedded ? 'Changes' : 'Source Control'}</span>
           <button
             onClick={refresh}
             className="w-5 h-5 flex items-center justify-center rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
@@ -685,13 +708,11 @@ const SourceControlPanel: React.FC<SourceControlPanelProps> = ({ cwd, onStartRes
           onMouseLeave={handlePopoverMouseLeave}
           className="mui-card absolute flex flex-col z-dropdown animate-in fade-in duration-100"
           style={{
-            right: width + 8,
+            ...popoverPosition,
             top: Math.min(
               Math.max(8, hoveredCommit.y - 16),
               (panelRef.current?.getBoundingClientRect().height ?? window.innerHeight) - popoverHeight - 8,
             ),
-            width: 480,
-            maxHeight: 480,
           }}
         >
           {/* Author + date row */}

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { getIconForFile } from 'vscode-icons-js'
 
 export const IconChevron: React.FC<{ open: boolean }> = ({ open }) => (
@@ -59,6 +59,44 @@ export const getFileIcon = (filename: string) => {
       className="flex-shrink-0"
       alt={filename}
       style={{ objectFit: 'contain' }}
+    />
+  )
+}
+
+/**
+ * Ícone de arquivo com fallback: usa o CDN do vscode-icons e, se a imagem
+ * falhar (rede/CSP), troca para o SVG de arquivo genérico em vez de sumir.
+ */
+export const FileIcon: React.FC<{
+  filename?: string
+  /** Nome de ícone já resolvido (ex.: tab.icon). Se ausente, resolve de filename. */
+  icon?: string
+  size?: number
+  className?: string
+}> = ({ filename, icon, size = 16, className }) => {
+  const [failed, setFailed] = useState(false)
+  const iconName = icon ?? (filename ? getIconForFile(filename) : 'default_file.svg')
+
+  if (failed || !iconName) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none" className={`flex-shrink-0 ${className ?? ''}`}>
+        <path
+          d="M28 4H14L10 8H4C2.9 8 2 8.9 2 10V26C2 27.1 2.9 28 4 28H28C29.1 28 30 27.1 30 26V6C30 4.9 29.1 4 28 4Z"
+          fill="#6B7280"
+        />
+      </svg>
+    )
+  }
+
+  return (
+    <img
+      src={`https://cdn.jsdelivr.net/gh/vscode-icons/vscode-icons/icons/${iconName}`}
+      width={size}
+      height={size}
+      className={`flex-shrink-0 ${className ?? ''}`}
+      alt={filename ?? iconName}
+      style={{ objectFit: 'contain' }}
+      onError={() => setFailed(true)}
     />
   )
 }
