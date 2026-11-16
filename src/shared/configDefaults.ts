@@ -33,32 +33,121 @@ export const LLM_PROVIDER_IDS = [
 
 export type LLMProvider = (typeof LLM_PROVIDER_IDS)[number]
 
+export type ProviderKind = 'remote' | 'local'
+export type ProviderCredential = 'apiKey' | 'baseUrl' | 'none'
+
 export interface ProviderInfo {
   id: LLMProvider
   name: string
+  /** Provider remoto (requer API key) ou local (endpoint na máquina). */
+  kind: ProviderKind
+  /** Como a UI coleta a credencial do provider. */
+  credential: ProviderCredential
   requiresKey: boolean
   placeholder: string
+  /** URL base padrão (útil para providers locais e Koda Cloud). */
+  defaultBaseUrl?: string
 }
 
 export const PROVIDERS: ProviderInfo[] = [
-  { id: 'google', name: 'Google Gemini', requiresKey: true, placeholder: 'AIzaSy...' },
-  { id: 'openai', name: 'OpenAI', requiresKey: true, placeholder: 'sk-proj-...' },
-  { id: 'anthropic', name: 'Anthropic', requiresKey: true, placeholder: 'sk-ant-...' },
-  { id: 'openrouter', name: 'OpenRouter', requiresKey: true, placeholder: 'sk-or-v1-...' },
-  { id: 'deepseek', name: 'DeepSeek', requiresKey: true, placeholder: 'sk-...' },
-  { id: 'groq', name: 'Groq', requiresKey: true, placeholder: 'gsk_...' },
-  { id: 'mistral', name: 'Mistral AI', requiresKey: true, placeholder: '...' },
-  { id: 'together', name: 'Together AI', requiresKey: true, placeholder: '...' },
-  { id: 'xai', name: 'xAI (Grok)', requiresKey: true, placeholder: '...' },
-  { id: 'fireworks', name: 'Fireworks AI', requiresKey: true, placeholder: '...' },
-  { id: 'zhipu', name: 'Zhipu AI', requiresKey: true, placeholder: '...' },
-  { id: 'maritaca', name: 'Maritaca AI', requiresKey: true, placeholder: '...' },
-  { id: 'opencode-zen', name: 'OpenCode Zen', requiresKey: true, placeholder: 'opencode_...' },
-  { id: 'inception', name: 'Inception Labs', requiresKey: true, placeholder: 'inception_...' },
-  { id: 'ollama', name: 'Ollama (Local)', requiresKey: false, placeholder: 'Optional API key...' },
-  { id: 'llamacpp', name: 'Llama.cpp (Local)', requiresKey: false, placeholder: 'Optional API key...' },
-  { id: 'koda-cloud', name: 'Koda Cloud', requiresKey: false, placeholder: 'Cloud handles keys' },
+  {
+    id: 'google',
+    name: 'Google Gemini',
+    kind: 'remote',
+    credential: 'apiKey',
+    requiresKey: true,
+    placeholder: 'AIzaSy...',
+  },
+  { id: 'openai', name: 'OpenAI', kind: 'remote', credential: 'apiKey', requiresKey: true, placeholder: 'sk-proj-...' },
+  {
+    id: 'anthropic',
+    name: 'Anthropic',
+    kind: 'remote',
+    credential: 'apiKey',
+    requiresKey: true,
+    placeholder: 'sk-ant-...',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    kind: 'remote',
+    credential: 'apiKey',
+    requiresKey: true,
+    placeholder: 'sk-or-v1-...',
+  },
+  { id: 'deepseek', name: 'DeepSeek', kind: 'remote', credential: 'apiKey', requiresKey: true, placeholder: 'sk-...' },
+  { id: 'groq', name: 'Groq', kind: 'remote', credential: 'apiKey', requiresKey: true, placeholder: 'gsk_...' },
+  { id: 'mistral', name: 'Mistral AI', kind: 'remote', credential: 'apiKey', requiresKey: true, placeholder: '...' },
+  { id: 'together', name: 'Together AI', kind: 'remote', credential: 'apiKey', requiresKey: true, placeholder: '...' },
+  { id: 'xai', name: 'xAI (Grok)', kind: 'remote', credential: 'apiKey', requiresKey: true, placeholder: '...' },
+  {
+    id: 'fireworks',
+    name: 'Fireworks AI',
+    kind: 'remote',
+    credential: 'apiKey',
+    requiresKey: true,
+    placeholder: '...',
+  },
+  { id: 'zhipu', name: 'Zhipu AI', kind: 'remote', credential: 'apiKey', requiresKey: true, placeholder: '...' },
+  { id: 'maritaca', name: 'Maritaca AI', kind: 'remote', credential: 'apiKey', requiresKey: true, placeholder: '...' },
+  {
+    id: 'opencode-zen',
+    name: 'OpenCode Zen',
+    kind: 'remote',
+    credential: 'apiKey',
+    requiresKey: true,
+    placeholder: 'opencode_...',
+  },
+  {
+    id: 'inception',
+    name: 'Inception Labs',
+    kind: 'remote',
+    credential: 'apiKey',
+    requiresKey: true,
+    placeholder: 'inception_...',
+  },
+  {
+    id: 'ollama',
+    name: 'Ollama (Local)',
+    kind: 'local',
+    credential: 'apiKey',
+    requiresKey: false,
+    placeholder: 'Optional API key...',
+    defaultBaseUrl: 'http://localhost:11434',
+  },
+  {
+    id: 'llamacpp',
+    name: 'Llama.cpp (Local)',
+    kind: 'local',
+    credential: 'apiKey',
+    requiresKey: false,
+    placeholder: 'Optional API key...',
+    defaultBaseUrl: 'http://localhost:8080',
+  },
+  {
+    id: 'koda-cloud',
+    name: 'Koda Cloud',
+    kind: 'remote',
+    credential: 'baseUrl',
+    requiresKey: false,
+    placeholder: 'Cloud handles keys',
+    defaultBaseUrl: '',
+  },
 ]
+
+/** Retorna o registro de um provider pelo id (undefined se não existir). */
+export function getProvider(id: string): ProviderInfo | undefined {
+  return PROVIDERS.find((p) => p.id === id)
+}
+
+/** Providers que não exigem API key (locais ou gerenciados). */
+export const NO_KEY_PROVIDERS: LLMProvider[] = PROVIDERS.filter((p) => !p.requiresKey).map((p) => p.id)
+
+/** Providers locais (inferência na máquina do usuário). */
+export const LOCAL_PROVIDERS: ProviderInfo[] = PROVIDERS.filter((p) => p.kind === 'local')
+
+/** Providers remotos (exigem API key). */
+export const REMOTE_PROVIDERS: ProviderInfo[] = PROVIDERS.filter((p) => p.kind === 'remote')
 
 export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   openai: 'gpt-4o',

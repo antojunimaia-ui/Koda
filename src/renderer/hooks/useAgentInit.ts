@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Workspace, KodaSettings } from '../types/index.js'
 import { KoDB } from '../db/kodb.js'
 import { loadWorkspaces, loadActiveWorkspaceId } from '../utils/workspace-persistence.js'
+import { NO_KEY_PROVIDERS } from '../../shared/configDefaults.js'
 
 interface UseAgentInitOptions {
   workspaces: Workspace[]
@@ -54,7 +55,7 @@ export function useAgentInit({
     try {
       const config = KoDB.get('providersConfig')
       Object.entries(config).forEach(([provId, data]: [string, any]) => {
-        const noKeyRequired = ['koda-cloud', 'ollama', 'llamacpp'].includes(provId)
+        const noKeyRequired = NO_KEY_PROVIDERS.includes(provId as (typeof NO_KEY_PROVIDERS)[number])
         if (noKeyRequired || !!data.apiKey) fetchModelsForProvider(provId, data.apiKey)
       })
     } catch (e) {

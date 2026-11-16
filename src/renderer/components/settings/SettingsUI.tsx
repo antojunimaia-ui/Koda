@@ -6,7 +6,12 @@ import RemoteControlTab from './RemoteControlTab.js'
 import SkillMarketplace from './SkillMarketplace.js'
 import OnboardingTour from '../modern/OnboardingTour.js'
 import { KoDB } from '../../db/kodb.js'
-import { DEFAULT_MODELS, PROVIDERS as PROVIDER_LIST } from '../../../shared/configDefaults.js'
+import {
+  DEFAULT_MODELS,
+  getProvider,
+  NO_KEY_PROVIDERS,
+  PROVIDERS as PROVIDER_LIST,
+} from '../../../shared/configDefaults.js'
 import tokyoNight from '../../themes/tokyo-night.json'
 import monokai from '../../themes/monokai.json'
 import cyberpunk from '../../themes/cyberpunk.json'
@@ -113,16 +118,17 @@ const SettingsUI = memo(
     useEffect(() => {
       // Skip if models already loaded for this provider
       if (loadedModels[provider]) return
-      const keyToUse = provider === 'koda-cloud' ? kodaCloudBaseUrl : apiKey
-      if (!keyToUse && !['openrouter', 'opencode-zen', 'ollama', 'llamacpp', 'koda-cloud'].includes(provider)) {
+      const keyToUse = getProvider(provider)?.credential === 'baseUrl' ? kodaCloudBaseUrl : apiKey
+      if (!keyToUse && !NO_KEY_PROVIDERS.includes(provider as (typeof NO_KEY_PROVIDERS)[number])) {
         return
       }
       fetchModelsForProvider(provider, keyToUse)
     }, [provider, apiKey, kodaCloudBaseUrl, fetchModelsForProvider, loadedModels])
 
     const handleFetchModels = (provId: string) => {
-      const key = provId === 'koda-cloud' ? kodaCloudBaseUrl : providersConfig[provId]?.apiKey || ''
-      const requiresKey = !['openrouter', 'opencode-zen', 'ollama', 'llamacpp', 'koda-cloud'].includes(provId)
+      const key =
+        getProvider(provId)?.credential === 'baseUrl' ? kodaCloudBaseUrl : providersConfig[provId]?.apiKey || ''
+      const requiresKey = !NO_KEY_PROVIDERS.includes(provId as (typeof NO_KEY_PROVIDERS)[number])
       if (requiresKey && !key) {
         return
       }
@@ -305,8 +311,8 @@ const SettingsUI = memo(
                           : 'text-[9px] font-bold text-cyan bg-cyan/10 px-1 py-0.5 rounded border border-cyan/20'
 
                         const inputClass = isModern
-                          ? `mui-field mui-field--mono ${p.id === 'koda-cloud' ? 'opacity-20 cursor-not-allowed' : ''}`
-                          : `w-full bg-slate-800 border border-slate-700 text-white rounded-md px-2 py-1 outline-none focus:border-cyan transition-colors font-mono text-[11px] ${p.id === 'koda-cloud' ? 'opacity-30 cursor-not-allowed' : ''}`
+                          ? `mui-field mui-field--mono ${p.credential === 'baseUrl' ? 'opacity-20 cursor-not-allowed' : ''}`
+                          : `w-full bg-slate-800 border border-slate-700 text-white rounded-md px-2 py-1 outline-none focus:border-cyan transition-colors font-mono text-[11px] ${p.credential === 'baseUrl' ? 'opacity-30 cursor-not-allowed' : ''}`
 
                         const selectClass = isModern
                           ? 'mui-select custom-scrollbar'
@@ -326,7 +332,7 @@ const SettingsUI = memo(
 
                             {/* API Key / Base URL Input */}
                             <div className="col-span-5 relative">
-                              {p.id === 'koda-cloud' ? (
+                              {p.credential === 'baseUrl' ? (
                                 <div className="relative">
                                   <input
                                     type="text"
